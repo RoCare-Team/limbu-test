@@ -27,6 +27,8 @@ export default function BusinessQR() {
   const [submittedRatings, setSubmittedRatings] = useState([]);
 
 
+
+
   // ------------------------- GET BUSINESS FROM LOCALSTORAGE -------------------------
   const getLocalBusinessTitle = () => {
     try {
@@ -190,6 +192,40 @@ export default function BusinessQR() {
   };
 
 
+  console.log("businessbusiness",business);
+
+
+ // If business NOT found → show message + redirect button
+if (!business) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+
+      <div className="bg-white shadow-xl rounded-3xl p-10 max-w-md w-full text-center border border-blue-100">
+        
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          Connect Your Business First
+        </h2>
+
+        <p className="text-gray-600 mb-8 text-lg">
+          Please connect your business before accessing the review system.
+        </p>
+
+        <button
+          onClick={() => window.location.href = "/dashboard"}
+          className="px-6 py-3 bg-blue-600 text-white rounded-xl text-lg 
+                     hover:bg-blue-700 transition shadow-lg w-full font-semibold"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+
+    </div>
+  );
+}
+
+  
+
+
 
   // ------------------------- UI START -------------------------
   return (
@@ -198,13 +234,13 @@ export default function BusinessQR() {
 
   {/* TOP BAR */}
   <div className="w-full bg-white/70 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center">
-    <button
+    {/* <button
       onClick={() => router.back()}
       className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 
                  rounded-lg shadow-sm hover:bg-gray-100 transition text-gray-700 font-medium"
     >
       ← Back
-    </button>
+    </button> */}
   </div>
 
   <div className="container mx-auto px-4 py-12">

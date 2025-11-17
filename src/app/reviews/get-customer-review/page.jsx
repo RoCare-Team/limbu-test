@@ -58,85 +58,104 @@ const router = useRouter();
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <button
-      onClick={() => router.back()}
-      className="mb-4 flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 
-                 rounded-lg shadow hover:bg-gray-100 transition text-gray-700 font-medium"
-    >
-      ← Back
-    </button>
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Customer Reviews Dashboard
-      </h1>
+ return (
+  <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-100 p-6 flex items-center justify-center">
+    
+    {/* ---------------- SHOW THIS IF BUSINESS NOT FOUND ---------------- */}
+    {!getBusinessName() && (
+      <div className="max-w-md w-full bg-white shadow-2xl rounded-3xl p-8 border border-indigo-200 animate-fadeIn">
+        <h2 className="text-2xl font-bold text-gray-800 text-center mb-3">
+          Business Not Selected
+        </h2>
 
-      {loading && (
-        <p className="text-center text-lg font-semibold text-gray-600">
-          Loading reviews...
+        <p className="text-center text-gray-600 mb-6">
+          Please confirm your business first to view customer reviews.
         </p>
-      )}
 
-      {error && (
-        <p className="text-center text-red-600 font-medium">{error}</p>
-      )}
+        <div className="flex justify-center">
+          <button
+            onClick={() => router.push("/get-magic-qr")}
+            className="px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-700 
+                       text-white font-semibold shadow-md transition transform hover:scale-105"
+          >
+            Go to Get Magic QR
+          </button>
+        </div>
+      </div>
+    )}
 
-      <div className="mt-6 max-w-2xl mx-auto space-y-4">
-        {reviews.length === 0 && !loading && (
-          <p className="text-center text-gray-500">No reviews found.</p>
+    {/* ---------------- IF BUSINESS FOUND → SHOW REVIEWS ---------------- */}
+    {getBusinessName() && (
+      <div className="w-full">
+        {loading && (
+          <p className="text-center text-lg font-semibold text-gray-600">
+            Loading reviews...
+          </p>
         )}
 
-        {reviews.map((r) => (
-          <div
-            key={r._id}
-            className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-gray-500 font-semibold text-sm">Name</p>
-                <p className="text-gray-900 font-medium">
-                  {r.name || "Anonymous User"}
-                </p>
-              </div>
+        {error && (
+          <p className="text-center text-red-600 font-medium">{error}</p>
+        )}
 
-              <div>
-                <p className="text-gray-500 font-semibold text-sm">Business</p>
-                <p className="text-indigo-600 font-medium">
-                  {r.business || "Not Provided"}
-                </p>
-              </div>
+        <div className="mt-6 max-w-2xl mx-auto space-y-4">
+          {reviews.length === 0 && !loading && (
+            <p className="text-center text-gray-500">No reviews found.</p>
+          )}
 
-              <div>
-                <p className="text-gray-500 font-semibold text-sm">Rating</p>
-                <div className="flex">
-                  {Array.from({ length: r.rating }).map((_, i) => (
-                    <Star
-                      key={i}
-                      size={20}
-                      className="text-yellow-500"
-                      fill="currentColor"
-                    />
-                  ))}
+          {reviews.map((r) => (
+            <div
+              key={r._id}
+              className="bg-white p-5 rounded-xl shadow border hover:shadow-lg transition"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-gray-500 font-semibold text-sm">Name</p>
+                  <p className="text-gray-900 font-medium">
+                    {r.name || "Anonymous User"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 font-semibold text-sm">Business</p>
+                  <p className="text-indigo-600 font-medium">
+                    {r.business || "Not Provided"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 font-semibold text-sm">Rating</p>
+                  <div className="flex">
+                    {Array.from({ length: r.rating }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={20}
+                        className="text-yellow-500"
+                        fill="currentColor"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 font-semibold text-sm">Date</p>
+                  <p className="text-gray-700">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <p className="text-gray-500 font-semibold text-sm">Date</p>
+              <div className="mt-4">
+                <p className="text-gray-500 font-semibold text-sm">Feedback</p>
                 <p className="text-gray-700">
-                  {new Date(r.createdAt).toLocaleString()}
+                  {r.feedback || "No feedback given"}
                 </p>
               </div>
             </div>
-
-            <div className="mt-4">
-              <p className="text-gray-500 font-semibold text-sm">Feedback</p>
-              <p className="text-gray-700">
-                {r.feedback || "No feedback given"}
-              </p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
+
 }
