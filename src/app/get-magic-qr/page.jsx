@@ -207,7 +207,7 @@ if (!business) {
         </h2>
 
         <p className="text-gray-600 mb-8 text-lg">
-          Please connect your business before accessing the review system.
+          Please connect your business before accessing the Our Magic review system.
         </p>
 
         <button
