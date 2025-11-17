@@ -16,9 +16,17 @@ export default function UserManagement() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [fullViewImage, setFullViewImage] = useState(null);
   const [connectedBusinessUsers, setConnectedBusinessUsers] = useState([]);
+  const [updatingWallet, setUpdatingWallet] = useState(false);
+  const [walletModalUser, setWalletModalUser] = useState(null);
+  const [walletUpdate, setWalletUpdate] = useState({ amount: "", type: "credit", reason: "" });
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterPlan, setFilterPlan] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterDate, setFilterDate] = useState("All");
 
@@ -47,12 +55,12 @@ export default function UserManagement() {
       );
     }
 
-    if (filterPlan !== "All") {
-      result = result.filter((user) => user.subscription?.plan === filterPlan);
-    }
-
     if (filterStatus !== "All") {
-      result = result.filter((user) => user.subscription?.status === filterStatus);
+      if (filterStatus === "active") {
+        result = result.filter((user) => isUserConnected(user.email));
+      } else if (filterStatus === "inactive") {
+        result = result.filter((user) => !isUserConnected(user.email));
+      }
     }
 
     if (filterDate !== "All") {
@@ -84,7 +92,7 @@ export default function UserManagement() {
     }
 
     setFilteredUsers(result);
-  }, [searchQuery, filterPlan, filterStatus, filterDate, users]);
+  }, [searchQuery, filterStatus, filterDate, users, connectedBusinessUsers]);
 
   useEffect(() => {
     const total = users.length;
@@ -225,9 +233,57 @@ export default function UserManagement() {
     }
   };
 
+  const handleOpenWalletModal = (user) => {
+    setWalletModalUser(user);
+    setWalletUpdate({ amount: "", type: "credit", reason: "" });
+  };
+
+  const handleUpdateWallet = async () => {
+    if (!walletModalUser || !walletUpdate.amount || !walletUpdate.reason) {
+      showToast("Please fill in all fields", "error");
+      return;
+    }
+
+    const amount = parseFloat(walletUpdate.amount);
+    if (isNaN(amount) || amount <= 0) {
+      showToast("Please enter a valid amount", "error");
+      return;
+    }
+
+    setUpdatingWallet(true);
+
+    try {
+      const walletRes = await fetch(`/api/auth/signup?userId=${walletModalUser.userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amount,
+          type: walletUpdate.type === "credit" ? "add" : "deduct",
+          reason: walletUpdate.reason
+        }),
+      });
+
+      const walletData = await walletRes.json();
+      
+      if (walletData.message || walletData.success) {
+        const newBalance = walletData.wallet || walletData.newBalance;
+        showToast(`${walletData.message || "Wallet updated successfully"}! New balance: ${newBalance} coins`, "success");
+        setWalletModalUser(null);
+        setWalletUpdate({ amount: "", type: "credit", reason: "" });
+        fetchUsers();
+      } else {
+        showToast(walletData.error || "Failed to update wallet", "error");
+      }
+    } catch (err) {
+      console.error("Error updating wallet:", err);
+      showToast("An error occurred while updating the wallet", "error");
+    } finally {
+      setUpdatingWallet(false);
+    }
+  };
+
   const clearFilters = () => {
     setSearchQuery("");
-    setFilterPlan("All");
     setFilterStatus("All");
     setFilterDate("All");
   };
@@ -246,6 +302,50 @@ export default function UserManagement() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-[100] animate-in slide-in-from-top-5">
+          <div
+            className={`px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 min-w-[300px] ${
+              toast.type === "success"
+                ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                : "bg-gradient-to-r from-red-500 to-rose-500 text-white"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            )}
+            <div className="flex-1">
+              <p className="font-semibold text-sm">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="hover:bg-white/10 rounded-full p-1 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -277,43 +377,49 @@ export default function UserManagement() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 shadow-lg border border-gray-200">
+          <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-2xl p-6 shadow-lg border border-emerald-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Basic Plan</p>
-                <p className="text-3xl font-bold text-gray-700 mt-1">{stats.basic}</p>
+                <p className="text-emerald-700 text-sm font-medium">Total Wallet</p>
+                <p className="text-3xl font-bold text-emerald-800 mt-1">
+                  {users.reduce((sum, u) => sum + (u.wallet || 0), 0)}
+                </p>
               </div>
-              <Shield className="text-gray-600" size={24} />
+              <Wallet className="text-emerald-600" size={24} />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200">
+          {/* <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-700 text-sm font-medium">Standard Plan</p>
-                <p className="text-3xl font-bold text-blue-800 mt-1">{stats.standard}</p>
+                <p className="text-blue-700 text-sm font-medium">Connected Users</p>
+                <p className="text-3xl font-bold text-blue-800 mt-1">{connectedBusinessUsers.length}</p>
               </div>
-              <Zap className="text-blue-600" size={24} />
+              <Shield className="text-blue-600" size={24} />
             </div>
-          </div>
+          </div> */}
 
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-lg border border-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-700 text-sm font-medium">Premium Plan</p>
-                <p className="text-3xl font-bold text-purple-800 mt-1">{stats.premium}</p>
+                <p className="text-purple-700 text-sm font-medium">New user Today</p>
+                <p className="text-3xl font-bold text-purple-800 mt-1">
+                  {users.filter(u => u.createdAt && new Date(u.createdAt).toDateString() === new Date().toDateString()).length}
+                </p>
               </div>
-              <Crown className="text-purple-600" size={24} />
+              <Calendar className="text-purple-600" size={24} />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-lg border border-green-200">
+          <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl p-6 shadow-lg border border-pink-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-700 text-sm font-medium">Paid Users</p>
-                <p className="text-3xl font-bold text-green-800 mt-1">{stats.active}</p>
+                <p className="text-pink-700 text-sm font-medium">Avg. Wallet</p>
+                <p className="text-3xl font-bold text-pink-800 mt-1">
+                  {users.length > 0 ? Math.round(users.reduce((sum, u) => sum + (u.wallet || 0), 0) / users.length) : 0}
+                </p>
               </div>
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <Zap className="text-pink-600" size={24} />
             </div>
           </div>
         </div>
@@ -332,28 +438,14 @@ export default function UserManagement() {
             </div>
 
             <div className="relative">
-              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <select
-                value={filterPlan}
-                onChange={(e) => setFilterPlan(e.target.value)}
-                className="pl-11 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer min-w-[150px]"
-              >
-                <option value="All">All Plans</option>
-                <option value="Basic">Basic</option>
-                <option value="Standard">Standard</option>
-                <option value="Premium">Premium</option>
-              </select>
-            </div>
-
-            <div className="relative">
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer min-w-[150px]"
               >
                 <option value="All">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">Connected</option>
+                <option value="inactive">Not Connected</option>
               </select>
             </div>
 
@@ -372,7 +464,7 @@ export default function UserManagement() {
               </select>
             </div>
 
-            {(searchQuery || filterPlan !== "All" || filterStatus !== "All" || filterDate !== "All") && (
+            {(searchQuery || filterStatus !== "All" || filterDate !== "All") && (
               <button
                 onClick={clearFilters}
                 className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all flex items-center gap-2 whitespace-nowrap"
@@ -398,13 +490,9 @@ export default function UserManagement() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Info</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Name</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Plan</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Wallet</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Subscribed</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Expiry Date</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -446,49 +534,20 @@ export default function UserManagement() {
                         )}
                       </div>
                     </td>
+                    
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {user.subscription?.plan === "Premium" && <Crown size={16} className="text-purple-600" />}
-                        {user.subscription?.plan === "Standard" && <Zap size={16} className="text-blue-600" />}
-                        {user.subscription?.plan === "Basic" && <Shield size={16} className="text-gray-600" />}
-                        <span
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                            user.subscription?.plan === "Premium"
-                              ? "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700"
-                              : user.subscription?.plan === "Standard"
-                              ? "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
+                        <button
+                          onClick={() => handleOpenWalletModal(user)}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 rounded-lg hover:from-emerald-100 hover:to-green-100 transition-all border border-emerald-200"
                         >
-                          {user.subscription?.plan || "N/A"}
-                        </span>
+                          <Wallet size={16} />
+                          <span className="font-bold text-base">{user.wallet || 0}</span>
+                          <span className="text-xs font-medium">coins</span>
+                        </button>
                       </div>
                     </td>
 
-                     <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        {user.wallet && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Wallet size={14} className="text-gray-400" />
-                            {user.wallet}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                          user.subscription?.status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        <div className={`w-2 h-2 rounded-full ${
-                          user.subscription?.status === "active" ? "bg-green-500" : "bg-gray-500"
-                        }`}></div>
-                        {user.subscription?.status === "active" ? "Paid User" : "Free Plan"}
-                      </span>
-                    </td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
@@ -529,51 +588,6 @@ export default function UserManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar size={14} className="text-gray-400" />
-                        {user.subscription?.date
-                          ? new Date(user.subscription.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric"
-                            })
-                          : "-"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.subscription?.expiry ? (
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-gray-400" />
-                          <div>
-                            <div className={`text-sm font-medium ${
-                              new Date(user.subscription.expiry) < new Date() 
-                                ? "text-red-600" 
-                                : new Date(user.subscription.expiry) - new Date() < 7 * 24 * 60 * 60 * 1000
-                                ? "text-orange-600"
-                                : "text-gray-700"
-                            }`}>
-                              {new Date(user.subscription.expiry).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric"
-                              })}
-                            </div>
-                            {new Date(user.subscription.expiry) < new Date() ? (
-                              <span className="inline-block mt-0.5 px-2 py-0.5 text-xs text-red-700 bg-red-100 rounded-full font-semibold">
-                                Expired
-                              </span>
-                            ) : new Date(user.subscription.expiry) - new Date() < 7 * 24 * 60 * 60 * 1000 ? (
-                              <span className="inline-block mt-0.5 px-2 py-0.5 text-xs text-orange-700 bg-orange-100 rounded-full font-semibold">
-                                Expiring Soon
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400 italic">No expiry</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleViewPosts(user)}
@@ -582,13 +596,6 @@ export default function UserManagement() {
                         >
                           <Eye size={16} />
                           <span className="text-sm font-medium">View Details</span>
-                        </button>
-                        <button
-                          onClick={() => handleUpgradePlan(user)}
-                          className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all"
-                          title="Upgrade Plan"
-                        >
-                          <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user.userId)}
@@ -603,7 +610,7 @@ export default function UserManagement() {
                 ))}
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan="10" className="text-center py-12">
+                    <td colSpan="8" className="text-center py-12">
                       <div className="text-gray-400">
                         <Search size={48} className="mx-auto mb-3 opacity-50" />
                         <p className="text-lg font-medium">No users found</p>
@@ -616,6 +623,141 @@ export default function UserManagement() {
             </table>
           </div>
         </div>
+
+        {/* Wallet Update Modal */}
+        {walletModalUser && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg">
+                    <Wallet className="text-white" size={20} />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800">Update Wallet</h2>
+                </div>
+                <button
+                  onClick={() => setWalletModalUser(null)}
+                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
+                <p className="text-xs text-gray-600 mb-0.5">User</p>
+                <p className="font-semibold text-sm text-gray-800">{walletModalUser.email}</p>
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <p className="text-xs text-gray-600">Current Balance</p>
+                  <p className="text-xl font-bold text-emerald-600">{walletModalUser.wallet || 0} coins</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Transaction Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label
+                      className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        walletUpdate.type === "credit"
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="type"
+                        value="credit"
+                        checked={walletUpdate.type === "credit"}
+                        onChange={(e) => setWalletUpdate({ ...walletUpdate, type: e.target.value })}
+                        className="sr-only"
+                      />
+                      <div className="text-center">
+                        <Plus className={`mx-auto mb-0.5 ${walletUpdate.type === "credit" ? "text-green-600" : "text-gray-400"}`} size={18} />
+                        <span className={`text-sm font-semibold ${walletUpdate.type === "credit" ? "text-green-700" : "text-gray-600"}`}>
+                          Add
+                        </span>
+                      </div>
+                    </label>
+                    <label
+                      className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        walletUpdate.type === "debit"
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="type"
+                        value="debit"
+                        checked={walletUpdate.type === "debit"}
+                        onChange={(e) => setWalletUpdate({ ...walletUpdate, type: e.target.value })}
+                        className="sr-only"
+                      />
+                      <div className="text-center">
+                        <X className={`mx-auto mb-0.5 ${walletUpdate.type === "debit" ? "text-red-600" : "text-gray-400"}`} size={18} />
+                        <span className={`text-sm font-semibold ${walletUpdate.type === "debit" ? "text-red-700" : "text-gray-600"}`}>
+                          Deduct
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Amount (Coins)</label>
+                  <input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={walletUpdate.amount}
+                    onChange={(e) => setWalletUpdate({ ...walletUpdate, amount: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Reason</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., admin add by bonus"
+                    value={walletUpdate.reason}
+                    onChange={(e) => setWalletUpdate({ ...walletUpdate, reason: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+
+                {walletUpdate.amount && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-0.5">New Balance Preview</p>
+                    <p className="text-lg font-bold text-indigo-600">
+                      {walletUpdate.type === "credit"
+                        ? (parseFloat(walletModalUser.wallet || 0) + parseFloat(walletUpdate.amount || 0)).toFixed(2)
+                        : (parseFloat(walletModalUser.wallet || 0) - parseFloat(walletUpdate.amount || 0)).toFixed(2)}{" "}
+                      coins
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setWalletModalUser(null)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateWallet}
+                  disabled={updatingWallet}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {updatingWallet ? "Updating..." : "Update Wallet"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {selectedUser && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">

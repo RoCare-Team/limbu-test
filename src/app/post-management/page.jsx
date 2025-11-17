@@ -24,11 +24,10 @@ import { useParams } from "next/navigation";
 
 // Toast Component
 const Toast = ({ message, type = "success" }) => (
-  <div className={`fixed top-4 sm:top-18 right-4 left-4 sm:left-auto sm:right-4 px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-2xl z-50 animate-slide-in ${
-    type === "success" ? "bg-gradient-to-r from-green-500 to-emerald-600" : 
-    type === "info" ? "bg-gradient-to-r from-blue-500 to-indigo-600" :
-    "bg-gradient-to-r from-red-500 to-rose-600"
-  } text-white font-semibold text-sm sm:text-base text-center sm:text-left`}>
+  <div className={`fixed top-4 sm:top-18 right-4 left-4 sm:left-auto sm:right-4 px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-2xl z-50 animate-slide-in ${type === "success" ? "bg-gradient-to-r from-green-500 to-emerald-600" :
+      type === "info" ? "bg-gradient-to-r from-blue-500 to-indigo-600" :
+        "bg-gradient-to-r from-red-500 to-rose-600"
+    } text-white font-semibold text-sm sm:text-base text-center sm:text-left`}>
     {message}
   </div>
 );
@@ -38,8 +37,8 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
   const [selectedLocations, setSelectedLocations] = useState([]);
 
   const toggleLocation = (locationId) => {
-    setSelectedLocations(prev => 
-      prev.includes(locationId) 
+    setSelectedLocations(prev =>
+      prev.includes(locationId)
         ? prev.filter(id => id !== locationId)
         : [...prev, locationId]
     );
@@ -47,7 +46,7 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-  <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl 
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl 
      w-full max-w-2xl
      max-h-[70vh]            /* 🔥 height reduced */
      mt-10                   /* 🔥 top margin */
@@ -82,19 +81,17 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
               <div
                 key={location.id}
                 onClick={() => toggleLocation(location.id)}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  selectedLocations.includes(location.id)
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedLocations.includes(location.id)
                     ? 'border-blue-500 bg-blue-50 shadow-md'
                     : 'border-gray-300 bg-white hover:border-blue-300 hover:bg-blue-50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      selectedLocations.includes(location.id)
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedLocations.includes(location.id)
                         ? 'border-blue-500 bg-blue-500'
                         : 'border-gray-400'
-                    }`}>
+                      }`}>
                       {selectedLocations.includes(location.id) && (
                         <CheckCircle className="w-4 h-4 text-white" />
                       )}
@@ -118,7 +115,7 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
               <p className="text-sm text-amber-900 flex items-start gap-2">
                 <span className="text-lg sm:text-xl">💡</span>
                 <span>
-                  <strong>Selected:</strong> {selectedLocations.length} location{selectedLocations.length > 1 ? 's' : ''} 
+                  <strong>Selected:</strong> {selectedLocations.length} location{selectedLocations.length > 1 ? 's' : ''}
                   {' '}• Total posting cost: {selectedLocations.length * 50} coins
                 </span>
               </p>
@@ -349,19 +346,17 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
 const TabButton = ({ tab, isActive, onClick, count }) => (
   <button
     onClick={onClick}
-    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 sm:border-3 text-xs sm:text-sm md:text-base font-bold transition-all flex-1 shadow-md hover:shadow-xl ${
-      isActive
+    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 sm:border-3 text-xs sm:text-sm md:text-base font-bold transition-all flex-1 shadow-md hover:shadow-xl ${isActive
         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent scale-105"
         : "bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-    }`}
+      }`}
   >
     <tab.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
     <span className="truncate hidden sm:inline">{tab.label}</span>
     <span className="truncate sm:hidden">{tab.shortLabel || tab.label}</span>
     <span
-      className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-black ${
-        isActive ? "bg-white/30 text-white" : "bg-blue-100 text-blue-700"
-      }`}
+      className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-black ${isActive ? "bg-white/30 text-white" : "bg-blue-100 text-blue-700"
+        }`}
     >
       {count}
     </span>
@@ -395,15 +390,14 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
           />
 
           <div
-            className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black shadow-xl backdrop-blur-sm ${
-              post.status === "pending"
+            className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black shadow-xl backdrop-blur-sm ${post.status === "pending"
                 ? "bg-yellow-500/90 text-white"
                 : post.status === "approved"
-                ? "bg-green-500/90 text-white"
-                : post.status === "posted"
-                ? "bg-purple-600/90 text-white"
-                : "bg-blue-500/90 text-white"
-            }`}
+                  ? "bg-green-500/90 text-white"
+                  : post.status === "posted"
+                    ? "bg-purple-600/90 text-white"
+                    : "bg-blue-500/90 text-white"
+              }`}
           >
             {post.status.toUpperCase()}
           </div>
@@ -560,12 +554,12 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                 <p className="text-blue-700 font-black text-base sm:text-lg">
                   {post.scheduledDate
                     ? new Date(post.scheduledDate).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                     : "Not set"}
                 </p>
               </div>
@@ -786,15 +780,19 @@ export default function PostManagement() {
       }
 
       // Deduct 150 coins for AI generation
-      const walletRes = await fetch("/api/auth/signup", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          amount: 150,
-          type: "deduct",
-        }),
-      });
+     const walletRes = await fetch(`/api/auth/signup?userId=${userId}`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    amount: 150,
+    type: "deduct",
+    reason: "image_generated",
+    metadata: {
+      aiPrompt: prompt,
+      logoUsed: !!logo,
+    }
+  }),
+});
 
       const walletData = await walletRes.json();
 
@@ -923,7 +921,7 @@ export default function PostManagement() {
 
       // Show location selection modal for posting
       setShowLocationModal(true);
-      
+
       // Store current post for later use
       window.currentPostForLocation = post;
     } catch (error) {
@@ -947,7 +945,7 @@ export default function PostManagement() {
     }
 
     const userId = localStorage.getItem("userId");
-    const selectedLocations = availableLocations.filter(loc => 
+    const selectedLocations = availableLocations.filter(loc =>
       selectedLocationIds.includes(loc.id)
     );
 
@@ -982,7 +980,7 @@ export default function PostManagement() {
 
       // Prepare location data for webhook
       const locationData = selectedLocations.map(loc => ({
-         city: loc.locationId,
+        city: loc.locationId,
         cityName: loc.locality,
         bookUrl: loc.websiteUrl || "",
       }));
@@ -1019,15 +1017,19 @@ export default function PostManagement() {
         setShowSuccess(true);
 
         // Deduct coins from wallet (100 per location)
-        const walletRes = await fetch("/api/auth/signup", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            amount: totalPostCost,
-            type: "deduct",
-          }),
-        });
+             const walletRes = await fetch(`/api/auth/signup?userId=${userId}`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    amount: totalPostCost,
+    type: "deduct",
+    reason: "Post-on-GMB",
+    metadata: {
+      aiPrompt: prompt,
+      logoUsed: !!logo,
+    }
+  }),
+});
 
         if (walletRes.ok) {
           const newBalance = walletBalance - totalPostCost;
@@ -1108,7 +1110,7 @@ export default function PostManagement() {
     try {
       const response = await fetch(post.aiOutput);
       if (!response.ok) throw new Error("Failed to fetch image.");
-      
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");

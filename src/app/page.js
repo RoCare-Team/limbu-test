@@ -1,7 +1,9 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Sparkles, BarChart3, MessageSquare, Calendar, Zap, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, Send, Image, ThumbsUp, Mail } from 'lucide-react';
+import { Sparkles, BarChart3, MessageSquare, Calendar, Zap, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, Send, ThumbsUp, Mail } from 'lucide-react';
 import Link from 'next/link';
+import LogoImage from "../../public/images/bg-logo.png"
+import Image from 'next/image';
 
 export default function LimbuAILanding() {
   const [scrollY, setScrollY] = useState(0);
@@ -66,8 +68,8 @@ export default function LimbuAILanding() {
       {/* Header */}
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className={`flex items-center gap-3 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
-          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-300/50">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="relative w-12 h-12 bg-gradient-to-br  rounded-xl flex items-center justify-center shadow-lg shadow-blue-300/50">
+            <Image src={LogoImage} />
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

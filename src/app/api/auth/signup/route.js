@@ -1,4 +1,5 @@
 import dbConnect from "@/lib/dbConnect";
+import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
@@ -68,53 +69,66 @@ export async function PUT(req) {
   await dbConnect();
 
   try {
-    const { userId, amount, type } = await req.json();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    const { amount, type, reason, metadata } = await req.json();
 
     if (!userId || typeof amount !== "number") {
       return new Response(
-        JSON.stringify({ error: "userId and numeric amount are required" }),
+        JSON.stringify({ error: "userId and numeric amount required" }),
         { status: 400 }
       );
     }
 
     const user = await User.findOne({ userId });
     if (!user) {
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
-      });
+      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
     }
 
-    // ✅ Handle wallet logic
+    let transactionType = type === "add" ? "credit" : "debit";
+    let finalReason = reason || (type === "deduct" ? "wallet_deduct" : "wallet_add");
+
+    // WALLET UPDATE
     if (type === "add") {
-      user.wallet += amount; // Add coins
+      user.wallet += amount;
+
     } else if (type === "deduct") {
       if (user.wallet < amount) {
         return new Response(
-          JSON.stringify({ error: "Insufficient wallet balance" }),
+          JSON.stringify({ error: "Insufficient balance" }),
           { status: 400 }
         );
       }
-      user.wallet -= amount; // Deduct coins
+      user.wallet -= amount;
+
     } else {
-      user.wallet = amount; // Replace wallet directly
+      return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400 });
     }
 
     await user.save();
 
+    // SAVE TRANSACTION
+    await Transaction.create({
+      userId,
+      type: transactionType,
+      amount,
+      balanceAfter: user.wallet,
+      reason: finalReason,
+      metadata: metadata || {},
+    });
+
     return new Response(
       JSON.stringify({
-        message: "Wallet updated successfully",
-        userId: user.userId,
+        message: "Wallet updated",
         wallet: user.wallet,
-        status: 200,
       }),
       { status: 200 }
     );
+    
   } catch (error) {
     console.error("Wallet Update Error:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
   }
 }
 

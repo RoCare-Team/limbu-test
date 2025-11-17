@@ -629,15 +629,19 @@ export default function PostManagement() {
       }
 
       // Deduct 150 coins from wallet
-      const walletRes = await fetch("/api/auth/signup", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          amount: 150,
-          type: "deduct",
-        }),
-      });
+          const walletRes = await fetch(`/api/auth/signup?userId=${userId}`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    amount: 150,
+    type: "deduct",
+    reason: "image_generated",
+    metadata: {
+      aiPrompt: prompt,
+      logoUsed: !!logo,
+    }
+  }),
+});
 
       const walletData = await walletRes.json();
 
@@ -809,15 +813,19 @@ export default function PostManagement() {
         setShowSuccess(true);
 
         // 🪙 Deduct 100 coins from wallet
-        const walletRes = await fetch("/api/auth/signup", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            amount: 50,
-            type: "deduct",
-          }),
-        });
+  const walletRes = await fetch(`/api/auth/signup?userId=${userId}`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    amount: 150,
+    type: "deduct",
+    reason: "Post-on-GMB",
+    metadata: {
+      aiPrompt: prompt,
+      logoUsed: !!logo,
+    }
+  }),
+});
 
         if (walletRes.ok) {
           const newBalance = walletBalance - 50;

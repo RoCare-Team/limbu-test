@@ -40,7 +40,9 @@ import {
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import {  Wand } from 'lucide-react';
+import {  MenuIcon, Wand } from 'lucide-react';
+import logoDash from "../../public/images/bg-logo.png"
+import Image from 'next/image';
 
 const drawerWidth = 260;
 
@@ -452,14 +454,14 @@ const fetchNotifications = async () => {
               width: 40,
               height: 40,
               borderRadius: 2,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #f2f3f7ff 0%, #f7f5faff 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
             }}
           >
-            <StoreIcon sx={{ color: 'white', fontSize: '1.5rem' }} />
+            <MenuIcon sx={{ color: 'white', fontSize: '1.5rem' }} />
           </Box>
           {open && (
             <Link href="/">
@@ -618,18 +620,28 @@ React.useEffect(() => {
                     },
                   }}
                 >
-                  <StoreIcon />
+                  <MenuIcon />
                 </IconButton>
               )}
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  fontWeight: 700,
-                  display: { xs: 'none', sm: 'block' },
-                }}
-              >
-                AI GMB Auto Management
-              </Typography>
+              <Typography
+  variant="h6"
+  sx={{
+    fontWeight: 700,
+    display: { xs: "none", sm: "flex" },
+    alignItems: "center",     // <== keeps logo + text on same line
+    gap: 1,                   // <== spacing between logo & text
+  }}
+>
+  <Image
+    src={logoDash}
+    width={40}       // <== increase/decrease size
+    height={80}
+    alt="Logo"
+    style={{ marginRight: 6 }}
+  />
+  Limbu.AI
+</Typography>
+
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>

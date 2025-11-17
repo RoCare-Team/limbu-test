@@ -866,7 +866,7 @@ export default function DashboardPage() {
 
         <button
           onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center justify-center gap-2"
+          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center justify-center gap-2 cursor-pointer"
         >
           <svg
             className="w-5 h-5"
