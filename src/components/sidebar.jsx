@@ -394,8 +394,8 @@ const fetchNotifications = async () => {
 
  const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: 'POST Managements', icon: <AccountIcon />, path: '/post-management' },
-  { text: 'Review Mangements', icon: <PostIcon />, path: '/review-management' },
+  { text: 'POST Management', icon: <AccountIcon />, path: '/post-management' },
+  { text: 'Review Management', icon: <PostIcon />, path: '/review-management' },
 
   {
     text: 'Get Magic QR',
