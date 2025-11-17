@@ -223,7 +223,7 @@ export default function LimbuAILanding() {
                   <div className="bg-white rounded-2xl p-6 border-2 border-purple-100 shadow-lg">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-bold text-lg text-slate-800">Generated Post</h3>
-                      <Image className="w-5 h-5 text-blue-500" />
+                      {/* <Image className="w-5 h-5 text-blue-500" /> */}
                     </div>
                     <div className="space-y-4">
                       <div className="space-y-2">

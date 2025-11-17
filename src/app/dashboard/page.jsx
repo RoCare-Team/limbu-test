@@ -858,7 +858,7 @@ export default function DashboardPage() {
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
-          Login your Business
+          Connect your Business
         </h1>
         <p className="text-gray-700 text-base sm:text-lg mb-8">
           Connect your business account to manage your Google Business Profile
