@@ -227,7 +227,6 @@ export default function Sidebar({ children, user }) {
     }
   };
 
-  console.log("aaasasas",locationCheck);
   
 
   // Fetch wallet balance from API

@@ -74,7 +74,6 @@ export default function DashboardPage() {
       }
 
       const locationDetails = JSON.parse(locationDetailsStr);
-      console.log("Parsed locationDetails:", locationDetails);
 
       const token = session?.accessToken;
       console.log("Session token exists:", !!token);
@@ -90,8 +89,6 @@ export default function DashboardPage() {
       const acc_id = locationDetails[0]?.accountId;
       const locationIds = locationDetails.map((loc) => loc.locationId).filter(Boolean);
 
-      console.log("Account ID:", acc_id);
-      console.log("Location IDs:", locationIds);
 
       if (!acc_id) {
         throw new Error("Account ID is missing from location details");
@@ -142,7 +139,6 @@ export default function DashboardPage() {
           console.log(`Received ${data.reviews.length} reviews on page ${pageCount}`);
           allReviews = [...allReviews, ...data.reviews];
           pageToken = data.nextPageToken || null;
-          console.log("Next page token:", pageToken);
         } else {
           console.log("No reviews in response or invalid format");
           pageToken = null;

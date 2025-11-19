@@ -2,7 +2,6 @@ import Sidebar from "@/components/sidebar";
 
 export default function AssetsManagement({ children }) {
 
-  console.log("children");
   
   return (
     <div className="flex min-h-screen">

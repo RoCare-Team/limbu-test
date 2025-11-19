@@ -83,7 +83,6 @@ export default function SmartWalletRecharge() {
       setLoadingTx(true);
       const res = await fetch(`/api/transactions?userId=${userId}`);
       const data = await res.json();
-      console.log("datadata",data);
       
       setTransactions(data.transactions || []);
     } catch (err) {
@@ -503,7 +502,6 @@ export default function SmartWalletRecharge() {
                   </div>
                 ) : (
                   filteredTransactions.map((tx, index) => {
-                    console.log("txxxxx",tx);
                     
                     const isCredit = tx.type === "credit" || tx.type === "add";
                     return (

@@ -145,7 +145,6 @@ const fetchAllUserPostsCounts = async () => {
         const res = await fetch(`/api/post-status?userId=${user.userId}`);
         const data = await res.json();
 
-        console.log("API RESPONSE:", data);
 
         // If response is like: { success, data: [...] }
         if (data.success && Array.isArray(data.data)) {
@@ -359,7 +358,6 @@ const fetchAllUserPostsCounts = async () => {
     );
   }
 
-  console.log("asdfghjkl;",userPosts);
   
 
   

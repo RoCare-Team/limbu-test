@@ -818,7 +818,7 @@ export default function PostManagement() {
   method: "PUT",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    amount: 150,
+    amount: 50,
     type: "deduct",
     reason: "Post-on-GMB",
     metadata: {

@@ -159,7 +159,6 @@ export default function DashboardPage() {
   }, [session, initialFetchDone]);
 
   const handleListingData = (listing) => {
-    console.log("listinglisting", listing);
     
     const dataToSend = {
       locality: listing?.storefrontAddress?.locality || "",

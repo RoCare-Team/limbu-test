@@ -803,7 +803,6 @@ const [showRejectModal, setShowRejectModal] = useState(false);
 
       const data = apiResponse.data || {};
 
-      console.log("datadata",data);
       
 
       // Save post to database
@@ -823,7 +822,6 @@ const [showRejectModal, setShowRejectModal] = useState(false);
 
       const postData = await postRes.json();
 
-      console.log("postDatapostData",postData);
       
       if (!postData.success) {
         throw new Error(postData.error || "Failed to save post in database.");

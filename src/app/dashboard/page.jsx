@@ -103,7 +103,6 @@ export async function checkVoiceOfMerchant(accessToken, locationName) {
 
 // --- Admin Storage Helper ---
 export async function storeUserListingsForAdmin(userEmail, listings) {
-  console.log("userEmaillll",userEmail,listings[0].metadata.newReviewUri);
   
   try {
     const response = await fetch('/api/admin/saveBussiness', {
@@ -581,13 +580,11 @@ export default function DashboardPage() {
     const token = session.accessToken;
 
     try {
-      console.log("🔄 Fetching GMB data for:", userEmail);
       const accountsData = await fetchGMBAccounts(token);
 
       
       
       
-      console.log(`✅ Accounts fetched: ${accountsData.length}`);
 
       if (accountsData.length === 0) {
         console.log("❌ No accounts found for this user");
@@ -605,7 +602,6 @@ export default function DashboardPage() {
       
       console.log("🔄 Fetching locations for account:", accountId);
       const allLocations = await fetchAllLocationsByAccount(token, accountId);
-      console.log(`✅ Locations fetched: ${allLocations.length}`);
 
       if (allLocations.length > 0) {
         console.log("🔄 Checking verification status for all locations...");
