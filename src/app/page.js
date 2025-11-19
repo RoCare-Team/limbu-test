@@ -9,6 +9,7 @@ export default function LimbuAILanding() {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
+  const [buttonStatus,setButtonStatus] = useState(false)
 
   useEffect(() => {
     setIsVisible(true);
@@ -16,6 +17,22 @@ export default function LimbuAILanding() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleLogout = () => {
+  localStorage.clear();   // Clear full storage
+  setButtonStatus(false); // Update UI instantly
+
+  // Redirect to login page
+  window.location.href = "/login";
+};
+
+
+  useEffect(()=>{
+    const token = localStorage.getItem("token")
+    if(token){
+    setButtonStatus(true)
+    }
+  },[])
 
   const features = [
     {
@@ -83,11 +100,21 @@ export default function LimbuAILanding() {
           <a href="#features" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Features</a>
           <a href="#how-it-works" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">How It Works</a>
           <a href="/contact" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Contact</a>
-         <Link href="/login">
-          <button className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-300/50 transition-all hover:scale-105 cursor-pointer">
-            Get Started
-          </button>
-         </Link>
+         {buttonStatus ? (
+  <button
+    onClick={handleLogout}
+    className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all hover:scale-105"
+  >
+    Logout
+  </button>
+) : (
+  <Link href="/login">
+    <button className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all hover:scale-105">
+      Login
+    </button>
+  </Link>
+)}
+
         </nav>
       </header>
 
@@ -118,7 +145,7 @@ export default function LimbuAILanding() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link href="/login">
             <button className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-blue-300/50 transition-all hover:scale-105 flex items-center gap-2">
-              Start Free Trial
+              {buttonStatus ? "Go to Dashboard": "Start Free Trial"}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             </Link>
