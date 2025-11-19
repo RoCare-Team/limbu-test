@@ -419,12 +419,21 @@ const fetchAllUserPostsCounts = async () => {
             <p className="text-gray-600 mt-1">Manage subscriptions and user accounts</p>
           </div>
           <button
-            onClick={() => setAddingUser(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all"
-          >
-            <Plus size={20} />
-            Add User
-          </button>
+  onClick={() => setAddingUser(true)}
+  className="
+    flex items-center gap-2 px-6 py-3 
+    bg-gradient-to-r from-indigo-600 to-purple-600 
+    hover:from-indigo-700 hover:to-purple-700 
+    text-white dark:text-white        /* ⭐ Always visible text */
+    rounded-xl shadow-lg 
+    hover:shadow-xl 
+    transition-all
+  "
+>
+  <Plus size={20} className="text-white dark:text-white" />
+  Add User
+</button>
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
@@ -685,9 +694,9 @@ const fetchAllUserPostsCounts = async () => {
                         </div>
                       </div>
                     </td>
-                    {/* <td className="px-6 py-4">
+                    <td className="px-6 py-4">
                       <div className="flex gap-2">
-                        <button
+                        {/* <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewPosts(user);
@@ -697,7 +706,7 @@ const fetchAllUserPostsCounts = async () => {
                         >
                           <Eye size={16} />
                           <span className="text-sm font-medium">View Details</span>
-                        </button>
+                        </button> */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -709,7 +718,7 @@ const fetchAllUserPostsCounts = async () => {
                           <Trash2 size={16} />
                         </button>
                       </div>
-                    </td> */}
+                    </td>
                   </tr>
                   );
                 })}
@@ -931,84 +940,122 @@ const fetchAllUserPostsCounts = async () => {
           </div>
         )}
 
-        {addingUser && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Add New User</h2>
-                <button
-                  onClick={() => setAddingUser(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+       {addingUser && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Add New User
+        </h2>
+        <button
+          onClick={() => setAddingUser(false)}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+        >
+          <X size={20} className="text-gray-700 dark:text-gray-300" />
+        </button>
+      </div>
 
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">User ID</label>
-                  <input
-                    type="text"
-                    placeholder="Enter user ID"
-                    value={newUser.userId}
-                    onChange={(e) => setNewUser({ ...newUser, userId: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                  />
-                </div>
+      {/* Form */}
+      <div className="space-y-4 mb-6">
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    placeholder="user@example.com"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                  />
-                </div>
+        {/* User ID */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            User ID
+          </label>
+          <input
+            type="text"
+            placeholder="Enter user ID"
+            value={newUser.userId}
+            onChange={(e) => setNewUser({ ...newUser, userId: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 
+                       bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 
+                       rounded-xl focus:ring-2 focus:ring-indigo-500 
+                       focus:border-transparent outline-none"
+          />
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone (Optional)</label>
-                  <input
-                    type="tel"
-                    placeholder="+1 (555) 000-0000"
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                  />
-                </div>
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Email
+          </label>
+          <input
+            type="email"
+            placeholder="user@example.com"
+            value={newUser.email}
+            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 
+                       bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 
+                       rounded-xl focus:ring-2 focus:ring-indigo-500 
+                       focus:border-transparent outline-none"
+          />
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Plan</label>
-                  <select
-                    value={newUser.plan}
-                    onChange={(e) => setNewUser({ ...newUser, plan: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                  >
-                    <option value="Basic">Basic</option>
-                    <option value="Standard">Standard</option>
-                    <option value="Premium">Premium</option>
-                  </select>
-                </div>
-              </div>
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Phone (Optional)
+          </label>
+          <input
+            type="tel"
+            placeholder="+1 (555) 000-0000"
+            value={newUser.phone}
+            onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 
+                       bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 
+                       rounded-xl focus:ring-2 focus:ring-indigo-500 
+                       focus:border-transparent outline-none"
+          />
+        </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setAddingUser(false)}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddUser}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-medium"
-                >
-                  Add User
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Plan */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Plan
+          </label>
+          <select
+            value={newUser.plan}
+            onChange={(e) => setNewUser({ ...newUser, plan: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 
+                       bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 
+                       rounded-xl focus:ring-2 focus:ring-indigo-500 
+                       focus:border-transparent outline-none"
+          >
+            <option className="text-gray-800 dark:text-gray-200" value="Basic">Basic</option>
+            <option className="text-gray-800 dark:text-gray-200" value="Standard">Standard</option>
+            <option className="text-gray-800 dark:text-gray-200" value="Premium">Premium</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setAddingUser(false)}
+          className="flex-1 px-6 py-3 bg-gray-100 dark:bg-gray-800 
+                     text-gray-700 dark:text-gray-200 rounded-xl 
+                     hover:bg-gray-200 dark:hover:bg-gray-700 transition-all font-medium"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleAddUser}
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 
+                     text-white rounded-xl hover:from-green-700 hover:to-emerald-700 
+                     transition-all font-medium"
+        >
+          Add User
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
 
         {viewingUserPosts && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
