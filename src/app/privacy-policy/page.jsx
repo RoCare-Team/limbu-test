@@ -1,8 +1,26 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+
 export default function PolicyPage() {
+
+  const router = useRouter();
+
+
+  const handleBack = () => {
+    router.back();
+  };
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 py-10 px-6 flex flex-col items-center">
+      <button
+        onClick={handleBack}
+        className="group flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm hover:bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 text-gray-700 hover:text-blue-600"
+      >
+        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
+        <span className="font-medium">Back</span>
+      </button>
       <div className="max-w-4xl w-full bg-white rounded-2xl shadow-lg p-8">
         <h1 className="text-3xl font-bold text-blue-600 mb-4 text-center">
           Privacy Policy, Terms of Service & Refund Policy
@@ -147,10 +165,10 @@ export default function PolicyPage() {
 
           <div className="mt-3 space-y-1">
             <p>
-              📧 <strong>Email:</strong> manoj.asharma2016@gmail.com
+              📧 <strong>Email:</strong>  info@limbu.ai
             </p>
             <p>
-              📞 <strong>Phone:</strong> +91 8506097730
+              📞 <strong>Phone:</strong> +91 9540384046
             </p>
             <p>
               🏢 <strong>Address:</strong> Unit No. 831, 8th Floor, JMD MEGAPOLIS, Sector 48, Gurugram, Haryana 122018

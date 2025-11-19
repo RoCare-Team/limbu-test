@@ -48,7 +48,7 @@ export async function POST(req) {
   try {
     await dbConnect();
 
-    const { userId, status,aiOutput,description } = await req.json();
+    const { userId, status,aiOutput,description,promat } = await req.json();
     if (!userId  || !aiOutput || !description) {
       return json({ success: false, error: "userId and prompt are required" }, 400);
     }
@@ -57,6 +57,7 @@ export async function POST(req) {
       userId,
       aiOutput,
       description,
+      promat,
       status: status || "pending",
     });
 
@@ -75,13 +76,15 @@ export async function PUT(req) {
   try {
     await dbConnect();
 
-    const { id, status, scheduledDate, userId,description } = await req.json();
+    const { id, status, scheduledDate, userId, description, reason } = await req.json();
+
     if (!id || !status || !userId) {
       return json({ success: false, error: "id, status & userId required" }, 400);
     }
 
     const updateData = { status };
 
+    // --- Scheduled ---
     if (status === "scheduled") {
       if (!scheduledDate) {
         return json(
@@ -89,11 +92,26 @@ export async function PUT(req) {
           400
         );
       }
+
       updateData.scheduledDate = new Date(scheduledDate);
       if (isNaN(updateData.scheduledDate.getTime())) {
         return json({ success: false, error: "Invalid scheduledDate" }, 400);
       }
     }
+
+    // --- Rejected (New Logic) ---
+    if (status === "rejected") {
+      if (!reason || reason.trim() === "") {
+        return json(
+          { success: false, error: "Reject reason is required" },
+          400
+        );
+      }
+      updateData.rejectReason = reason;
+    }
+
+    // --- Approved / Posted / Pending ---
+    // (no special fields required)
 
     const updated = await Post.findOneAndUpdate(
       { _id: id, userId },
@@ -101,9 +119,12 @@ export async function PUT(req) {
       { new: true }
     );
 
-    if (!updated) return json({ success: false, error: "Post not found" }, 404);
+    if (!updated) {
+      return json({ success: false, error: "Post not found" }, 404);
+    }
 
     return json({ success: true, data: updated });
+
   } catch (err) {
     return json({ success: false, error: err.message }, 500);
   }
@@ -125,11 +146,23 @@ export async function DELETE(req) {
       return json({ success: false, error: "id & userId required" }, 400);
     }
 
-    const deletedPost = await Post.findOneAndDelete({ _id: id, userId });
+    // ✅ Set status to rejected instead of deleting
+    const updatedPost = await Post.findOneAndUpdate(
+      { _id: id, userId },
+      { status: "rejected" },
+      { new: true }
+    );
 
-    if (!deletedPost) return json({ success: false, error: "Post not found" }, 404);
+    if (!updatedPost) {
+      return json({ success: false, error: "Post not found" }, 404);
+    }
 
-    return json({ success: true, message: "Post deleted successfully" });
+    return json({ 
+      success: true, 
+      message: "Post rejected successfully",
+      post: updatedPost 
+    });
+
   } catch (err) {
     return json({ success: false, error: err.message }, 500);
   }

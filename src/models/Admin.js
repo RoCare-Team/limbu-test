@@ -17,10 +17,22 @@ const AdminSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    // MAIN ROLE
     role: {
       type: String,
+      enum: ["admin", "subadmin"],
       default: "admin",
     },
+
+    // SUB-ADMIN PERMISSIONS
+    permissions: {
+      manageUsers: { type: Boolean, default: false },
+      manageReviews: { type: Boolean, default: false },
+      managePlans: { type: Boolean, default: false },
+      seeAnalytics: { type: Boolean, default: false },
+    },
+
     status: {
       type: String,
       enum: ["active", "suspended"],

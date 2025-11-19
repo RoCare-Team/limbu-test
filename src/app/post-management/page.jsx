@@ -364,7 +364,7 @@ const TabButton = ({ tab, isActive, onClick, count }) => (
 );
 
 // Post Card Component
-const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject, handleDownload, handleShare, handlePost, onEditDescription }) => {
+const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject, handleDownload, handleShare, handlePost, onEditDescription,showRejectModal,rejectReason,submitRejection,setShowRejectModal,setRejectReason }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showFull, setShowFull] = useState(false);
   const [editedDescription, setEditedDescription] = useState(post?.description || "");
@@ -380,7 +380,8 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
   };
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-gray-200 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all">
+  <div>
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-gray-200 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all">
       <a href={post.aiOutput} target="_blank" rel="noopener noreferrer">
         <div className="relative group">
           <img
@@ -576,6 +577,42 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
         </div>
       </div>
     </div>
+    {showRejectModal && (
+  <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+    <div className="bg-white w-80 sm:w-96 p-5 rounded-xl shadow-xl space-y-4">
+      <h2 className="text-lg font-bold text-blue-600">Reject Post</h2>
+
+      <textarea
+        value={rejectReason}
+        onChange={(e) => setRejectReason(e.target.value)}
+        placeholder="Enter rejection reason..."
+        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-400"
+        rows={4}
+      />
+
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          onClick={() => {
+            setShowRejectModal(false);
+            setRejectReason("");
+          }}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={submitRejection}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-red-700"
+        >
+          Submit
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+    </div>
   );
 };
 
@@ -600,6 +637,11 @@ export default function PostManagement() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [postsGeneratedCount, setPostsGeneratedCount] = useState(0);
+
+  const [rejectPostId, setRejectPostId] = useState(null);
+const [rejectReason, setRejectReason] = useState("");
+const [showRejectModal, setShowRejectModal] = useState(false);
+
 
   // Load locations from localStorage
   const [availableLocations, setAvailableLocations] = useState([]);
@@ -668,12 +710,13 @@ export default function PostManagement() {
       if (allPostsRes.ok && allPostsData.success) {
         const allPosts = allPostsData.data;
         setAllCounts({
-          total: allPosts.length,
-          approved: allPosts.filter((p) => p.status === "approved").length,
-          pending: allPosts.filter((p) => p.status === "pending").length,
-          scheduled: allPosts.filter((p) => p.status === "scheduled").length,
-          posted: allPosts.filter((p) => p.status === "posted").length,
-        });
+  total: allPosts.filter((p) => p.status !== "rejected").length,
+  approved: allPosts.filter((p) => p.status === "approved").length,
+  pending: allPosts.filter((p) => p.status === "pending").length,
+  scheduled: allPosts.filter((p) => p.status === "scheduled").length,
+  posted: allPosts.filter((p) => p.status === "posted").length,
+});
+
       }
     } catch (err) {
       showToast(err.message || "Error fetching posts", "error");
@@ -760,6 +803,9 @@ export default function PostManagement() {
 
       const data = apiResponse.data || {};
 
+      console.log("datadata",data);
+      
+
       // Save post to database
       const postRes = await fetch("/api/post-status", {
         method: "POST",
@@ -770,11 +816,15 @@ export default function PostManagement() {
           description: data.description,
           logoUrl: data.logoUrl,
           status: "pending",
+          promat:data.user_input,
           locations: [], // No locations assigned yet
         }),
       });
 
       const postData = await postRes.json();
+
+      console.log("postDatapostData",postData);
+      
       if (!postData.success) {
         throw new Error(postData.error || "Failed to save post in database.");
       }
@@ -1069,38 +1119,65 @@ export default function PostManagement() {
     }
   };
 
-  const handleReject = async (id) => {
-    const userId = localStorage.getItem("userId");
+const handleReject = async (id) => {
+  if (!confirm("Are you sure you want to reject this post?")) return;
 
-    if (!confirm("Are you sure you want to delete this post?")) return;
+  setRejectPostId(id);
+  setShowRejectModal(true);
+};
 
-    try {
-      const res = await fetch(`/api/post-status?id=${id}&userId=${userId}`, {
-        method: "DELETE",
-      });
+const submitRejection = async () => {
+  const userId = localStorage.getItem("userId");
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        showToast("Post deleted successfully! 🗑️");
-        const removed = posts.find((p) => p._id === id);
-        setPosts((prev) => prev.filter((p) => p._id !== id));
+  if (!rejectReason.trim()) {
+    showToast("Please enter a reason!", "error");
+    return;
+  }
 
-        if (removed) {
-          setAllCounts((prev) => {
-            const next = { ...prev, total: Math.max(0, prev.total - 1) };
-            if (removed.status === "pending") next.pending = Math.max(0, next.pending - 1);
-            if (removed.status === "approved") next.approved = Math.max(0, next.approved - 1);
-            if (removed.status === "scheduled") next.scheduled = Math.max(0, next.scheduled - 1);
-            return next;
-          });
-        }
-      } else {
-        showToast(data.error || "Failed to delete", "error");
-      }
-    } catch (error) {
-      showToast("Error deleting post", "error");
+  try {
+    const res = await fetch(`/api/post-status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: rejectPostId,
+        userId,
+        status: "rejected",
+        reason: rejectReason,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      showToast("Post rejected successfully! ❌");
+
+      // ✅ Update status only (do not delete)
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === rejectPostId
+            ? { ...p, status: "rejected", rejectReason: rejectReason }
+            : p
+        )
+      );
+
+      // ✅ Decrease "pending" count only
+      setAllCounts((prev) => ({
+        ...prev,
+        pending: Math.max(0, prev.pending - 1),
+      }));
     }
-  };
+
+    // Reset modal data
+    setRejectReason("");
+    setRejectPostId(null);
+    setShowRejectModal(false);
+
+  } catch (error) {
+    console.error(error);
+    showToast("Error rejecting post", "error");
+  }
+};
+
 
   const handleDownload = async (post) => {
     if (!post.aiOutput) {
@@ -1439,7 +1516,8 @@ export default function PostManagement() {
 
         {filteredPosts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredPosts.map((post) => (
+            {filteredPosts.filter((post) => post.status !== "rejected")
+.map((post) => (
               <PostCard
                 key={post._id}
                 post={post}
@@ -1451,6 +1529,11 @@ export default function PostManagement() {
                 onReject={handleReject}
                 handlePost={handlePost}
                 onEditDescription={handleEditDescription}
+                showRejectModal={showRejectModal}
+                rejectReason={rejectReason}
+                submitRejection={submitRejection}
+                setRejectReason={setRejectReason}
+                setShowRejectModal={setShowRejectModal}
               />
             ))}
           </div>

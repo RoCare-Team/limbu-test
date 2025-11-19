@@ -7,26 +7,26 @@ export async function POST() {
   try {
     await dbConnect();
 
-    // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ email: "admin@mannubhai.com" });
+    // Check if subadmin exists
+    const existingAdmin = await Admin.findOne({ email: "hanish@gmail.com" });
     if (existingAdmin) {
-      return NextResponse.json({ message: "Admin already exists" }, { status: 200 });
+      return NextResponse.json({ message: "Sub Admin already exists" }, { status: 200 });
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash("mannubhai@007", 10);
+    const hashedPassword = await bcrypt.hash("hanish@123", 10);
 
-    // Create admin
+    // Create Sub Admin
     await Admin.create({
-      fullName: "Super Admin",
-      email: "admin@mannubhai.com",
+      fullName: "Sub Admin",
+      email: "hanish@gmail.com",
       password: hashedPassword,
-      role: "admin",
+      role: "subadmin",
     });
 
-    return NextResponse.json({ message: "Admin created successfully" }, { status: 201 });
+    return NextResponse.json({ message: "Sub Admin created successfully" }, { status: 201 });
   } catch (error) {
-    console.error("Error creating admin:", error);
-    return NextResponse.json({ error: "Failed to create admin" }, { status: 500 });
+    console.error("Error creating subadmin:", error);
+    return NextResponse.json({ error: "Failed to create subadmin" }, { status: 500 });
   }
 }

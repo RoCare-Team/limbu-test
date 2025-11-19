@@ -619,6 +619,7 @@ export default function PostManagement() {
           aiOutput,
           description,
           logoUrl,
+          promat:data.user_input,
           status: "pending",
         }),
       });

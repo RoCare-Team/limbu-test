@@ -69,7 +69,7 @@ export default function LimbuAILanding() {
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className={`flex items-center gap-3 transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
           <div className="relative w-12 h-12 bg-gradient-to-br  rounded-xl flex items-center justify-center shadow-lg shadow-blue-300/50">
-            <Image src={LogoImage} />
+            <Image src={LogoImage} alt="Limbu Logo image" />
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -232,7 +232,7 @@ export default function LimbuAILanding() {
                         <div className="h-3 bg-blue-100 rounded w-4/6 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                       </div>
                       <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl h-32 flex items-center justify-center">
-                        <Image className="w-12 h-12 text-blue-400" />
+                        {/* <Image className="w-12 h-12 text-blue-400" /> */}
                       </div>
                       <div className="flex gap-2">
                         <button className="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition">

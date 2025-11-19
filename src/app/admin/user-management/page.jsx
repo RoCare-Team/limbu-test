@@ -20,6 +20,7 @@ export default function UserManagement() {
   const [walletModalUser, setWalletModalUser] = useState(null);
   const [walletUpdate, setWalletUpdate] = useState({ amount: "", type: "credit", reason: "" });
   const [toast, setToast] = useState(null);
+  const [userPostsData, setUserPostsData] = useState({});
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -42,6 +43,12 @@ export default function UserManagement() {
     fetchUsers();
     fetchConnectedBusinessUsers();
   }, []);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      fetchAllUserPostsCounts();
+    }
+  }, [users]);
 
   useEffect(() => {
     let result = [...users];
@@ -128,6 +135,59 @@ export default function UserManagement() {
       console.error("Error fetching connected business users:", err);
     }
   };
+
+const fetchAllUserPostsCounts = async () => {
+  try {
+    const postsData = {};
+
+    const promises = users.map(async (user) => {
+      try {
+        const res = await fetch(`/api/post-status?userId=${user.userId}`);
+        const data = await res.json();
+
+        console.log("API RESPONSE:", data);
+
+        // If response is like: { success, data: [...] }
+        if (data.success && Array.isArray(data.data)) {
+          const posts = data.data; // 👈 The real posts array
+
+          return {
+            userId: user.userId,
+            total: posts.length,
+            posted: posts.filter(p => p.status === "posted").length,
+            approved: posts.filter(p => p.status === "approved").length, // 👈 NEW
+            rejected: posts.filter(p => p.status === "rejected").length,
+            pending: posts.filter(p => p.status === "pending").length,
+          };
+        }
+      } catch (err) {
+        console.error(`Error fetching posts for ${user.userId}:`, err);
+      }
+
+      return {
+        userId: user.userId,
+        total: 0,
+        posted: 0,
+        approved: 0,
+        rejected: 0,
+        pending: 0,
+      };
+    });
+
+    const results = await Promise.all(promises);
+
+    results.forEach(result => {
+      postsData[result.userId] = result;
+    });
+
+    setUserPostsData(postsData);
+
+  } catch (err) {
+    console.error("Error fetching posts counts:", err);
+  }
+};
+
+
 
   const isUserConnected = (email) => {
     return connectedBusinessUsers.some(
@@ -218,10 +278,10 @@ export default function UserManagement() {
     setViewingUserPosts(user);
     setLoadingPosts(true);
     try {
-      const res = await fetch(`/api/user-details?userId=${user.userId}`);
+      const res = await fetch(`/api/post-status?userId=${user.userId}`);
       const data = await res.json();
       if (data.success) {
-        setUserPosts(data.posts || []);
+        setUserPosts(data.data || []);
       } else {
         setUserPosts([]);
       }
@@ -298,6 +358,9 @@ export default function UserManagement() {
       </div>
     );
   }
+
+  console.log("asdfghjkl;",userPosts);
+  
 
   
   return (
@@ -389,15 +452,17 @@ export default function UserManagement() {
             </div>
           </div>
 
-          {/* <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-700 text-sm font-medium">Connected Users</p>
-                <p className="text-3xl font-bold text-blue-800 mt-1">{connectedBusinessUsers.length}</p>
+                <p className="text-blue-700 text-sm font-medium">Total Posts</p>
+                <p className="text-3xl font-bold text-blue-800 mt-1">
+                  {Object.values(userPostsData).reduce((sum, data) => sum + data.total, 0)}
+                </p>
               </div>
-              <Shield className="text-blue-600" size={24} />
+              <ImageIcon className="text-blue-600" size={24} />
             </div>
-          </div> */}
+          </div>
 
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-lg border border-purple-200">
             <div className="flex items-center justify-between">
@@ -491,14 +556,21 @@ export default function UserManagement() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Name</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Wallet</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Posts</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Joined Date</th>
+                  {/* <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                {filteredUsers.map((user) => {
+                  const postData = userPostsData[user.userId] || { total: 0, posted: 0, rejected: 0 };
+                  return (
+                  <tr 
+                    key={user._id} 
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => handleViewPosts(user)}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
@@ -538,13 +610,39 @@ export default function UserManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleOpenWalletModal(user)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenWalletModal(user);
+                          }}
                           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 rounded-lg hover:from-emerald-100 hover:to-green-100 transition-all border border-emerald-200"
                         >
                           <Wallet size={16} />
                           <span className="font-bold text-base">{user.wallet || 0}</span>
                           <span className="text-xs font-medium">coins</span>
                         </button>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 border border-indigo-200">
+                          <div className="flex items-center gap-3">
+                            <div className="text-center">
+                              <p className="text-xs text-gray-600">Total</p>
+                              <p className="text-lg font-bold text-indigo-600">{postData.total}</p>
+                            </div>
+                            <div className="w-px h-8 bg-gray-300"></div>
+                            <div className="text-center">
+                              <p className="text-xs text-green-600">Posted</p>
+                              <p className="text-lg font-bold text-green-600">{postData.posted}</p>
+                            </div>
+                            <div className="w-px h-8 bg-gray-300"></div>
+                            <div className="text-center">
+                              <p className="text-xs text-red-600">Rejected</p>
+                              <p className="text-lg font-bold text-red-600">{postData.rejected}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </td>
 
@@ -587,10 +685,13 @@ export default function UserManagement() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleViewPosts(user)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewPosts(user);
+                          }}
                           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
                           title="View Details"
                         >
@@ -598,16 +699,20 @@ export default function UserManagement() {
                           <span className="text-sm font-medium">View Details</span>
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.userId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(user.userId);
+                          }}
                           className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
                           title="Delete User"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
-                    </td>
+                    </td> */}
                   </tr>
-                ))}
+                  );
+                })}
                 {filteredUsers.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center py-12">
@@ -907,7 +1012,7 @@ export default function UserManagement() {
 
         {viewingUserPosts && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800">User Posts</h2>
@@ -924,8 +1029,8 @@ export default function UserManagement() {
                 </button>
               </div>
 
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6">
-                <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Wallet Balance</p>
                     <p className="text-2xl font-bold text-indigo-600">
@@ -939,11 +1044,23 @@ export default function UserManagement() {
                     </p>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-600 mb-1">Posted</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {loadingPosts ? "..." : userPosts.filter(p => p.status === "posted").length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Rejected</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {loadingPosts ? "..." : userPosts.filter(p => p.status === "rejected").length}
+                    </p>
+                  </div>
+                  {/* <div>
                     <p className="text-sm text-gray-600 mb-1">Plan</p>
                     <p className="text-2xl font-bold text-pink-600">
                       {viewingUserPosts.subscription?.plan || "Basic"}
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
@@ -959,31 +1076,77 @@ export default function UserManagement() {
                     <p className="text-gray-400 text-sm">This user hasn't created any posts</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {userPosts.map((post, index) => (
                       <div
                         key={post._id || index}
-                        className="relative group bg-gray-100 rounded-xl overflow-hidden aspect-square hover:shadow-lg transition-all cursor-pointer"
-                        onClick={() => window.open(post.aiOutput, "_blank")}
+                        className="relative group bg-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-all"
                       >
-                        <img
-                          src={post.aiOutput}
-                          alt={`Post ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src =
-                              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23f3f4f6' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E";
-                          }}
-                        />
+                        <div className="aspect-square relative">
+                          <img
+                            src={post.aiOutput}
+                            alt={`Post ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setFullViewImage(post.aiOutput)}
+                            onError={(e) => {
+                              e.target.src =
+                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23f3f4f6' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E";
+                            }}
+                          />
 
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="text-white text-center">
-                            <ZoomIn size={32} className="mx-auto mb-2" />
-                            <p className="text-xs font-medium">Post #{index + 1}</p>
-                            {post.description && (
-                              <p className="text-xs mt-1 px-2 line-clamp-2">{post.description}</p>
-                            )}
+                          <div className="absolute top-2 right-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                post.status === "posted"
+                                  ? "bg-green-100 text-green-700 border border-green-300"
+                                  : post.status === "rejected"
+                                  ? "bg-red-100 text-red-700 border border-red-300"
+                                  : "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                              }`}
+                            >
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  post.status === "posted"
+                                    ? "bg-green-500"
+                                    : post.status === "rejected"
+                                    ? "bg-red-500"
+                                    : "bg-yellow-500"
+                                }`}
+                              ></div>
+                              {post.status === "posted" ? "Posted" : post.status === "rejected" ? "Rejected" : "Pending"}
+                            </span>
                           </div>
+
+                          <button
+                            onClick={() => setFullViewImage(post.aiOutput)}
+                            className="absolute top-2 left-2 p-2 bg-white/90 hover:bg-white rounded-full transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <ZoomIn size={16} className="text-gray-700" />
+                          </button>
+                        </div>
+
+                        <div className="p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-500">Post #{index + 1}</span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(post.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                        {post.promat && (
+  <p className="text-sm text-gray-700 line-clamp-2">
+    <span className="font-bold">Prompt:</span> {post.promat}
+  </p>
+)}
+
+
+                          {post.status === "rejected" && post.rejectReason && (
+                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                              <p className="text-xs font-semibold text-red-700 mb-1">Rejection Reason:</p>
+                              <p className="text-xs text-red-600">{post.rejectReason}</p>
+                            </div>
+                          )}
+
                         </div>
                       </div>
                     ))}

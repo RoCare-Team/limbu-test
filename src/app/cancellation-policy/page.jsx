@@ -74,10 +74,10 @@ export default function CancellationPage() {
             <strong>7 working days</strong> from the date of payment by emailing
             us at{" "}
             <a
-              href="mailto:Manoj.asharma2016@gmail.com"
+              href="mailto: info@limbu.ai"
               className="text-blue-600 underline"
             >
-              Manoj.asharma2016@gmail.com
+               info@limbu.ai
             </a>
             .
           </p>
@@ -121,14 +121,14 @@ export default function CancellationPage() {
             <p>
               📧 <strong>Email:</strong>{" "}
               <a
-                href="mailto:Manoj.asharma2016@gmail.com"
+                href="mailto: info@limbu.ai"
                 className="text-blue-600 underline"
               >
-                Manoj.asharma2016@gmail.com
+                 info@limbu.ai
               </a>
             </p>
             <p>
-              📞 <strong>Phone:</strong> +91 8506097730
+              📞 <strong>Phone:</strong> +91 9540384046
             </p>
             <p>
               🌐 <strong>Website:</strong>{" "}
