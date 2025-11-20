@@ -10,6 +10,7 @@ import PostImage2 from '../../public/images/post-2.jpg';
 import PostImage3 from '../../public/images/post-3.jpg';
 import PostImage4 from '../../public/images/post-4.jpg';
 import PostImage6 from '../../public/images/post-6.jpg';
+import HomeBannerImage from '../../public/images/home-banner.png';
 
 export default function LimbuAILanding() {
   const [scrollY, setScrollY] = useState(0);
@@ -112,7 +113,7 @@ export default function LimbuAILanding() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-800 overflow-hidden">
+<div className="min-h-screen bg-gradient-to-br from-white-50 via-white-100 to-white-200 text-slate-800 overflow-hidden">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div 
@@ -207,39 +208,53 @@ export default function LimbuAILanding() {
       )}
 
       {/* Hero Section */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32">
-        <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-200 rounded-full mb-8">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium text-blue-700">Trusted by 500+ businesses worldwide</span>
+      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-16 md:pt-20 pb-32">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          {/* Left Column (Text Content) */}
+          <div className={`text-center md:text-left transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-200 rounded-full mb-6">
+              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm font-medium text-blue-700">Trusted by 500+ businesses worldwide</span>
+            </div>
+
+            <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight mb-6 text-slate-900">
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Automate Your GMB
+              </span>
+              <br />
+              <span>with AI Power</span>
+            </h1>
+
+            <p className="text-lg text-slate-600 max-w-xl mx-auto md:mx-0 mb-10 leading-relaxed">
+              Generate engaging posts, schedule automatically, publish to GMB, and manage reviews—all powered by AI. 
+              Save hours every week with intelligent automation.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+              <Link href="/login">
+                <button className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-blue-300/50 transition-all hover:scale-105 flex items-center justify-center gap-2">
+                  {buttonStatus ? "Go to Dashboard" : "Start Free Trial"}
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </Link>
+            </div>
           </div>
-          </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-slate-900 text-center">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Automate Your GMB
-            </span>
-            <br />
-            <span>with AI Power</span>
+          {/* Right Column (Image) */}
+         <div
+  className={`hidden md:block transition-all duration-1000 delay-300 ${
+    isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+  }`}
+>
+  <Image
+    src={HomeBannerImage}
+    alt="AI dashboard showing GMB post creation"
+    className="w-full h-auto rounded-full border-4 border-gray-300"
+    priority
+  />
+</div>
 
-          </h1>
-
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Generate engaging posts, schedule automatically, publish to GMB, and manage reviews—all powered by AI. 
-            Save hours every week with intelligent automation.
-          </p>
-
-
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link href="/login">
-            <button className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-blue-300/50 transition-all hover:scale-105 flex items-center gap-2">
-              {buttonStatus ? "Go to Dashboard": "Start Free Trial"}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            </Link>
-          
-          </div>
+        </div>
           
           {/* Brands Slider */}
           <div className="mt-24 mb-20 animate-fadeIn" style={{animationDelay: '0.5s'}}>
