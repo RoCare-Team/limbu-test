@@ -117,6 +117,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   })
 );
 
+
 export default function Sidebar({ children, user }) {
   const theme = useTheme();
   const router = useRouter();
@@ -1135,7 +1136,7 @@ React.useEffect(() => {
         )}
 
         {/* Main Content */}
-        <Box component="main" sx={{ flexGrow: 1, bgcolor: '#f5f6fa', minHeight: '100vh' }}>
+        <Box component="main" sx={{ flexGrow: 1, bgcolor: '#f5f6fa', minHeight: '100vh', p: { xs: 2, sm: 3 } }}>
           <DrawerHeader />
           {children}
         </Box>

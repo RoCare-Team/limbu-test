@@ -1441,7 +1441,7 @@ const submitRejection = async () => {
         }
       `}</style>
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+<div className="max-w-7xl mx-auto -mt-[45px] sm:mt-0 p-1 sm:p-4 space-y-1 sm:space-y-6">
         {toast && <Toast message={toast.message} type={toast.type} />}
         {isGenerating && <LoadingOverlay countdown={countdown} />}
         {showLocationModal && (

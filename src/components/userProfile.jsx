@@ -98,7 +98,7 @@ export default function ProfileWithStats() {
   const { fullName, email, phone, wallet } = userData;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6 mt-10">
       <div className="max-w-5xl mx-auto">
 
         {/* ---------------- PROFILE CARD ---------------- */}

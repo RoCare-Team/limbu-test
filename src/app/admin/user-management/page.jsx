@@ -247,31 +247,43 @@ const fetchAllUserPostsCounts = async () => {
     }
   };
 
-  const handleAddUser = async () => {
-    if (!newUser.userId || !newUser.email) {
-      alert("Please enter both User ID and Email");
-      return;
-    }
+const handleAddUser = async () => {
+  if (!newUser.fullName || !newUser.email) {
+    alert("Please enter Full Name and Email");
+    return;
+  }
 
-    try {
-      const res = await fetch(`/api/users/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newUser),
+  try {
+    const res = await fetch("/api/users/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newUser),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert("User created successfully!");
+
+      setNewUser({
+        fullName: "",
+        email: "",
+        phone: "",
+        plan: "Free",
       });
-      const data = await res.json();
-      if (data.success) {
-        alert("User added successfully!");
-        setAddingUser(false);
-        setNewUser({ userId: "", email: "", phone: "", plan: "Basic" });
-        fetchUsers();
-      } else {
-        alert(data.error || "Failed to add user");
-      }
-    } catch (err) {
-      console.error("Error adding user:", err);
+
+      setAddingUser(false);
+      fetchUsers();
+    } else {
+      alert(data.error || "Failed to add user");
     }
-  };
+  } catch (error) {
+    console.error("Add user error:", error);
+  }
+};
+
 
   const handleViewPosts = async (user) => {
     setViewingUserPosts(user);
@@ -937,11 +949,10 @@ const fetchAllUserPostsCounts = async () => {
             </div>
           </div>
         )}
-
-       {addingUser && (
+{addingUser && (
   <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 w-full max-w-md shadow-2xl">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -958,16 +969,16 @@ const fetchAllUserPostsCounts = async () => {
       {/* Form */}
       <div className="space-y-4 mb-6">
 
-        {/* User ID */}
+        {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            User ID
+            Full Name
           </label>
           <input
             type="text"
-            placeholder="Enter user ID"
-            value={newUser.userId}
-            onChange={(e) => setNewUser({ ...newUser, userId: e.target.value })}
+            placeholder="Enter full name"
+            value={newUser.fullName}
+            onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 
                        bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 
                        rounded-xl focus:ring-2 focus:ring-indigo-500 
@@ -995,11 +1006,11 @@ const fetchAllUserPostsCounts = async () => {
         {/* Phone */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Phone (Optional)
+            Phone
           </label>
           <input
             type="tel"
-            placeholder="+1 (555) 000-0000"
+            placeholder="+91 9876543210"
             value={newUser.phone}
             onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 
@@ -1022,9 +1033,10 @@ const fetchAllUserPostsCounts = async () => {
                        rounded-xl focus:ring-2 focus:ring-indigo-500 
                        focus:border-transparent outline-none"
           >
-            <option className="text-gray-800 dark:text-gray-200" value="Basic">Basic</option>
-            <option className="text-gray-800 dark:text-gray-200" value="Standard">Standard</option>
-            <option className="text-gray-800 dark:text-gray-200" value="Premium">Premium</option>
+            <option value="Free">Free</option>
+            <option value="Basic">Basic</option>
+            <option value="Standard">Standard</option>
+            <option value="Premium">Premium</option>
           </select>
         </div>
       </div>
@@ -1053,8 +1065,6 @@ const fetchAllUserPostsCounts = async () => {
     </div>
   </div>
 )}
-
-
         {viewingUserPosts && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl p-8 w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">

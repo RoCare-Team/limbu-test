@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Moon, Sun, Phone, Mail, User, Lock, CheckCircle, AlertCircle, MapPin, Star, TrendingUp, BarChart3, Users, Globe } from "lucide-react";
 
 export default function LoginPage() {
+  /* ─────────────── 100 % SAME STATE & LOGIC ─────────────── */
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
@@ -115,10 +116,10 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.user.userId);
         showMessage("Registration complete! Redirecting...", "success");
-        if(data.token){
-          router.push("/dashboard")
+        if (data.token) {
+          router.push("/dashboard");
         } else {
-          router.push("/login")
+          router.push("/login");
         }
       } else {
         showMessage(data.error || "Registration failed", "error");
@@ -136,9 +137,13 @@ export default function LoginPage() {
     }
   };
 
+  /* ----------------------------------------------------------
+     NEW LAYOUT WRAPPER – login first on mobile, side-by-side lg
+  -----------------------------------------------------------*/
   return (
     <>
       <div className={`min-h-screen transition-colors duration-300 ${isDark ? "bg-slate-900" : "bg-gradient-to-br from-indigo-50 via-white to-purple-50"}`}>
+        {/* —— SAME TOP BAR & THEME TOGGLE —— */}
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition text-gray-700 font-medium m-4 fixed top-0 left-0 z-50"
@@ -164,7 +169,6 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
           className={`fixed top-6 right-6 z-50 p-3 rounded-full shadow-lg transition-all duration-300 ${
@@ -174,12 +178,295 @@ export default function LoginPage() {
           {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
 
-        {/* Container with Two Sections */}
-        <div className="relative min-h-screen flex items-center justify-center p-4">
+        {/* --------------  NEW FLEX ORDER  -------------- */}
+<div className="relative min-h-screen flex items-center justify-center p-4 mt-20">
           <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-8 items-stretch">
-            {/* Left Side - Marketing Content */}
-            <div className={`flex-1 rounded-3xl p-8 lg:p-12 shadow-2xl ${isDark ? "bg-slate-800/50 backdrop-blur-xl border border-slate-700" : "bg-white/80 backdrop-blur-xl border border-white/20"}`}>
-              {/* Main Hero Section */}
+            {/* 1. LOGIN CARD – elevated tray */}
+            <div
+              className={`flex-1 rounded-3xl shadow-2xl overflow-hidden
+                ${isDark
+                  ? "bg-slate-800/60 backdrop-blur-xl border border-slate-700"
+                  : "bg-white/90 backdrop-blur-xl border border-white/30"}
+                /* -----  subtle tray shadow  ----- */
+                ring-1 ${isDark ? "ring-slate-700/50" : "ring-slate-200/50"}
+                `}
+            >
+              {/* SAME HEADER / FORM / FOOTER */}
+              <div className={`p-8 ${isDark ? "bg-gradient-to-r from-blue-600 to-purple-600" : "bg-gradient-to-r from-indigo-600 to-purple-600"}`}>
+                <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
+                <p className="text-indigo-100 mt-2">Sign in to access your dashboard</p>
+              </div>
+
+              <div className="p-8">
+                {/* step indicator */}
+                <div className="flex items-center justify-center mb-8">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
+                        step === "phone"
+                          ? isDark
+                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
+                            : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/50"
+                          : isDark
+                          ? "bg-slate-700 text-slate-400"
+                          : "bg-slate-200 text-slate-500"
+                      }`}
+                    >
+                      1
+                    </div>
+                    <div
+                      className={`w-12 h-1 rounded-full transition-all duration-300 ${
+                        step !== "phone" ? (isDark ? "bg-blue-500" : "bg-indigo-600") : isDark ? "bg-slate-700" : "bg-slate-200"
+                      }`}
+                    ></div>
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
+                        step === "otp"
+                          ? isDark
+                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
+                            : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/50"
+                          : step === "details"
+                          ? isDark
+                            ? "bg-blue-500 text-white"
+                            : "bg-indigo-600 text-white"
+                          : isDark
+                          ? "bg-slate-700 text-slate-400"
+                          : "bg-slate-200 text-slate-500"
+                      }`}
+                    >
+                      2
+                    </div>
+                    {!isExisting && (
+                      <>
+                        <div
+                          className={`w-12 h-1 rounded-full transition-all duration-300 ${
+                            step === "details" ? (isDark ? "bg-blue-500" : "bg-indigo-600") : isDark ? "bg-slate-700" : "bg-slate-200"
+                          }`}
+                        ></div>
+                        <div
+                          className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
+                            step === "details"
+                              ? isDark
+                                ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
+                                : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/50"
+                              : isDark
+                              ? "bg-slate-700 text-slate-400"
+                              : "bg-slate-200 text-slate-500"
+                          }`}
+                        >
+                          3
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* ------------  PHONE STEP  ------------ */}
+                {step === "phone" && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>Mobile Number</label>
+                      <div className="relative">
+                        <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
+                        <input
+                          type="tel"
+                          placeholder="Enter your mobile number"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          onKeyPress={(e) => handleKeyPress(e, sendOtp)}
+                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 font-medium ${
+                            isDark
+                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
+                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
+                          } focus:outline-none focus:ring-4 ${isDark ? "focus:ring-blue-500/20" : "focus:ring-indigo-500/20"}`}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={sendOtp}
+                      disabled={isLoading}
+                      className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isDark
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+                          : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+                      }`}
+                    >
+                      {isLoading ? "Sending..." : "Send OTP"}
+                    </button>
+                  </div>
+                )}
+
+                {/* ------------  OTP STEP  ------------ */}
+                {step === "otp" && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>Enter OTP</label>
+                      <div className="relative">
+                        <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
+                        <input
+                          type="text"
+                          placeholder="0000"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          onKeyPress={(e) => handleKeyPress(e, verifyOtp)}
+                          maxLength={6}
+                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 text-center text-2xl tracking-[0.5em] font-bold ${
+                            isDark
+                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
+                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
+                          } focus:outline-none focus:ring-4 ${isDark ? "focus:ring-blue-500/20" : "focus:ring-indigo-500/20"}`}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={verifyOtp}
+                      disabled={isLoading}
+                      className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isDark
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+                          : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+                      }`}
+                    >
+                      {isLoading ? "Verifying..." : "Verify OTP"}
+                    </button>
+
+                    <div className="flex flex-col gap-2 pt-2">
+                      <button
+                        onClick={() => setStep("phone")}
+                        disabled={isLoading}
+                        className={`w-full py-3 text-sm font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isDark ? "text-blue-400 hover:text-blue-300 hover:bg-slate-700/50" : "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                        }`}
+                      >
+                        ← Change Phone Number
+                      </button>
+                      <button
+                        onClick={sendOtp}
+                        disabled={isLoading}
+                        className={`w-full py-3 text-sm font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isDark ? "text-slate-300 hover:text-white hover:bg-slate-700/50" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        }`}
+                      >
+                        Resend OTP
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ------------  DETAILS STEP  ------------ */}
+                {step === "details" && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>Full Name</label>
+                      <div className="relative">
+                        <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
+                        <input
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 font-medium ${
+                            isDark
+                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
+                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
+                          } focus:outline-none focus:ring-4 ${isDark ? "focus:ring-blue-500/20" : "focus:ring-indigo-500/20"}`}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>Email Address</label>
+                      <div className="relative">
+                        <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
+                        <input
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          onKeyPress={(e) => handleKeyPress(e, completeRegistration)}
+                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 font-medium ${
+                            isDark
+                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
+                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
+                          } focus:outline-none focus:ring-4 ${isDark ? "focus:ring-blue-500/20" : "focus:ring-indigo-500/20"}`}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={completeRegistration}
+                      disabled={isLoading}
+                      className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isDark
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+                          : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+                      }`}
+                    >
+                      {isLoading ? "Processing..." : "Complete Registration"}
+                    </button>
+                  </div>
+                )}
+
+                {/* ------------  MESSAGE  ------------ */}
+                {message && (
+                  <div
+                    className={`mt-6 p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 ${
+                      messageType === "success"
+                        ? isDark
+                          ? "bg-green-500/20 border border-green-500/30"
+                          : "bg-green-50 border border-green-200"
+                        : messageType === "error"
+                        ? isDark
+                          ? "bg-red-500/20 border border-red-500/30"
+                          : "bg-red-50 border border-red-200"
+                        : isDark
+                        ? "bg-blue-500/20 border border-blue-500/30"
+                        : "bg-blue-50 border border-blue-200"
+                    }`}
+                  >
+                    {messageType === "success" ? (
+                      <CheckCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-green-400" : "text-green-600"}`} />
+                    ) : messageType === "error" ? (
+                      <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-red-400" : "text-red-600"}`} />
+                    ) : (
+                      <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-blue-400" : "text-blue-600"}`} />
+                    )}
+                    <p
+                      className={`text-sm font-medium ${
+                        messageType === "success"
+                          ? isDark
+                            ? "text-green-300"
+                            : "text-green-800"
+                          : messageType === "error"
+                          ? isDark
+                            ? "text-red-300"
+                            : "text-red-800"
+                          : isDark
+                          ? "text-blue-300"
+                          : "text-blue-800"
+                      }`}
+                    >
+                      {message}
+                    </p>
+                  </div>
+                )}
+
+                <div className={`mt-8 pt-6 border-t text-center text-sm ${isDark ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-600"}`}>
+                  🔒 Secure authentication powered by GMB Management
+                </div>
+              </div>
+            </div>
+
+            {/* 2. MARKETING CONTENT – order-last on mobile */}
+            <div
+              className={`flex-1 rounded-3xl p-8 lg:p-12 shadow-2xl
+                ${isDark ? "bg-slate-800/50 backdrop-blur-xl border border-slate-700" : "bg-white/80 backdrop-blur-xl border border-white/20"}
+                /* -----  subtle tray shadow  ----- */
+                ring-1 ${isDark ? "ring-slate-700/50" : "ring-slate-200/50"}
+                `}
+            >
               <div className="space-y-6">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${isDark ? "bg-blue-500/20 text-blue-400" : "bg-indigo-100 text-indigo-700"}`}>
                   <Globe className="w-4 h-4" />
@@ -189,9 +476,7 @@ export default function LoginPage() {
                 <h1 className={`text-4xl lg:text-5xl font-bold leading-tight ${isDark ? "text-white" : "text-slate-900"}`}>
                   Your Business,
                   <br />
-                  <span className={`${isDark ? "text-blue-400" : "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"}`}>
-                    Amplified Online
-                  </span>
+                  <span className={`${isDark ? "text-blue-400" : "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"}`}>Amplified Online</span>
                 </h1>
 
                 <p className={`text-lg ${isDark ? "text-slate-300" : "text-slate-600"}`}>
@@ -231,7 +516,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Stats Section */}
               <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
                 <div className="text-center">
                   <div className={`flex items-center justify-center gap-1 text-2xl font-bold ${isDark ? "text-blue-400" : "text-indigo-600"}`}>
@@ -253,254 +537,6 @@ export default function LoginPage() {
                     45%
                   </div>
                   <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-slate-600"}`}>Growth Avg</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - Login Form */}
-            <div className={`flex-1 rounded-3xl shadow-2xl overflow-hidden ${isDark ? "bg-slate-800/50 backdrop-blur-xl border border-slate-700" : "bg-white/80 backdrop-blur-xl border border-white/20"}`}>
-              {/* Header with Gradient */}
-              <div className={`p-8 ${isDark ? "bg-gradient-to-r from-blue-600 to-purple-600" : "bg-gradient-to-r from-indigo-600 to-purple-600"}`}>
-                <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
-                <p className="text-indigo-100 mt-2">Sign in to access your dashboard</p>
-              </div>
-
-              {/* Form Content */}
-              <div className="p-8">
-                {/* Enhanced Step Indicator */}
-                <div className="flex items-center justify-center mb-8">
-                  <div className="flex items-center gap-2">
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
-                      step === "phone" 
-                        ? isDark ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50" : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/50"
-                        : isDark ? "bg-slate-700 text-slate-400" : "bg-slate-200 text-slate-500"
-                    }`}>
-                      1
-                    </div>
-                    <div className={`w-12 h-1 rounded-full transition-all duration-300 ${
-                      step !== "phone" 
-                        ? isDark ? "bg-blue-500" : "bg-indigo-600"
-                        : isDark ? "bg-slate-700" : "bg-slate-200"
-                    }`}></div>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
-                      step === "otp"
-                        ? isDark ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50" : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/50"
-                        : step === "details"
-                        ? isDark ? "bg-blue-500 text-white" : "bg-indigo-600 text-white"
-                        : isDark ? "bg-slate-700 text-slate-400" : "bg-slate-200 text-slate-500"
-                    }`}>
-                      2
-                    </div>
-                    {!isExisting && (
-                      <>
-                        <div className={`w-12 h-1 rounded-full transition-all duration-300 ${
-                          step === "details"
-                            ? isDark ? "bg-blue-500" : "bg-indigo-600"
-                            : isDark ? "bg-slate-700" : "bg-slate-200"
-                        }`}></div>
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
-                          step === "details"
-                            ? isDark ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50" : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/50"
-                            : isDark ? "bg-slate-700 text-slate-400" : "bg-slate-200 text-slate-500"
-                        }`}>
-                          3
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Phone Step */}
-                {step === "phone" && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-                        Mobile Number
-                      </label>
-                      <div className="relative">
-                        <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
-                        <input
-                          type="tel"
-                          placeholder="Enter your mobile number"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          onKeyPress={(e) => handleKeyPress(e, sendOtp)}
-                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 font-medium ${
-                            isDark
-                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
-                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
-                          } focus:outline-none focus:ring-4 ${isDark ? 'focus:ring-blue-500/20' : 'focus:ring-indigo-500/20'}`}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={sendOtp}
-                      disabled={isLoading}
-                      className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isDark
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
-                          : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
-                      }`}
-                    >
-                      {isLoading ? "Sending..." : "Send OTP"}
-                    </button>
-                  </div>
-                )}
-
-                {/* OTP Step */}
-                {step === "otp" && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-                        Enter OTP
-                      </label>
-                      <div className="relative">
-                        <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
-                        <input
-                          type="text"
-                          placeholder="0000"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value)}
-                          onKeyPress={(e) => handleKeyPress(e, verifyOtp)}
-                          maxLength={6}
-                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 text-center text-2xl tracking-[0.5em] font-bold ${
-                            isDark
-                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
-                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
-                          } focus:outline-none focus:ring-4 ${isDark ? 'focus:ring-blue-500/20' : 'focus:ring-indigo-500/20'}`}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={verifyOtp}
-                      disabled={isLoading}
-                      className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isDark
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
-                          : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
-                      }`}
-                    >
-                      {isLoading ? "Verifying..." : "Verify OTP"}
-                    </button>
-
-                    <div className="flex flex-col gap-2 pt-2">
-                      <button
-                        onClick={() => setStep("phone")}
-                        disabled={isLoading}
-                        className={`w-full py-3 text-sm font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
-                          isDark 
-                            ? "text-blue-400 hover:text-blue-300 hover:bg-slate-700/50" 
-                            : "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                      >
-                        ← Change Phone Number
-                      </button>
-                      <button
-                        onClick={sendOtp}
-                        disabled={isLoading}
-                        className={`w-full py-3 text-sm font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
-                          isDark 
-                            ? "text-slate-300 hover:text-white hover:bg-slate-700/50" 
-                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                        }`}
-                      >
-                        Resend OTP
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Details Step */}
-                {step === "details" && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
-                        <input
-                          type="text"
-                          placeholder="Enter your full name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 font-medium ${
-                            isDark
-                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
-                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
-                          } focus:outline-none focus:ring-4 ${isDark ? 'focus:ring-blue-500/20' : 'focus:ring-indigo-500/20'}`}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-semibold mb-3 ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`} />
-                        <input
-                          type="email"
-                          placeholder="Enter your email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          onKeyPress={(e) => handleKeyPress(e, completeRegistration)}
-                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 transition-all duration-300 font-medium ${
-                            isDark
-                              ? "bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:bg-slate-800"
-                              : "bg-white/50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white"
-                          } focus:outline-none focus:ring-4 ${isDark ? 'focus:ring-blue-500/20' : 'focus:ring-indigo-500/20'}`}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={completeRegistration}
-                      disabled={isLoading}
-                      className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isDark
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
-                          : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
-                      }`}
-                    >
-                      {isLoading ? "Processing..." : "Complete Registration"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Enhanced Message Display */}
-                {message && (
-                  <div className={`mt-6 p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 ${
-                    messageType === "success"
-                      ? isDark ? "bg-green-500/20 border border-green-500/30" : "bg-green-50 border border-green-200"
-                      : messageType === "error"
-                      ? isDark ? "bg-red-500/20 border border-red-500/30" : "bg-red-50 border border-red-200"
-                      : isDark ? "bg-blue-500/20 border border-blue-500/30" : "bg-blue-50 border border-blue-200"
-                  }`}>
-                    {messageType === "success" ? (
-                      <CheckCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-green-400" : "text-green-600"}`} />
-                    ) : messageType === "error" ? (
-                      <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-red-400" : "text-red-600"}`} />
-                    ) : (
-                      <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-blue-400" : "text-blue-600"}`} />
-                    )}
-                    <p className={`text-sm font-medium ${
-                      messageType === "success"
-                        ? isDark ? "text-green-300" : "text-green-800"
-                        : messageType === "error"
-                        ? isDark ? "text-red-300" : "text-red-800"
-                        : isDark ? "text-blue-300" : "text-blue-800"
-                    }`}>
-                      {message}
-                    </p>
-                  </div>
-                )}
-
-                {/* Enhanced Footer */}
-                <div className={`mt-8 pt-6 border-t text-center text-sm ${isDark ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-600"}`}>
-                  🔒 Secure authentication powered by GMB Management
                 </div>
               </div>
             </div>

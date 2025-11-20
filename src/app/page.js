@@ -1,15 +1,23 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Sparkles, BarChart3, MessageSquare, Calendar, Zap, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, Send, ThumbsUp, Mail } from 'lucide-react';
+import { Sparkles, BarChart3, MessageSquare, Calendar, Zap, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, Send, ThumbsUp, Mail, X, LogIn, Link2, LayoutGrid, Menu } from 'lucide-react';
 import Link from 'next/link';
 import LogoImage from "../../public/images/bg-logo.png"
 import Image from 'next/image';
+
+import PostImage1 from '../../public/images/post-1.jpg';
+import PostImage2 from '../../public/images/post-2.jpg';
+import PostImage3 from '../../public/images/post-3.jpg';
+import PostImage4 from '../../public/images/post-4.jpg';
+import PostImage6 from '../../public/images/post-6.jpg';
 
 export default function LimbuAILanding() {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [buttonStatus,setButtonStatus] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -64,6 +72,45 @@ export default function LimbuAILanding() {
     { value: "2X", label: "traffic in 90 days", icon: <Clock className="w-5 h-5" /> }
   ];
 
+  const postImages = [
+    { name: "Post 1", image: PostImage1 },
+    { name: "Post 2", image: PostImage2 },
+    { name: "Post 3", image: PostImage3 },
+    { name: "Post 4", image: PostImage4 },
+    { name: "Post 6", image: PostImage6 },
+  ];
+
+  const howItWorksSteps = [
+    {
+      icon: <LogIn className="w-8 h-8" />,
+      title: "Visit Website & Start Free Trial",
+      points: [
+        "Go to limbu.ai and click 'Start Free Trial'.",
+        "Enter your mobile number and the OTP to log in.",
+        "You're in! Start exploring the dashboard.",
+      ]
+    },
+    {
+      icon: <Link2 className="w-8 h-8" />,
+      title: "Connect Your Google Business Profile",
+      points: [
+        "Click 'Connect Business Profile' and follow Google's secure authentication.",
+        "This process is safe, secure, and essential for integration.",
+        "Ensure you're logged into the correct Google account for your business.",
+      ]
+    },
+    {
+      icon: <LayoutGrid className="w-8 h-8" />,
+      title: "Explore & Use Limbu.ai",
+      points: [
+        "Create stunning AI images and schedule auto-posts.",
+        "Use AI to reply to reviews instantly.",
+        "Filter negative reviews with our Magic QR feature.",
+        "Analyze GMB insights and boost visibility with Citations.",
+      ]
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-800 overflow-hidden">
       {/* Animated Background Elements */}
@@ -101,6 +148,46 @@ export default function LimbuAILanding() {
           <a href="#how-it-works" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">How It Works</a>
           <a href="/contact" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Contact</a>
          {buttonStatus ? (
+          <button
+            onClick={handleLogout}
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all hover:scale-105"
+          >
+            Logout
+          </button>
+        ) : (
+          <Link href="/login">
+            <button className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all hover:scale-105">
+              Login
+            </button>
+          </Link>
+        )}
+
+        </nav>
+
+        {/* Mobile Menu Button and Phone */}
+        <div className="md:hidden flex items-center gap-4">
+          <a href="tel:9540384046" className="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold text-sm shadow-md hover:bg-blue-600 transition-all">
+            Call Now
+          </a>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-800">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-white z-50 p-6 flex flex-col md:hidden animate-fadeIn">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-xl font-bold text-slate-800">LimbuAi</h2>
+            <button onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6 text-slate-600"/></button>
+          </div>
+          <nav className="flex flex-col gap-6 text-center">
+            <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700 hover:text-blue-600 transition">Features</a>
+            <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700 hover:text-blue-600 transition">How It Works</a>
+            <a href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700 hover:text-blue-600 transition">Contact</a>
+            <div className="mt-6">
+            {buttonStatus ? (
   <button
     onClick={handleLogout}
     className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all hover:scale-105"
@@ -114,9 +201,10 @@ export default function LimbuAILanding() {
     </button>
   </Link>
 )}
-
-        </nav>
-      </header>
+            </div>
+          </nav>
+        </div>
+      )}
 
       {/* Hero Section */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32">
@@ -125,8 +213,9 @@ export default function LimbuAILanding() {
             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
             <span className="text-sm font-medium text-blue-700">Trusted by 500+ businesses worldwide</span>
           </div>
+          </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-slate-900">
+          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-slate-900 text-center">
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               Automate Your GMB
             </span>
@@ -151,10 +240,34 @@ export default function LimbuAILanding() {
             </Link>
           
           </div>
+          
+          {/* Brands Slider */}
+          <div className="mt-24 mb-20 animate-fadeIn" style={{animationDelay: '0.5s'}}>
+            <p className="text-sm font-semibold text-slate-500 mb-8 text-center">Explore high-quality posts crafted automatically for your brand and published to GMB.</p>
+            <div className="relative h-48 group flex overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-200px),transparent_100%)]">
+              <div className="flex items-center justify-around flex-shrink-0 animate-scroll-x group-hover:[animation-play-state:paused]">
+                {postImages.map((post, index) => (
+                  <div key={index} className="w-48 h-48 p-2 flex items-center justify-center cursor-pointer" onClick={() => setSelectedImage(post.image)}>
+                    <Image src={post.image} alt={post.name} className="rounded-lg shadow-lg object-cover w-full h-full hover:scale-105 transition-transform duration-300" />
+                  </div>
+                ))}
+              </div>
+              {/* Duplicate for seamless scroll */}
+              <div className="flex items-center justify-around flex-shrink-0 animate-scroll-x group-hover:[animation-play-state:paused]" aria-hidden="true">
+                {postImages.map((post, index) => (
+                  <div key={`clone-${index}`} className="w-48 h-48 p-2 flex items-center justify-center cursor-pointer" onClick={() => setSelectedImage(post.image)}>
+                    <Image 
+                      src={post.image} 
+                      alt={post.name} 
+                      className="rounded-lg shadow-lg object-cover w-full h-full hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
-
-
-              <div id="features" className="mt-32 mb-20">
+          <div id="features" className="mt-32 mb-20">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">
               Powerful <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Features</span>
@@ -184,234 +297,49 @@ export default function LimbuAILanding() {
           </div>
         </div>
 
-          {/* Dashboard Preview */}
-         <div id="how-it-works" className="mt-32 mb-20">
-           <div className={`relative max-w-6xl mx-auto transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-300 to-purple-300 rounded-3xl blur-3xl opacity-20 animate-pulse" />
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl border-2 border-blue-100 p-8 shadow-2xl">
+        {/* How it works Section */}
+        <div id="how-it-works" className="mt-32 mb-20">
+          <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">
-              {/* How <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">its Works</span> */}
+              Use Limbu.ai in <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">3 Easy Steps</span>
             </h2>
-              {/* Tab Navigation */}
-              <div className="flex gap-2 mb-6 bg-blue-50 p-1 rounded-xl">
-                <button 
-                  onClick={() => setActiveTab('posts')}
-                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${activeTab === 'posts' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-600 hover:text-blue-600'}`}
-                >
-                  <PenTool className="w-4 h-4 inline mr-2" />
-                  Post Generation
-                </button>
-                <button 
-                  onClick={() => setActiveTab('schedule')}
-                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${activeTab === 'schedule' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-600 hover:text-blue-600'}`}
-                >
-                  <Clock className="w-4 h-4 inline mr-2" />
-                  Scheduling
-                </button>
-                <button 
-                  onClick={() => setActiveTab('reviews')}
-                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${activeTab === 'reviews' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-600 hover:text-blue-600'}`}
-                >
-                  <MessageSquare className="w-4 h-4 inline mr-2" />
-                  Reviews
-                </button>
-              </div>
-
-              {/* Post Generation View */}
-              {activeTab === 'posts' && (
-                <div className="grid md:grid-cols-2 gap-6 animate-fadeIn">
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-lg text-slate-800">AI Post Generator</h3>
-                      <Sparkles className="w-5 h-5 text-purple-500" />
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-slate-600 block mb-2">Topic/Keywords</label>
-                        <div className="bg-white rounded-lg p-3 border border-blue-200">
-                          <div className="h-3 bg-gradient-to-r from-blue-300 to-purple-300 rounded w-3/4 animate-pulse"></div>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-slate-600 block mb-2">Tone & Style</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-blue-100 text-blue-700 rounded-lg p-2 text-xs font-semibold text-center">Professional</div>
-                          <div className="bg-white border-2 border-blue-300 text-blue-600 rounded-lg p-2 text-xs font-semibold text-center">Friendly</div>
-                          <div className="bg-white border border-blue-200 text-slate-600 rounded-lg p-2 text-xs font-semibold text-center">Casual</div>
-                        </div>
-                      </div>
-                      <button className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all">
-                        <Sparkles className="w-4 h-4" />
-                        Generate Post
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-2xl p-6 border-2 border-purple-100 shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-lg text-slate-800">Generated Post</h3>
-                      {/* <Image className="w-5 h-5 text-blue-500" /> */}
-                    </div>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="h-3 bg-blue-100 rounded w-full animate-pulse"></div>
-                        <div className="h-3 bg-blue-100 rounded w-5/6 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="h-3 bg-blue-100 rounded w-4/6 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                      </div>
-                      <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl h-32 flex items-center justify-center">
-                        {/* <Image className="w-12 h-12 text-blue-400" /> */}
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition">
-                          <Send className="w-3 h-3 inline mr-1" />
-                          Publish Now
-                        </button>
-                        <button className="flex-1 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50 transition">
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          Schedule
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Scheduling View */}
-              {activeTab === 'schedule' && (
-                <div className="animate-fadeIn">
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
-                    <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-purple-500" />
-                      Content Calendar
-                    </h3>
-                    <div className="grid grid-cols-7 gap-2 mb-4">
-                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => (
-                        <div key={idx} className="text-center text-xs font-semibold text-slate-600 py-2">
-                          {day}
-                        </div>
-                      ))}
-                      {[...Array(28)].map((_, idx) => (
-                        <div key={idx} className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-all hover:scale-105 cursor-pointer ${
-                          idx % 7 === 2 || idx % 7 === 5 ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-md' : 
-                          idx % 7 === 4 ? 'bg-blue-100 text-blue-700 border border-blue-300' : 
-                          'bg-white text-slate-600 border border-slate-200'
-                        }`}>
-                          {idx + 1}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-3">
-                      <div className="bg-white rounded-lg p-4 border-l-4 border-blue-500 shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-slate-800">Summer Sale Announcement</div>
-                            <div className="text-sm text-slate-500 mt-1">Scheduled: Wed, 10:00 AM</div>
-                          </div>
-                          <Clock className="w-5 h-5 text-blue-500" />
-                        </div>
-                      </div>
-                      <div className="bg-white rounded-lg p-4 border-l-4 border-purple-500 shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-slate-800">Weekend Special Offer</div>
-                            <div className="text-sm text-slate-500 mt-1">Scheduled: Sat, 9:00 AM</div>
-                          </div>
-                          <Clock className="w-5 h-5 text-purple-500" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Reviews Management View */}
-              {activeTab === 'reviews' && (
-                <div className="animate-fadeIn space-y-4">
-                  <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-6 border border-green-100">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="font-bold text-lg text-slate-800">Recent Reviews</h3>
-                      <div className="flex items-center gap-2">
-                        <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                        <span className="font-bold text-slate-800">4.8</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {/* Review 1 */}
-                      <div className="bg-white rounded-xl p-4 border border-blue-100 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
-                              JD
-                            </div>
-                            <div>
-                              <div className="font-semibold text-slate-800">John Doe</div>
-                              <div className="flex gap-1 mt-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          <span className="text-xs text-slate-500">2 hours ago</span>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-3">
-                          Great service! The team was professional and helpful...
-                        </p>
-                        <div className="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-500">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-4 h-4 text-blue-600" />
-                            <span className="text-xs font-semibold text-blue-700">AI Suggested Response</span>
-                          </div>
-                          <p className="text-sm text-slate-700">
-                            Thank you John! We thrilled you had a great experience...
-                          </p>
-                          <div className="flex gap-2 mt-3">
-                            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition">
-                              <ThumbsUp className="w-3 h-3 inline mr-1" />
-                              Send Reply
-                            </button>
-                            <button className="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-50 transition">
-                              Edit
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Review 2 */}
-                      <div className="bg-white rounded-xl p-4 border border-amber-100 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center text-white font-bold">
-                              SM
-                            </div>
-                            <div>
-                              <div className="font-semibold text-slate-800">Sarah Miller</div>
-                              <div className="flex gap-1 mt-1">
-                                {[...Array(4)].map((_, i) => (
-                                  <Star key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                ))}
-                                <Star className="w-3 h-3 text-slate-300" />
-                              </div>
-                            </div>
-                          </div>
-                          <span className="text-xs text-slate-500">5 hours ago</span>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-3">
-                          Good experience overall could improve waiting time...
-                        </p>
-                        <button className="text-sm text-blue-600 font-semibold hover:text-blue-700 transition flex items-center gap-1">
-                          <Mail className="w-4 h-4" />
-                          Generate AI Response
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">A simple, powerful, and secure way to automate your GMB.</p>
           </div>
-         </div>
+
+          <div className="relative grid md:grid-cols-3 gap-8">
+            {/* Dashed line connector for desktop */}
+            <div className="hidden md:block absolute top-1/2 left-0 w-full h-px">
+              <svg width="100%" height="2" className="absolute top-[-2.5rem]">
+                <path d="M0 1 H1000" stroke="url(#line-gradient)" strokeWidth="2" strokeDasharray="10 10" />
+                <defs>
+                  <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#c084fc" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            {howItWorksSteps.map((step, idx) => (
+              <div key={idx} className="relative bg-white/80 backdrop-blur-sm border border-blue-100 rounded-2xl p-8 text-left hover:shadow-2xl hover:border-blue-200 transition-all duration-300 hover:scale-105">
+                <div className="absolute -top-6 left-8 w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg transform group-hover:scale-110 transition-transform">
+                  {step.icon}
+                </div>
+                <div className="absolute -top-6 right-8 w-16 h-16 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent border-2 border-white">
+                  {idx + 1}
+                </div>
+                <h3 className="text-2xl font-bold mb-4 mt-12 text-slate-800">{step.title}</h3>
+                <ul className="space-y-3 text-slate-600">
+                  {step.points.map((point, pIdx) => (
+                    <li key={pIdx} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Stats Section */}
@@ -474,48 +402,65 @@ export default function LimbuAILanding() {
       </main>
 
       {/* Footer */}
-     {/* Footer */}
-<footer className="relative z-10 border-t border-blue-200 bg-white/50 backdrop-blur-xl py-10 mt-20">
-  <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+      <footer className="relative z-10 border-t border-blue-200 bg-white/50 backdrop-blur-xl py-10 mt-20">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
 
-    {/* Logo + Text */}
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center shadow-md">
-        <Sparkles className="w-5 h-5 text-white" />
-      </div>
-      <div>
-        <div className="font-bold text-lg text-slate-800">limbu.ai</div>
-        <div className="text-xs text-slate-600">© {new Date().getFullYear()} All rights reserved</div>
-      </div>
-    </div>
+          {/* Logo + Text */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center shadow-md">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="font-bold text-lg text-slate-800">limbu.ai</div>
+              <div className="text-xs text-slate-600">© {new Date().getFullYear()} All rights reserved</div>
+            </div>
+          </div>
 
-    {/* Navigation Links */}
-    <div className="flex flex-wrap justify-center gap-6 text-sm font-medium">
-      <Link href="/" className="text-slate-600 hover:text-blue-600 transition">
-        Home
-      </Link>
-      <Link href="#features" className="text-slate-600 hover:text-blue-600 transition">
-        Features
-      </Link>
-      <Link href="#how-it-works" className="text-slate-600 hover:text-blue-600 transition">
-        How It Works
-      </Link>
-      <Link href="/contact" className="text-slate-600 hover:text-blue-600 transition">
-        Contact
-      </Link>
-      <Link href="/privacy-policy" className="text-slate-600 hover:text-blue-600 transition">
-        Privacy Policy
-      </Link>
-      <Link href="/terms-and-conditions" className="text-slate-600 hover:text-blue-600 transition">
-        Terms & Conditions
-      </Link>
-      <Link href="/cancellation-policy" className="text-slate-600 hover:text-blue-600 transition">
-        Cancellation
-      </Link>
-    </div>
-  </div>
-</footer>
+          {/* Navigation Links */}
+          <div className="flex flex-wrap justify-center gap-6 text-sm font-medium">
+            <Link href="/" className="text-slate-600 hover:text-blue-600 transition">
+              Home
+            </Link>
+            <Link href="#features" className="text-slate-600 hover:text-blue-600 transition">
+              Features
+            </Link>
+            <Link href="#how-it-works" className="text-slate-600 hover:text-blue-600 transition">
+              How It Works
+            </Link>
+            <Link href="/contact" className="text-slate-600 hover:text-blue-600 transition">
+              Contact
+            </Link>
+            <Link href="/privacy-policy" className="text-slate-600 hover:text-blue-600 transition">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-and-conditions" className="text-slate-600 hover:text-blue-600 transition">
+              Terms & Conditions
+            </Link>
+            <Link href="/cancellation-policy" className="text-slate-600 hover:text-blue-600 transition">
+              Cancellation
+            </Link>
+          </div>
+        </div>
+      </footer>
 
+      {/* Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fadeIn"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative w-full max-w-2xl p-4" onClick={(e) => e.stopPropagation()}>
+            <Image 
+              src={selectedImage} 
+              alt="Enlarged post" 
+              className="rounded-xl shadow-2xl w-full h-auto object-contain"
+            />
+            <button onClick={() => setSelectedImage(null)} className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center text-2xl font-bold hover:scale-110 transition-transform shadow-lg">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes fadeInUp {
@@ -538,6 +483,13 @@ export default function LimbuAILanding() {
         }
         .animate-fadeIn {
           animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes scroll-x {
+          from { transform: translateX(0); }
+          to { transform: translateX(-100%); }
+        }
+        .animate-scroll-x {
+          animation: scroll-x 40s linear infinite;
         }
       `}</style>
     </div>

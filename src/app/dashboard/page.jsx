@@ -484,6 +484,9 @@ export default function DashboardPage() {
   const [searchKeywordsData, setSearchKeywordsData] = useState(null);
   const [searchKeywordsLoading, setSearchKeywordsLoading] = useState(false);
   const [cacheStatus, setCacheStatus] = useState(""); // For showing cache info
+
+  const userId = localStorage.getItem("userId");
+
   
   const [insightsStartDate, setInsightsStartDate] = useState(() => {
     const date = new Date();
@@ -861,7 +864,7 @@ export default function DashboardPage() {
         </p>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          onClick={() => signIn("google", { callbackUrl: "/dashboard",state: userId, })}
           className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center justify-center gap-2 cursor-pointer"
         >
           <svg

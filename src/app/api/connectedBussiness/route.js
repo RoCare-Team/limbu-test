@@ -1,49 +1,40 @@
 import { NextResponse } from "next/server";
-import { MongoClient } from "mongodb";
+import clientPromise from "@/lib/mongodb";
 
-const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri);
-
-export async function GET() {
+export async function GET(request) {
   try {
-    await client.connect();
-    const db = client.db("gmb_dashboard");
-    const usersCollection = db.collection("users");
+    const client = await clientPromise;
+    const db = client.db("yourdbname");
 
-    console.log("usersCollectionusersCollection",usersCollection);
-    
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    if (!userId) return NextResponse.json({ error: "userId required" });
 
-    // Fetch all users in DESCENDING order (latest first)
-    const users = await usersCollection
-      .find()
-      .sort({ _id: -1 }) // 👈 Sort by _id descending (latest first)
-      .toArray();
+    // 1) Find the main user in test.users
+    const mainUser = await db.collection("test.users").findOne({ userId });
 
-    const formattedUsers = users.map((user) => {
-      const project = user.projects?.[0] || {};
-      const isConnected = !!project.refreshToken;
+    if (!mainUser) {
+      return NextResponse.json({
+        connected: false,
+        count: 0,
+        list: []
+      });
+    }
 
-      return {
-        _id: user.userId,
-        name: user.name || "N/A",
-        email: user.email || "N/A",
-        googleId: project.googleId || null,
-        accessToken: project.accessToken || null,
-        refreshToken: project.refreshToken || null,
-        status: isConnected ? "Connected" : "Not Connected",
-        createdAt: project.createdAt,
-      };
-    });
+    // 2) Now match same email in gmb_dashboard.users
+    const connections = await db.collection("gmb_dashboard.users").find({
+      email: mainUser.email
+    }).toArray();
+
+    const count = connections.length;
 
     return NextResponse.json({
-      success: true,
-      total: formattedUsers.length,
-      users: formattedUsers,
+      connected: count > 0,
+      count,
+      list: connections
     });
-  } catch (err) {
-    console.error("Error fetching users:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  } finally {
-    await client.close();
+
+  } catch (error) {
+    return NextResponse.json({ error: error.message });
   }
 }
