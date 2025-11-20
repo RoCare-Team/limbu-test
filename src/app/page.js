@@ -113,7 +113,7 @@ export default function LimbuAILanding() {
   ];
 
   return (
-<div className="min-h-screen bg-gradient-to-br from-white-50 via-white-100 to-white-200 text-slate-800 overflow-hidden">
+<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white-100 to-blue-100 text-slate-800 overflow-hidden">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div 

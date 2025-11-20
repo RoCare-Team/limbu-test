@@ -60,7 +60,7 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
           <div className="text-center">
             {/* <div className="text-5xl sm:text-6xl mb-3">📍</div> */}
             <h3 className="text-2xl sm:text-3xl font-black text-gray-900">Select Locations</h3>
-            <p className="text-gray-600 text-sm sm:text-base mt-2">Choose locations to post (100 coins per location)</p>
+            <p className="text-gray-600 text-sm sm:text-base mt-2">Choose locations to post (50 coins per location)</p>
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-xl p-4">
