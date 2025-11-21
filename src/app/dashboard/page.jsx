@@ -864,7 +864,7 @@ export default function DashboardPage() {
         </p>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/dashboard",state: userId, })}
+          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
           className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center justify-center gap-2 cursor-pointer"
         >
           <svg
@@ -883,7 +883,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-6">
-      <Toaster position="top-right" />
+      <Toaster position="top-right" /> 
 
       {/* Insights Modal */}
       <InsightsModal

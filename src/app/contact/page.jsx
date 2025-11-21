@@ -1,12 +1,41 @@
 "use client";
 
-import { HiPhone, HiMail, HiLocationMarker, HiClock } from "react-icons/hi";
+import { HiPhone, HiMail, HiLocationMarker, HiClock, HiArrowLeft } from "react-icons/hi";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function ContactUs() {
+  const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: ""
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert("Form submitted!");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-12">
-      <div className="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-3xl border border-gray-200">
-        
+      <div className="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-4xl border border-gray-200">
+
+        {/* Back Button */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-medium"
+        >
+          <HiArrowLeft className="text-xl" />
+          Back
+        </button>
+
         <h1 className="text-4xl font-extrabold text-gray-900 mb-4 text-center">
           Contact Us
         </h1>
@@ -15,48 +44,96 @@ export default function ContactUs() {
           Have any questions or need support? Our team is always here to help you.
         </p>
 
-        {/* Contact Details */}
-        <div className="grid sm:grid-cols-2 gap-8 text-center">
+        {/* Form + Details Row */}
+        <div className="grid md:grid-cols-2 gap-10">
 
-          {/* Phone */}
-          <div className="bg-gray-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-all">
-            <div className="flex justify-center mb-2">
-              <HiPhone className="text-blue-600 text-3xl" />
+          {/* Contact Form */}
+          <form onSubmit={handleSubmit} className="space-y-5 bg-gray-50 p-6 rounded-2xl shadow-md">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2 text-center">Send a Message</h2>
+
+            <input
+              type="text"
+              name="name"
+              placeholder="Your Name"
+              onChange={handleChange}
+              className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              required
+            />
+
+            <input
+              type="email"
+              name="email"
+              placeholder="Your Email"
+              onChange={handleChange}
+              className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              required
+            />
+
+            <input
+              type="number"
+              name="phone"
+              placeholder="Phone Number"
+              onChange={handleChange}
+              className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              required
+            />
+
+            <textarea
+              name="message"
+              rows="4"
+              placeholder="Your Message"
+              onChange={handleChange}
+              className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              required
+            ></textarea>
+
+            <button
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+            >
+              Submit
+            </button>
+          </form>
+
+          {/* Contact Details */}
+          <div className="space-y-6">
+
+            <div className="bg-gray-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-all text-center">
+              <div className="flex justify-center mb-2">
+                <HiPhone className="text-blue-600 text-3xl" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-700">Phone</h2>
+              <p className="text-gray-600 font-medium mt-1">+91 9540384046</p>
             </div>
-            <h2 className="text-lg font-semibold text-gray-700">Phone</h2>
-            <p className="text-gray-600 font-medium mt-1">+91 9540384046</p>
-          </div>
 
-          {/* Email */}
-          <div className="bg-gray-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-all">
-            <div className="flex justify-center mb-2">
-              <HiMail className="text-blue-600 text-3xl" />
+            <div className="bg-gray-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-all text-center">
+              <div className="flex justify-center mb-2">
+                <HiMail className="text-blue-600 text-3xl" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-700">Email</h2>
+              <p className="text-gray-600 font-medium mt-1">info@limbu.ai</p>
             </div>
-            <h2 className="text-lg font-semibold text-gray-700">Email</h2>
-            <p className="text-gray-600 font-medium mt-1">info@limbu.ai</p>
-          </div>
-        </div>
 
-        {/* Address */}
-        <div className="bg-gray-50 rounded-xl p-6 mt-8 shadow-md hover:shadow-lg transition-all text-center">
-          <div className="flex justify-center mb-2">
-            <HiLocationMarker className="text-blue-600 text-3xl" />
-          </div>
-          <h2 className="text-lg font-semibold text-gray-700">Address</h2>
-          <p className="text-gray-600 mt-1 leading-relaxed">
-            Unit No. 831, 8th Floor, JMD Megapolis,<br />
-            Sector 48, Gurugram, Haryana 122018
-          </p>
-        </div>
+            <div className="bg-gray-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-all text-center">
+              <div className="flex justify-center mb-2">
+                <HiLocationMarker className="text-blue-600 text-3xl" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-700">Address</h2>
+              <p className="text-gray-600 mt-1 leading-relaxed">
+                Unit No. 831, 8th Floor, JMD Megapolis,<br />
+                Sector 48, Gurugram, Haryana 122018
+              </p>
+            </div>
 
-        {/* Business Hours */}
-        <div className="bg-gray-50 rounded-xl p-6 mt-8 shadow-md hover:shadow-lg transition-all text-center">
-          <div className="flex justify-center mb-2">
-            <HiClock className="text-blue-600 text-3xl" />
+            <div className="bg-gray-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-all text-center">
+              <div className="flex justify-center mb-2">
+                <HiClock className="text-blue-600 text-3xl" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-700">Business Hours</h2>
+              <p className="text-gray-600 mt-1">Mon – Sat: 9:00 AM – 7:00 PM</p>
+              <p className="text-gray-600">Sunday: Closed</p>
+            </div>
+
           </div>
-          <h2 className="text-lg font-semibold text-gray-700">Business Hours</h2>
-          <p className="text-gray-600 mt-1">Mon – Sat: 9:00 AM – 7:00 PM</p>
-          <p className="text-gray-600">Sunday: Closed</p>
         </div>
 
         {/* Email Button */}

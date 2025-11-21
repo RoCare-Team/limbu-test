@@ -10,6 +10,10 @@ import PostImage2 from '../../public/images/post-2.jpg';
 import PostImage3 from '../../public/images/post-3.jpg';
 import PostImage4 from '../../public/images/post-4.jpg';
 import PostImage6 from '../../public/images/post-6.jpg';
+import PostImage7 from '../../public/images/post-7.jpeg';
+import PostImage8 from '../../public/images/post-8.jpeg';
+import PostImage9 from '../../public/images/post-9.jpeg';
+import PostImage10 from '../../public/images/post-10.jpeg';
 import HomeBannerImage from '../../public/images/home-banner.png';
 
 export default function LimbuAILanding() {
@@ -74,11 +78,16 @@ export default function LimbuAILanding() {
   ];
 
   const postImages = [
-    { name: "Post 1", image: PostImage1 },
+   
+    { name: "Post 6", image: PostImage6 },
+    { name: "Post 7", image: PostImage7 },
+    { name: "Post 8", image: PostImage8 },
+    { name: "Post 9", image: PostImage9 },
+    { name: "Post 10", image: PostImage10 },
+     { name: "Post 1", image: PostImage1 },
     { name: "Post 2", image: PostImage2 },
     { name: "Post 3", image: PostImage3 },
     { name: "Post 4", image: PostImage4 },
-    { name: "Post 6", image: PostImage6 },
   ];
 
   const howItWorksSteps = [
