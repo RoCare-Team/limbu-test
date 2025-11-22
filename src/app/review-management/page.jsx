@@ -521,8 +521,8 @@ export default function DashboardPage() {
       <Toaster />
       <div className="max-w-6xl mx-auto p-6 pt-24">
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Customer Reviews</h1>
-          <p className="text-gray-600 text-lg">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">Customer Reviews</h1>
+          <p className="text-gray-600 text-lg text-center px-4">
             Manage and respond to your Google Business reviews with AI assistance
           </p>
         </div>
