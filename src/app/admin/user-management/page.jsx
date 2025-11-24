@@ -21,8 +21,9 @@ export default function UserManagement() {
   const [walletUpdate, setWalletUpdate] = useState({ amount: "", type: "credit", reason: "" });
   const [toast, setToast] = useState(null);
   const [userPostsData, setUserPostsData] = useState({});
-  const [mergedUsers, setMergedUsers] = useState([]);
   
+  const [mergedUsers, setMergedUsers] = useState([]);
+
   const [impersonatingUser, setImpersonatingUser] = useState(null);
 
 
