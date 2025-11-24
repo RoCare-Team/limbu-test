@@ -233,6 +233,7 @@ export default function LimbuAILanding() {
               <br />
               <span>with AI Power</span>
             </h1>
+            
 
             <p className="text-lg text-slate-600 max-w-xl mx-auto md:mx-0 mb-10 leading-relaxed">
               Generate engaging posts, schedule automatically, publish to GMB, and manage reviews—all powered by AI. 
