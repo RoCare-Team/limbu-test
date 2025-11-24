@@ -194,6 +194,13 @@ export default function DashboardPage() {
     }
   };
 
+  // Auto-fetch reviews when component mounts and session is ready
+  useEffect(() => {
+    if (status === "authenticated" && session?.accessToken && !hasLoadedReviews) {
+      fetchReviews();
+    }
+  }, [status, session, hasLoadedReviews]);
+
   useEffect(() => {
     const plan = localStorage.getItem("Plan");
     const normalizedPlan = plan ? plan.trim() : null;
@@ -387,18 +394,18 @@ export default function DashboardPage() {
      <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
         {/* Location Info Banner - Enhanced Design */}
         {locationInfo && (
-          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-6 py-4">
-            <div className="flex items-start gap-3">
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex items-start gap-2 sm:gap-3">
               <div className="flex-shrink-0 mt-1">
-                <Building2 className="w-5 h-5 text-white" />
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-white text-lg mb-1 truncate">
+                <h4 className="font-bold text-white text-base sm:text-lg mb-1 truncate">
                   {locationInfo.title}
                 </h4>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-blue-100 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-blue-50 leading-relaxed">
+                <div className="flex items-start gap-1 sm:gap-2">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-blue-100 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs sm:text-sm text-blue-50 leading-relaxed">
                     {locationInfo.address}
                   </p>
                 </div>
@@ -407,26 +414,26 @@ export default function DashboardPage() {
           </div>
         )}
         
-        <div className="p-6">
-          <div className="flex flex-col sm:flex-row gap-5">
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
             <div className="flex-shrink-0">
               {review.reviewer?.profilePhotoUrl ? (
                 <img
                   src={review.reviewer.profilePhotoUrl}
                   alt={review.reviewer?.displayName}
-                  className="w-16 h-16 rounded-full border-2 border-gray-200 shadow-sm object-cover"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-gray-200 shadow-sm object-cover"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-bold text-lg sm:text-xl shadow-md">
                   {review.reviewer?.displayName?.[0] || "U"}
                 </div>
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-gray-900 text-lg">
+              <h3 className="font-bold text-gray-900 text-base sm:text-lg">
                 {review.reviewer?.displayName || "Anonymous User"}
               </h3>
-              <span className="text-sm text-gray-400">
+              <span className="text-xs sm:text-sm text-gray-400">
                 {new Date(review.createTime).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
@@ -435,21 +442,21 @@ export default function DashboardPage() {
               </span>
 
               <StarRating rating={review.starRating} />
-              <p className="text-gray-700 mt-2">{review.comment || "No comment provided."}</p>
+              <p className="text-gray-700 mt-2 text-sm sm:text-base">{review.comment || "No comment provided."}</p>
 
               {review.reviewReply && review.reviewReply.comment && review.reviewReply.comment.trim() !== "" && (
-                <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-green-900 mb-1">Your Reply</p>
-                  <p className="text-sm text-green-800">{review.reviewReply.comment}</p>
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm font-semibold text-green-900 mb-1">Your Reply</p>
+                  <p className="text-xs sm:text-sm text-green-800">{review.reviewReply.comment}</p>
                 </div>
               )}
 
               {(!review.reviewReply || !review.reviewReply.comment || review.reviewReply.comment.trim() === "") && (
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button
                     onClick={() => handleAIReply(review, setLocalReply, setShowReplyInput, setGeneratingAI)}
                     disabled={generatingAI || isReplying}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                   >
                     {generatingAI ? (
                       <>
@@ -465,7 +472,7 @@ export default function DashboardPage() {
                   </button>
                   <button
                     onClick={() => setShowReplyInput(!showReplyInput)}
-                    className="bg-white text-gray-700 text-sm font-semibold px-5 py-2.5 rounded-lg border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all"
+                    className="bg-white text-gray-700 text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all w-full sm:w-auto"
                   >
                     <MessageCircle className="w-4 h-4 inline-block mr-2" />
                     Manual Reply
@@ -479,22 +486,22 @@ export default function DashboardPage() {
                     value={localReply}
                     onChange={(e) => setLocalReply(e.target.value)}
                     placeholder="Write your reply here..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-xs sm:text-sm"
                     rows="3"
                     disabled={isReplying}
                   />
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-3">
                     <button
                       onClick={handleManualReply}
                       disabled={isReplying || !localReply?.trim()}
-                      className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
+                      className="bg-blue-600 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                     >
                       {isReplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       Send
                     </button>
                     <button
                       onClick={() => setShowReplyInput(false)}
-                      className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-all px-4 py-2"
+                      className="text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 transition-all px-4 py-2 w-full sm:w-auto"
                     >
                       Cancel
                     </button>
@@ -519,41 +526,22 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
       <Toaster />
-      <div className="max-w-6xl mx-auto p-6 pt-24">
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">Customer Reviews</h1>
-          <p className="text-gray-600 text-lg text-center px-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6">
+        <div className="mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2 text-center">Customer Reviews</h1>
+          <p className="text-gray-600 text-sm sm:text-lg text-center px-2 sm:px-4">
             Manage and respond to your Google Business reviews with AI assistance
           </p>
         </div>
 
-        {!hasLoadedReviews ? (
+        {loading && !hasLoadedReviews ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center max-w-md">
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                <Download className="w-12 h-12 text-white" />
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">Get Your Reviews</h2>
-              <p className="text-gray-600 mb-8">
-                Click the button below to fetch all your customer reviews from Google Business Profile
+              <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Fetching Your Reviews</h2>
+              <p className="text-gray-600">
+                Please wait while we load all your customer reviews...
               </p>
-              <button
-                onClick={fetchReviews}
-                disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    Fetching Reviews...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-6 h-6" />
-                    Get Your Reviews
-                  </>
-                )}
-              </button>
             </div>
           </div>
         ) : error ? (
@@ -605,14 +593,14 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-gray-700 font-medium">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+              <p className="text-gray-700 font-medium text-sm sm:text-base">
                 Showing {reviews.length} review{reviews.length !== 1 ? "s" : ""}
               </p>
               <button
                 onClick={fetchReviews}
                 disabled={loading}
-                className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all inline-flex items-center gap-2 disabled:opacity-50"
+                className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all inline-flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -630,23 +618,23 @@ export default function DashboardPage() {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-10">
+              <div className="flex justify-center items-center gap-2 sm:gap-4 mt-6 sm:mt-10 px-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                   disabled={currentPage === 1}
-                  className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
                 >
-                  <ChevronLeft className="w-4 h-4" /> Prev
+                  <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Prev</span>
                 </button>
-                <span className="text-gray-700 font-medium">
-                  Page {currentPage} of {totalPages}
+                <span className="text-gray-700 font-medium text-sm sm:text-base">
+                  {currentPage} / {totalPages}
                 </span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
                 >
-                  Next <ChevronRight className="w-4 h-4" />
+                  <span className="hidden sm:inline">Next</span> <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             )}

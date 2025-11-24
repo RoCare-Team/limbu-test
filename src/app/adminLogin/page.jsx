@@ -25,6 +25,9 @@ export default function AdminLogin() {
 
       const data = await res.json();
 
+      console.log("roleeee",data);
+      
+
       setLoading(false);
 
       if (!res.ok) {
@@ -33,6 +36,9 @@ export default function AdminLogin() {
       }
 
       localStorage.setItem("role", data.role);
+      // localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("adminToken", "SuperAdmin123");
+
       router.push("/admin/dashboard");
     } catch (err) {
       console.error("Login error:", err);

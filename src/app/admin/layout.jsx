@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, User, Settings, BarChart3, Users } from "lucide-react";
+import { Menu, X, User, Settings, BarChart3, Users, ArrowUpLeft } from "lucide-react";
 
 export default function AdminLayout({ children }) {
   const [open, setOpen] = useState(true);
@@ -13,6 +13,7 @@ export default function AdminLayout({ children }) {
     // { name: "Post management", icon: <Users size={18} />, href: "/admin/post-management" },
     { name: "SAVE Bussiness", icon: <Users size={18} />, href: "/admin/store-bussiness" },
     { name: "Settings", icon: <Settings size={18} />, href: "/admin/settings" },
+    { name: "Visit Website", icon: <ArrowUpLeft  size={18} />, href: "/" },
   ];
 
   return (
@@ -24,9 +25,11 @@ export default function AdminLayout({ children }) {
         } bg-gray-900 text-white transition-all duration-300 flex flex-col`}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className={`font-bold text-xl ${open ? "block" : "hidden"}`}>
+          <a href="/" target="_blank">
+            <h2 className={`font-bold text-xl ${open ? "block" : "hidden"}`}>
             Admin
           </h2>
+          </a>
           <button onClick={() => setOpen(!open)}>
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>

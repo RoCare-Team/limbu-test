@@ -21,6 +21,9 @@ export default function UserManagement() {
   const [walletUpdate, setWalletUpdate] = useState({ amount: "", type: "credit", reason: "" });
   const [toast, setToast] = useState(null);
   const [userPostsData, setUserPostsData] = useState({});
+  const [mergedUsers, setMergedUsers] = useState([]);
+  const [impersonatingUser, setImpersonatingUser] = useState(null);
+
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -353,6 +356,42 @@ const handleAddUser = async () => {
     }
   };
 
+const AdminPanelButton = async (userId) => {
+  setImpersonatingUser(userId);
+  try {
+    const adminToken = localStorage.getItem("adminToken");
+
+    const res = await fetch("/api/admin/login-as-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    const data = await res.json();
+
+    if (data?.token) {
+      localStorage.setItem("token", data.token);  // user token
+      localStorage.setItem("impersonatedUser", userId);
+      localStorage.setItem("userId", data.user.userId);  // SAVE USER-ID HERE
+
+      window.location.href = "/dashboard";
+    } else {
+      alert("Unable to login as user");
+    }
+  } catch (error) {
+    console.log(error);
+    setImpersonatingUser(null);
+  }
+};
+
+
+
+
+
+
   const clearFilters = () => {
     setSearchQuery("");
     setFilterStatus("All");
@@ -371,6 +410,47 @@ const handleAddUser = async () => {
   }
 
   
+console.log("userPosts",filteredUsers);
+
+
+const mergeUsersWithBusiness = async () => {
+  let finalArray = [];
+
+  for (const usr of filteredUsers) {
+    const email = usr.email;
+
+    try {
+      // Business API call
+      const res = await fetch(`/api/admin/saveBussiness?email=${email}`);
+      const data = await res.json();
+
+      // Listings extract
+      const businessListings = data?.listings?.[0]?.listings || [];
+
+      // Push user with business
+      finalArray.push({
+        ...usr,
+        businessListings: businessListings,   // <-- PURE ARRAY MERGE
+      });
+
+    } catch (err) {
+      console.log("Error:", err);
+
+      finalArray.push({
+        ...usr,
+        businessListings: []   // no business
+      });
+    }
+  }
+
+  console.log("FINAL MERGED ARRAY:", finalArray);
+  setMergedUsers(finalArray); // <-- store in state
+};
+
+
+
+console.log("mergedUsersmergedUsers",mergedUsers);
+
 
   
   return (
@@ -578,6 +658,7 @@ const handleAddUser = async () => {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Posts</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Joined Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Login Button</th>
                   {/* <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th> */}
                 </tr>
               </thead>
@@ -704,6 +785,8 @@ const handleAddUser = async () => {
                         </div>
                       </div>
                     </td>
+
+
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         {/* <button
@@ -729,7 +812,42 @@ const handleAddUser = async () => {
                         </button>
                       </div>
                     </td>
+
+                                        <td className="px-6 py-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              AdminPanelButton(user.userId);
+                            }}
+                            disabled={impersonatingUser === user.userId}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium w-32 text-center disabled:bg-blue-400"
+                          >
+                            {impersonatingUser === user.userId ? (
+                              <div className="flex justify-center items-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              </div>
+                            ) : (
+                              "Login as User"
+                            )}
+                          </button>
+</td>
+
+{mergedUsers.map(user => (
+  <div key={user.userId}>
+    <h2>{user.fullName}</h2>
+
+    {user.businessListings.map((biz, i) => (
+      <p key={i}>👉 {biz.title}</p>
+    ))}
+
+  </div>
+))}
+
+
+
+
                   </tr>
+                  
                   );
                 })}
                 {filteredUsers.length === 0 && (

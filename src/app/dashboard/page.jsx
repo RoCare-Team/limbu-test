@@ -861,10 +861,13 @@ export default function DashboardPage() {
         const address = item.storefrontAddress?.addressLines?.[0] || "";
         const title = item.title || "";
         const websiteUrl = item.websiteUri || "";
+        const reviewUri = item.metadata?.newReviewUri || "";
 
-        return { locationId, accountId, locality, address, title, websiteUrl };
+
+        return { locationId, accountId, locality, address, title, websiteUrl,reviewUri };
       });
 
+      
    localStorage.setItem("reviewUrl",allListings[0].metadata.newReviewUri)
       
 

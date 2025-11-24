@@ -38,6 +38,8 @@ export async function GET(req, { params }) {
 
     const responseData = {
       title: listing.title,
+      locality: listing.locality || null,
+      locationId: listing.locationId || null,
       newReviewUri: listing.metadata?.newReviewUri || null
     };
 
@@ -49,5 +51,7 @@ export async function GET(req, { params }) {
       JSON.stringify({ error: "Internal Server Error" }),
       { status: 500 }
     );
+  } finally {
+    await client.close();
   }
 }
