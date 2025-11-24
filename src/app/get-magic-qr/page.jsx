@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import { 
   Star, Download, Copy, Check, Sparkles, QrCode, 
-  MessageSquare, Share2, Printer 
+  MessageSquare, Share2, Printer, ArrowLeft
 } from "lucide-react";
+import Link from "next/link";
 
 export default function BusinessQR() {
   const [business, setBusiness] = useState("");
@@ -314,7 +315,18 @@ export default function BusinessQR() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="container mx-auto px-4 py-12">
+        {/* Back button for mobile view */}
+      <div className="sm:hidden fixed top-25 left-5 z-50">
+        <Link href="/dashboard" passHref>
+          <button
+            aria-label="Go back to dashboard"
+            className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg border border-gray-200 hover:scale-110 transition-transform"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-800" />
+          </button>
+        </Link>
+      </div>
+      <div className="container mx-auto px-4 pt-20 sm:pt-12 pb-12">
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-5 py-2 rounded-full text-sm font-semibold mb-4 shadow-sm">
             <Sparkles size={16} />

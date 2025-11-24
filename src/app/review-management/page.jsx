@@ -17,9 +17,11 @@ import {
   Download,
   Building2,
   MapPin,
+  ArrowLeft,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 
 export default function DashboardPage() {
@@ -524,7 +526,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 relative">
+      {/* Back button for mobile view */}
+      <div className="sm:hidden fixed top-25 left-5 z-50">
+        <Link href="/dashboard" passHref>
+          <button
+            aria-label="Go back to dashboard"
+            className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg border border-gray-200 hover:scale-110 transition-transform"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-800" />
+          </button>
+        </Link>
+      </div>
       <Toaster />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6">
         <div className="mb-6 sm:mb-10">

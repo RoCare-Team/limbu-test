@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import toast, { Toaster } from "react-hot-toast";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -21,11 +21,16 @@ import {
   BarChart3,
   X,
   Calendar,
+  Menu,
   Search,
   Hash,
+  LayoutDashboard,
+  PlusSquare,
+  QrCode,
+  Wallet,
   RefreshCw,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
 // --- API Helpers ---
@@ -573,6 +578,8 @@ function InsightsModal({ isOpen, onClose, insights, listingTitle, loading, start
 // --- Main Dashboard Component ---
 export default function DashboardPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
 
   const [accounts, setAccounts] = useState([]);
@@ -602,6 +609,83 @@ export default function DashboardPage() {
 
   const userPlan = session?.user?.plan || "";
   const maxAccounts = userPlan === "" ? 1 : 0;
+
+const navItems = [
+  {
+    href: "/post-management",
+    icon: <PlusSquare className="h-4 w-4" />,
+    label: "Create & Post",
+  },
+  {
+    href: "/review-management",
+    icon: <Star className="h-4 w-4" />,
+    label: "Review System",
+  },
+  {
+    href: "/get-magic-qr",
+    icon: <QrCode className="h-4 w-4" />,
+    label: "Generate QR",
+  },
+  {
+    href: "/wallet",
+    icon: <Wallet className="h-4 w-4" />,
+    label: "Wallet",
+  },
+];
+
+
+
+const NavLinks = ({ isAuthenticated }) => {
+  return (
+   <div className="bg-transparent rounded-3xl p-0 md:mb-10">
+  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 text-center">
+    {navItems.map((item) => {
+      const isPublic =
+        item.href === "/post-management" || item.href === "/wallet";
+      const isEnabled = isAuthenticated || isPublic;
+
+      const FeatureIcon = (
+        <div
+          className={`flex flex-col items-center justify-center space-y-2 p-2 rounded-xl transition-all duration-300 ${
+            isAuthenticated ? "hover:bg-gray-100 cursor-pointer" : "cursor-pointer"
+          } ${pathname === item.href && isAuthenticated ? "scale-110" : ""}`}
+          onClick={
+            !isEnabled
+              ? () => signIn("google", { callbackUrl: "/dashboard" })
+              : undefined
+          }
+        >
+          <div
+            className={`p-4 rounded-full transition-colors ${
+              pathname === item.href && isAuthenticated
+                ? "bg-blue-600 text-white"
+                : "bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600"
+            }`}
+          >
+            {item.icon}
+          </div>
+          <span className="text-xs sm:text-sm font-semibold text-gray-700">
+            {item.label}
+          </span>
+        </div>
+      );
+
+      if (isEnabled) {
+        return (
+          <Link key={item.label} href={item.href}>
+            {FeatureIcon}
+          </Link>
+        );
+      }
+
+      return <div key={item.label}>{FeatureIcon}</div>;
+    })}
+  </div>
+</div>
+
+
+  );
+};
 
   const fetchInProgress = useRef(false);
   const dataCache = useRef({});
@@ -957,41 +1041,89 @@ export default function DashboardPage() {
   }
 
   // Unauthenticated state
-  if (status === "unauthenticated") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col items-center justify-center text-center px-4">
-        <div className="bg-gradient-to-br from-blue-100 to-purple-100 w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-md">
-          <Building2 className="w-12 h-12 text-blue-600" />
+if (status === "unauthenticated") {
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center py-6">
+
+      <div className="w-full max-w-3xl rounded-xl p-5 sm:p-8 mx-auto">
+
+        {/* Heading */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            Connect your Business
+          </h1>
+          <p className="text-gray-600 sm:text-base text-sm">
+            Connect your account to manage your Google Business Profile
+          </p>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
-          Connect your Business
-        </h1>
-        <p className="text-gray-700 text-base sm:text-lg mb-8">
-          Connect your business account to manage your Google Business Profile
-        </p>
+        {/* Icons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 justify-items-center mb-8">
 
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+              <span className="text-xl">➕</span>
+            </div>
+            <p className="text-gray-700 text-xs sm:text-sm text-center">
+              Create & Post
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
+              <span className="text-xl">⭐</span>
+            </div>
+            <p className="text-gray-700 text-xs sm:text-sm text-center">
+              Review System
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-14 h-14 rounded-xl bg-indigo-100 flex items-center justify-center">
+              <span className="text-xl">🔳</span>
+            </div>
+            <p className="text-gray-700 text-xs sm:text-sm text-center">
+              Generate QR
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-14 h-14 rounded-xl bg-pink-100 flex items-center justify-center">
+              <span className="text-xl">💼</span>
+            </div>
+            <p className="text-gray-700 text-xs sm:text-sm text-center">
+              Wallet
+            </p>
+          </div>
+
+        </div>
+
+        {/* Sign-in Button */}
         <button
           onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2.5 rounded-lg 
+          text-sm font-semibold hover:scale-[1.02] transition flex items-center justify-center gap-2"
         >
-          <svg
-            className="w-5 h-5"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 488 512"
-            fill="currentColor"
-          >
-            <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.9 0 122.4 24.5 165.2 64.9l-66.8 64.9C318.6 109.9 285.1 96 248 96 150.6 96 72 174.6 72 272s78.6 176 176 176c90.1 0 148.4-51.8 160.3-124.6H248v-99.6h240C487.3 232.8 488 247.5 488 261.8z" />
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 488 512">
+            <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.9 0 122.4 24.5 165.2 64.9l-66.8 64.9C318.6 109.9 285.1 96 248 96 150.6 96 72 174.6 72 272s78.6 176 176 176c90.1 0 148.4-51.8 160.3-124.6H248v-99.6h240z"/>
           </svg>
           Sign in with Google
         </button>
+
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Toaster position="top-right" /> 
+      <NavLinks isAuthenticated={true} />
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto pb-6">
 
       {/* Insights Modal */}
       <InsightsModal
@@ -1012,7 +1144,11 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10 backdrop-blur-sm bg-white/95">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mt-12 sm:mt-14">
+          {/* Top Navigation Tabs */}
+         
+
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+            {/* Left side: Title and Welcome Message */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
                 AI GMB Auto Management
@@ -1026,7 +1162,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4 justify-end sm:justify-start flex-wrap">
+            {/* Right side: Action Buttons */}
+            <div className="flex items-center gap-2 sm:gap-4 justify-end sm:justify-start flex-wrap self-start sm:self-center">
               {/* Refresh Button */}
               {accounts.length > 0 && (
                 <button
@@ -1290,7 +1427,9 @@ export default function DashboardPage() {
             );
           })
         )}
-      </div>
+        </div>
+      </main>
     </div>
+  
   );
 }

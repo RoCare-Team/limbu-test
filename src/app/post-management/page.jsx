@@ -18,9 +18,11 @@ import {
   EyeOff,
   Send,
   MapPin,
+  ArrowLeft,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 // Toast Component
 const Toast = ({ message, type = "success" }) => (
@@ -1440,6 +1442,18 @@ const submitRejection = async () => {
           animation-delay: 1.5s;
         }
       `}</style>
+
+      {/* Back button for mobile view */}
+      <div className="sm:hidden fixed top-20 left-5 z-50">
+        <Link href="/dashboard" passHref>
+          <button
+            aria-label="Go back to dashboard"
+            className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg border border-gray-200 hover:scale-110 transition-transform"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-800" />
+          </button>
+        </Link>
+      </div>
 
 <div className="max-w-7xl mx-auto -mt-[45px] sm:mt-0 p-1 sm:p-4 space-y-1 sm:space-y-6">
         {toast && <Toast message={toast.message} type={toast.type} />}

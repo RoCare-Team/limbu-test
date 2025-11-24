@@ -239,14 +239,17 @@ export default function LimbuAILanding() {
               Save hours every week with intelligent automation.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
-              <Link href="/login">
-                <button className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-blue-300/50 transition-all hover:scale-105 flex items-center justify-center gap-2">
-                  {buttonStatus ? "Go to Dashboard" : "Start Free Trial"}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </Link>
-            </div>
+           <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+  <Link
+    href="/login"
+    className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 
+               text-white rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-blue-300/50 
+               transition-all hover:scale-105 flex items-center justify-center gap-2 cursor-pointer"
+  >
+    {buttonStatus ? "Go to Dashboard" : "Start Free Trial"}
+    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+  </Link>
+</div>
           </div>
 
           {/* Right Column (Image) */}
