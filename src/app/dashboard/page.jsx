@@ -1043,34 +1043,55 @@ const NavLinks = ({ isAuthenticated }) => {
   // Unauthenticated state
 if (status === "unauthenticated") {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center py-6">
+    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center py-6">
 
-      <div className="w-full max-w-3xl rounded-xl p-5 sm:p-8 mx-auto">
+      {/* Soft Gradient Blobs for Filled Premium Background */}
+      <div className="absolute top-[-80px] left-[-80px] w-72 h-72 bg-blue-300/30 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-[-100px] right-[-80px] w-80 h-80 bg-purple-300/30 rounded-full blur-3xl"></div>
+      <div className="absolute top-[40%] left-[10%] w-64 h-64 bg-pink-300/20 rounded-full blur-[90px]"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-[#eef2ff] via-white to-[#f5e8ff]"></div>
+
+      {/* CARD */}
+      <div
+        className="
+          relative z-10
+          w-full max-w-3xl rounded-2xl p-6 sm:p-10 mx-auto 
+          bg-white/70 backdrop-blur-xl shadow-xl border border-white/40
+        "
+      >
 
         {/* Heading */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Connect your Business
           </h1>
-          <p className="text-gray-600 sm:text-base text-sm">
+          <p className="text-gray-600 text-sm sm:text-base">
             Connect your account to manage your Google Business Profile
           </p>
         </div>
 
         {/* Icons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 justify-items-center mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 justify-items-center mb-10">
 
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+          {/* CREATE & POST → Link */}
+          <Link
+            href="/post-management"
+            className="flex flex-col items-center gap-1 cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center shadow">
               <span className="text-xl">➕</span>
             </div>
             <p className="text-gray-700 text-xs sm:text-sm text-center">
               Create & Post
             </p>
-          </div>
+          </Link>
 
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
+          {/* REVIEW → Sign-in */}
+          <div
+            onClick={() => signIn("google", { callbackUrl: "/review-management" })}
+            className="flex flex-col items-center gap-1 cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center shadow">
               <span className="text-xl">⭐</span>
             </div>
             <p className="text-gray-700 text-xs sm:text-sm text-center">
@@ -1078,8 +1099,12 @@ if (status === "unauthenticated") {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-14 h-14 rounded-xl bg-indigo-100 flex items-center justify-center">
+          {/* QR → Sign-in */}
+          <div
+            onClick={() => signIn("google", { callbackUrl: "/get-magic-qr" })}
+            className="flex flex-col items-center gap-1 cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-xl bg-indigo-100 flex items-center justify-center shadow">
               <span className="text-xl">🔳</span>
             </div>
             <p className="text-gray-700 text-xs sm:text-sm text-center">
@@ -1087,25 +1112,30 @@ if (status === "unauthenticated") {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-14 h-14 rounded-xl bg-pink-100 flex items-center justify-center">
+          {/* WALLET → Link */}
+          <Link
+            href="/wallet"
+            className="flex flex-col items-center gap-1 cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-xl bg-pink-100 flex items-center justify-center shadow">
               <span className="text-xl">💼</span>
             </div>
             <p className="text-gray-700 text-xs sm:text-sm text-center">
               Wallet
             </p>
-          </div>
+          </Link>
 
         </div>
 
         {/* Sign-in Button */}
         <button
           onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2.5 rounded-lg 
-          text-sm font-semibold hover:scale-[1.02] transition flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 
+            text-white py-3 rounded-lg text-sm font-semibold 
+            hover:scale-[1.03] transition-all shadow-md flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 488 512">
-            <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.9 0 122.4 24.5 165.2 64.9l-66.8 64.9C318.6 109.9 285.1 96 248 96 150.6 96 72 174.6 72 272s78.6 176 176 176c90.1 0 148.4-51.8 160.3-124.6H248v-99.6h240z"/>
+            <path d="M488 261.8C488 403.3 391.1 504 248 504..." />
           </svg>
           Sign in with Google
         </button>
@@ -1114,6 +1144,7 @@ if (status === "unauthenticated") {
     </div>
   );
 }
+
 
 
 
