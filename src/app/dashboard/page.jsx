@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import toast, { Toaster } from "react-hot-toast";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -21,11 +21,16 @@ import {
   BarChart3,
   X,
   Calendar,
+  Menu,
   Search,
   Hash,
+  LayoutDashboard,
+  PlusSquare,
+  QrCode,
+  Wallet,
   RefreshCw,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
 // --- API Helpers ---
@@ -234,240 +239,347 @@ function InsightsModal({ isOpen, onClose, insights, listingTitle, loading, start
     : [];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn ml-20 mt-20">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-5 flex justify-between items-center rounded-t-2xl flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-6 h-6" />
-            <div>
-              <h2 className="text-xl font-bold">Performance Insights</h2>
-              <p className="text-sm text-blue-100">{listingTitle}</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="hover:bg-white/20 p-2 rounded-lg transition"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+<div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center p-2 sm:p-4 animate-fadeIn mt-10 sm:mt-14">
+  <div className="
+      bg-white rounded-2xl shadow-2xl 
+      w-full max-w-5xl 
+      max-h-[92vh] 
+      flex flex-col 
+      overflow-hidden
+    ">
 
-        <div className="p-6 overflow-y-auto flex-1">
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-5 mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-bold text-gray-900">Select Date Range</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
-                <input
-                  type="date"
-                  value={formatDate(startDate)}
-                  onChange={(e) => onDateChange(new Date(e.target.value), endDate)}
-                  max={formatDate(endDate)}
-                  className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
-                <input
-                  type="date"
-                  value={formatDate(endDate)}
-                  onChange={(e) => onDateChange(startDate, new Date(e.target.value))}
-                  min={formatDate(startDate)}
-                  max={formatDate(new Date())}
-                  className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <AlertCircle className="w-4 h-4" />
-              <span>Showing data for {getDaysDifference()} days</span>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <CircularProgress size={50} thickness={4} sx={{ color: "#3b82f6" }} />
-              <p className="text-gray-600 mt-4 font-semibold">Loading insights...</p>
-            </div>
-          ) : insights && insights.multiDailyMetricTimeSeries ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-5 hover:shadow-lg transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="bg-purple-600 p-3 rounded-lg">
-                      <Eye className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-3xl font-bold text-purple-700">{totalImpressions.toLocaleString()}</span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Total Impressions</h3>
-                  <div className="flex gap-2 text-xs text-gray-600">
-                    <span>Maps: {totalMapsImpressions.toLocaleString()}</span>
-                    <span>•</span>
-                    <span>Search: {totalSearchImpressions.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-5 hover:shadow-lg transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="bg-blue-600 p-3 rounded-lg">
-                      <MousePointer className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-3xl font-bold text-blue-700">{totalWebsiteClicks.toLocaleString()}</span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Website Clicks</h3>
-                  <p className="text-xs text-gray-600">Users visited your website</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-5 hover:shadow-lg transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="bg-green-600 p-3 rounded-lg">
-                      <Phone className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-3xl font-bold text-green-700">{totalCalls.toLocaleString()}</span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Call Clicks</h3>
-                  <p className="text-xs text-gray-600">Users clicked to call</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl p-5 hover:shadow-lg transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="bg-orange-600 p-3 rounded-lg">
-                      <Navigation className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-3xl font-bold text-orange-700">{totalDirections.toLocaleString()}</span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Direction Requests</h3>
-                  <p className="text-xs text-gray-600">Users requested directions</p>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 rounded-xl p-6 mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-600" />
-                  Engagement Summary
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-700">{totalImpressions.toLocaleString()}</div>
-                    <div className="text-xs text-gray-600 mt-1">Total Views</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-700">
-                      {totalImpressions > 0
-                        ? (((totalWebsiteClicks + totalCalls + totalDirections) / totalImpressions) * 100).toFixed(2) + "%"
-                        : "0%"}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">Click Rate</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-700">
-                      {(totalWebsiteClicks + totalCalls + totalDirections).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">Total Actions</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-700">{getDaysDifference()}</div>
-                    <div className="text-xs text-gray-600 mt-1">Days</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-2 border-cyan-200 rounded-xl p-6 mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Search className="w-5 h-5 text-cyan-600" />
-                  Top Search Keywords
-                </h3>
-
-                {searchKeywordsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <CircularProgress size={40} thickness={4} sx={{ color: "#0891b2" }} />
-                  </div>
-                ) : topKeywords.length > 0 ? (
-                  <div className="space-y-3">
-                    {topKeywords.map((keyword, idx) => {
-                      const value = keyword.insightsValue?.value || 0;
-                      const maxValue = topKeywords[0]?.insightsValue?.value || 1;
-                      const percentage = (value / maxValue) * 100;
-
-                      return (
-                        <div key={idx} className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="bg-cyan-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
-                                {idx + 1}
-                              </span>
-                              <span className="font-semibold text-gray-900">{keyword.searchKeyword}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Hash className="w-4 h-4 text-cyan-600" />
-                              <div className="flex flex-col items-end">
-                                <span className="text-lg font-bold text-cyan-700">{value.toLocaleString()}</span>
-                                <span className="text-xs text-gray-500">Impressions</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-500"
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Search className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">No search keyword data available</p>
-                  </div>
-                )}
-              </div>
-
-              {callClicks?.timeSeries?.datedValues && (
-                <div className="bg-white border-2 border-gray-200 rounded-xl p-5">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Daily Activity</h3>
-                  <div className="max-h-48 overflow-y-auto">
-                    <div className="space-y-2">
-                      {callClicks.timeSeries.datedValues.slice(-10).reverse().map((item, idx) => {
-                        const date = item.date;
-                        const dateStr = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
-                        const value = typeof item.value === 'string' ? parseInt(item.value, 10) : (item.value || 0);
-                        
-                        return (
-                          <div key={idx} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                            <span className="text-sm font-medium text-gray-700">{dateStr}</span>
-                            <span className="text-sm font-bold text-blue-600">{value} calls</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">No Insights Available</h3>
-              <p className="text-gray-600">Unable to load performance data for this listing.</p>
-            </div>
-          )}
+    {/* HEADER */}
+    <div className="
+        bg-gradient-to-r from-blue-600 to-purple-600 text-white 
+        px-4 sm:px-6 py-4 
+        flex justify-between items-center 
+        rounded-t-2xl 
+        flex-shrink-0
+      ">
+      <div className="flex items-center gap-3">
+        <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold">Performance Insights</h2>
+          <p className="text-xs sm:text-sm text-blue-100">{listingTitle}</p>
         </div>
       </div>
+
+      <button
+        onClick={onClose}
+        className="hover:bg-white/20 p-2 rounded-lg transition"
+      >
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+      </button>
     </div>
+
+    {/* BODY */}
+    <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+
+      {/* DATE RANGE */}
+      <div className="
+            bg-gradient-to-br from-blue-50 to-purple-50 
+            border-2 border-blue-200 rounded-xl 
+            p-4 sm:p-5 mb-6
+          ">
+        <div className="flex items-center gap-2 sm:gap-3 mb-4">
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <h3 className="text-base sm:text-lg font-bold text-gray-900">
+            Select Date Range
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={formatDate(startDate)}
+              onChange={(e) => onDateChange(new Date(e.target.value), endDate)}
+              max={formatDate(endDate)}
+              className="
+                w-full px-3 py-2 sm:px-4 sm:py-2 
+                border-2 border-blue-300 
+                rounded-lg 
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              "
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={formatDate(endDate)}
+              onChange={(e) => onDateChange(startDate, new Date(e.target.value))}
+              min={formatDate(startDate)}
+              max={formatDate(new Date())}
+              className="
+                w-full px-3 py-2 sm:px-4 sm:py-2 
+                border-2 border-blue-300 
+                rounded-lg 
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              "
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+          <AlertCircle className="w-4 h-4" />
+          <span>Showing data for {getDaysDifference()} days</span>
+        </div>
+      </div>
+
+      {/* LOADING */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <CircularProgress size={50} thickness={4} sx={{ color: "#3b82f6" }} />
+          <p className="text-gray-600 mt-4 font-semibold">Loading insights...</p>
+        </div>
+      ) : insights && insights.multiDailyMetricTimeSeries ? (
+        <>
+          {/* TOP METRICS GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+
+            {/* TOTAL IMPRESSIONS */}
+            <div className="
+                bg-gradient-to-br from-purple-50 to-purple-100 
+                border-2 border-purple-200 rounded-xl 
+                p-4 sm:p-5 hover:shadow-lg transition
+              ">
+              <div className="flex items-center justify-between mb-3">
+                <div className="bg-purple-600 p-3 rounded-lg">
+                  <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-2xl sm:text-3xl font-bold text-purple-700">
+                  {totalImpressions.toLocaleString()}
+                </span>
+              </div>
+
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                Total Impressions
+              </h3>
+
+              <div className="flex gap-2 text-xs text-gray-600">
+                <span>Maps: {totalMapsImpressions.toLocaleString()}</span>
+                <span>•</span>
+                <span>Search: {totalSearchImpressions.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* WEBSITE CLICKS */}
+            <div className="
+                bg-gradient-to-br from-blue-50 to-blue-100 
+                border-2 border-blue-200 rounded-xl 
+                p-4 sm:p-5 hover:shadow-lg transition
+              ">
+              <div className="flex items-center justify-between mb-3">
+                <div className="bg-blue-600 p-3 rounded-lg">
+                  <MousePointer className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-2xl sm:text-3xl font-bold text-blue-700">
+                  {totalWebsiteClicks.toLocaleString()}
+                </span>
+              </div>
+
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                Website Clicks
+              </h3>
+
+              <p className="text-xs text-gray-600">Users visited your website</p>
+            </div>
+
+            {/* CALL CLICKS */}
+            <div className="
+                bg-gradient-to-br from-green-50 to-green-100 
+                border-2 border-green-200 rounded-xl 
+                p-4 sm:p-5 hover:shadow-lg transition
+              ">
+              <div className="flex items-center justify-between mb-3">
+                <div className="bg-green-600 p-3 rounded-lg">
+                  <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-2xl sm:text-3xl font-bold text-green-700">
+                  {totalCalls.toLocaleString()}
+                </span>
+              </div>
+
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                Call Clicks
+              </h3>
+
+              <p className="text-xs text-gray-600">Users clicked to call</p>
+            </div>
+
+            {/* DIRECTIONS */}
+            <div className="
+                bg-gradient-to-br from-orange-50 to-orange-100 
+                border-2 border-orange-200 rounded-xl 
+                p-4 sm:p-5 hover:shadow-lg transition
+              ">
+              <div className="flex items-center justify-between mb-3">
+                <div className="bg-orange-600 p-3 rounded-lg">
+                  <Navigation className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-2xl sm:text-3xl font-bold text-orange-700">
+                  {totalDirections.toLocaleString()}
+                </span>
+              </div>
+
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                Direction Requests
+              </h3>
+
+              <p className="text-xs text-gray-600">Users requested directions</p>
+            </div>
+          </div>
+
+          {/* ENGAGEMENT SUMMARY */}
+          <div className="
+              bg-gradient-to-br from-indigo-50 to-indigo-100 
+              border-2 border-indigo-200 rounded-xl 
+              p-4 sm:p-6 mb-6
+            ">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+              Engagement Summary
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-indigo-700">
+                  {totalImpressions.toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">Total Views</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-indigo-700">
+                  {totalImpressions > 0
+                    ? (((totalWebsiteClicks + totalCalls + totalDirections) / totalImpressions) * 100).toFixed(2) + "%"
+                    : "0%"}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">Click Rate</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-indigo-700">
+                  {(totalWebsiteClicks + totalCalls + totalDirections).toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">Total Actions</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-indigo-700">
+                  {getDaysDifference()}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">Days</div>
+              </div>
+            </div>
+          </div>
+
+          {/* KEYWORDS */}
+          <div className="
+              bg-gradient-to-br from-cyan-50 to-cyan-100 
+              border-2 border-cyan-200 rounded-xl 
+              p-4 sm:p-6 mb-6
+            ">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600" />
+              Top Search Keywords
+            </h3>
+
+            {searchKeywordsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <CircularProgress size={40} thickness={4} sx={{ color: "#0891b2" }} />
+              </div>
+            ) : topKeywords.length > 0 ? (
+              <div className="space-y-3">
+                {topKeywords.map((keyword, idx) => {
+                  const value = keyword.insightsValue?.value || 0;
+                  const maxValue = topKeywords[0]?.insightsValue?.value || 1;
+                  const percentage = (value / maxValue) * 100;
+
+                  return (
+                    <div key={idx} className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-cyan-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                            {idx + 1}
+                          </span>
+                          <span className="font-semibold text-gray-900">{keyword.searchKeyword}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Hash className="w-4 h-4 text-cyan-600" />
+                          <div className="flex flex-col items-end">
+                            <span className="text-lg font-bold text-cyan-700">{value.toLocaleString()}</span>
+                            <span className="text-xs text-gray-500">Impressions</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600">No search keyword data available</p>
+              </div>
+            )}
+          </div>
+
+          {/* RECENT DAILY ACTIVITY */}
+          {callClicks?.timeSeries?.datedValues && (
+            <div className="bg-white border-2 border-gray-200 rounded-xl p-5">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Daily Activity</h3>
+              <div className="max-h-48 overflow-y-auto">
+                <div className="space-y-2">
+                  {callClicks.timeSeries.datedValues.slice(-10).reverse().map((item, idx) => {
+                    const date = item.date;
+                    const dateStr = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
+                    const value = typeof item.value === 'string' ? parseInt(item.value, 10) : (item.value || 0);
+
+                    return (
+                      <div key={idx} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <span className="text-sm font-medium text-gray-700">{dateStr}</span>
+                        <span className="text-sm font-bold text-blue-600">{value} calls</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center py-12">
+          <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-gray-900 mb-2">No Insights Available</h3>
+          <p className="text-gray-600">Unable to load performance data for this listing.</p>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
   );
 }
 
 // --- Main Dashboard Component ---
 export default function DashboardPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
 
   const [accounts, setAccounts] = useState([]);
@@ -484,6 +596,9 @@ export default function DashboardPage() {
   const [searchKeywordsData, setSearchKeywordsData] = useState(null);
   const [searchKeywordsLoading, setSearchKeywordsLoading] = useState(false);
   const [cacheStatus, setCacheStatus] = useState(""); // For showing cache info
+
+  const userId = localStorage.getItem("userId");
+
   
   const [insightsStartDate, setInsightsStartDate] = useState(() => {
     const date = new Date();
@@ -494,6 +609,99 @@ export default function DashboardPage() {
 
   const userPlan = session?.user?.plan || "";
   const maxAccounts = userPlan === "" ? 1 : 0;
+
+const navItems = [
+  {
+    href: "/post-management",
+    icon: <PlusSquare className="h-6 w-6" />,
+    label: "Create & Post Publish",
+  },
+  {
+    href: "/review-management",
+    icon: <Star className="h-6 w-6" />,
+    label: "Review Reply",
+  },
+  {
+    href: "/get-magic-qr",
+    icon: <QrCode className="h-6 w-6" />,
+    label: "Magic QR",
+  },
+  {
+    href: "/wallet",
+    icon: <Wallet className="h-6 w-6" />,
+    label: "Wallet Recharge",
+  },
+];
+
+
+const NavLinks = ({ isAuthenticated }) => {
+  return (
+    <div className="w-full max-w-3xl px-1 py-2 bg-transparent">
+
+      <div
+        className="
+          grid
+          grid-cols-4                      /* mobile always 4 */
+          sm:grid-cols-[repeat(auto-fit,minmax(110px,1fr))] 
+          gap-4 sm:gap-6 
+          place-items-center
+        "
+      >
+        {navItems.map((item) => {
+          const isPublic =
+            item.href === "/post-management" || item.href === "/wallet";
+
+          const isEnabled = isAuthenticated || isPublic;
+
+          const FeatureIcon = (
+            <div
+              className={`
+                flex flex-col items-center justify-center 
+                space-y-1 p-1.5 sm:p-3 rounded-xl
+                cursor-pointer transition-all
+                ${pathname === item.href && isAuthenticated ? "scale-105" : ""}
+              `}
+              onClick={
+                !isEnabled
+                  ? () => signIn("google", { callbackUrl: item.href })
+                  : undefined
+              }
+            >
+              <div
+                className={`
+                  p-2.5 sm:p-4 rounded-2xl transition
+                  ${
+                    pathname === item.href && isAuthenticated
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-100 text-blue-700"
+                  }
+                `}
+              >
+                {item.icon}
+              </div>
+
+              <span className="text-[10px] sm:text-sm font-semibold text-gray-800 text-center leading-tight">
+                {item.label}
+              </span>
+            </div>
+          );
+
+          if (isEnabled) {
+            return (
+              <Link key={item.label} href={item.href}>
+                {FeatureIcon}
+              </Link>
+            );
+          }
+
+          return <div key={item.label}>{FeatureIcon}</div>;
+        })}
+      </div>
+    </div>
+  );
+};
+
+
 
   const fetchInProgress = useRef(false);
   const dataCache = useRef({});
@@ -753,10 +961,13 @@ export default function DashboardPage() {
         const address = item.storefrontAddress?.addressLines?.[0] || "";
         const title = item.title || "";
         const websiteUrl = item.websiteUri || "";
+        const reviewUri = item.metadata?.newReviewUri || "";
 
-        return { locationId, accountId, locality, address, title, websiteUrl };
+
+        return { locationId, accountId, locality, address, title, websiteUrl,reviewUri };
       });
 
+      
    localStorage.setItem("reviewUrl",allListings[0].metadata.newReviewUri)
       
 
@@ -845,44 +1056,106 @@ export default function DashboardPage() {
     );
   }
 
-  // Unauthenticated state
-  if (status === "unauthenticated") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col items-center justify-center text-center px-4">
-        <div className="bg-gradient-to-br from-blue-100 to-purple-100 w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-md">
-          <Building2 className="w-12 h-12 text-blue-600" />
-        </div>
+// Unauthenticated state
+// Unauthenticated state
+if (status === "unauthenticated") {
+  return (
+    <div className="relative w-full flex flex-col items-center justify-center p-0 mx-auto bg-transparent">
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
-          Connect your Business
-        </h1>
-        <p className="text-gray-700 text-base sm:text-lg mb-8">
-          Connect your business account to manage your Google Business Profile
-        </p>
+      {/* ---------- TOP ICON NAV BAR (Optimized Paytm Style) ---------- */}
+      <div className="w-full max-w-3xl bg-white/80 shadow-md px-6 py-6 rounded-2xl mb-8">
 
-        <button
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+        <div
+          className="
+            grid
+            grid-cols-[repeat(auto-fit,minmax(95px,1fr))]
+            gap-6
+            place-items-center
+          "
         >
-          <svg
-            className="w-5 h-5"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 488 512"
-            fill="currentColor"
-          >
-            <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.9 0 122.4 24.5 165.2 64.9l-66.8 64.9C318.6 109.9 285.1 96 248 96 150.6 96 72 174.6 72 272s78.6 176 176 176c90.1 0 148.4-51.8 160.3-124.6H248v-99.6h240C487.3 232.8 488 247.5 488 261.8z" />
-          </svg>
-          Sign in with Google
-        </button>
+
+          {navItems.map((item, i) => {
+            // --- UNAUTHENTICATED CLICK LOGIC ---
+            const handleClick = () => {
+              if (item.href === "/post-management") {
+                return router.push("/post-management");        // allowed
+              }
+              if (item.href === "/wallet") {
+                return router.push("/wallet");                // allowed
+              }
+              // review + magic = force login
+              return signIn("google", { callbackUrl: item.href });
+            };
+
+            return (
+              <button
+                key={i}
+                onClick={handleClick}
+                className="flex flex-col items-center text-[13px] text-gray-800"
+              >
+                <div className="p-4 rounded-2xl bg-blue-100 text-blue-700 shadow-sm">
+                  {item.icon}
+                </div>
+
+                <span className="mt-2 text-center leading-tight font-semibold">
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+
+        </div>
       </div>
-    );
-  }
+
+      {/* ---------- MAIN CONTENT ---------- */}
+      <div className="w-full max-w-2xl text-center pt-2 pb-10">
+  <h1 className="text-3xl font-extrabold text-gray-900 mb-4">
+    Grow Your Business with Smart AI Tools
+  </h1>
+
+  <p className="text-gray-700 text-[16px] font-medium max-w-lg mx-auto mb-6 leading-relaxed">
+    Connect your business account and manage your Google Business Profile 
+    with powerful AI automation.
+  </p>
+
+  <button
+    onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+    className="
+      bg-gradient-to-r from-blue-600 to-purple-600
+      text-white font-semibold
+      px-8 py-3 rounded-lg
+      hover:opacity-90 transition
+      flex items-center justify-center gap-3 mx-auto text-base shadow-md
+    "
+  >
+    <svg
+      className="w-5 h-5"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 488 512"
+      fill="currentColor"
+    >
+      <path d="M488 261.8C488 403.3 391.1 504 248 504C110.8 504 0 393.2 0 256S110.8 8 248 8c66.9 0 122.4 24.5 165.2 64.9l-66.8 64.9C318.6 109.9 285.1 96 248 96C150.6 96 72 174.6 72 272s78.6 176 176 176c90.1 0 148.4-51.8 160.3-124.6H248v-99.6h240C487.3 232.8 488 247.5 488 261.8z" />
+    </svg>
+    Connect Your Business
+  </button>
+
+  <p className="text-gray-600 text-sm mt-3 font-medium">
+    Fast • Secure • Full Control of Your Google Business Profile
+  </p>
+</div>
+
+    </div>
+  );
+}
+
+
+
+
+
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-6">
-      <Toaster position="top-right" />
-
-      {/* Insights Modal */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <InsightsModal
         isOpen={showInsightsModal}
         onClose={() => setShowInsightsModal(false)}
@@ -895,11 +1168,18 @@ export default function DashboardPage() {
         searchKeywords={searchKeywordsData}
         searchKeywordsLoading={searchKeywordsLoading}
       />
+      <Toaster position="top-right" />
 
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10 backdrop-blur-sm bg-white/95">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mt-12 sm:mt-14">
+          {/* Top Navigation Icons */}
+          <div className="mb-4 sm:mb-6">
+            <NavLinks isAuthenticated={true} />
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+            {/* Left side: Title and Welcome Message */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
                 AI GMB Auto Management
@@ -913,7 +1193,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4 justify-end sm:justify-start flex-wrap">
+            {/* Right side: Action Buttons */}
+            <div className="flex items-center gap-2 sm:gap-4 justify-end sm:justify-start flex-wrap self-start sm:self-center">
               {/* Refresh Button */}
               {accounts.length > 0 && (
                 <button
@@ -960,6 +1241,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto pb-6">
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Loading State */}
@@ -1177,7 +1461,9 @@ export default function DashboardPage() {
             );
           })
         )}
-      </div>
+        </div>
+      </main>
     </div>
+  
   );
 }

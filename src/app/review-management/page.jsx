@@ -62,139 +62,96 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Get location details from localStorage
-      const locationDetailsStr = localStorage.getItem("locationDetails");
-      console.log("Raw locationDetails from localStorage:", locationDetailsStr);
-      
-      if (!locationDetailsStr) {
-        throw new Error("No location details found in localStorage");
-      }
+const fetchReviews = async () => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      const locationDetails = JSON.parse(locationDetailsStr);
+    const locationDetailsStr = localStorage.getItem("locationDetails");
+    if (!locationDetailsStr) throw new Error("No location details found");
+    
+    const locationDetails = JSON.parse(locationDetailsStr);
+    const token = session?.accessToken;
 
-      const token = session?.accessToken;
-      console.log("Session token exists:", !!token);
+    if (!token) throw new Error("Authentication token missing");
+    if (!Array.isArray(locationDetails)) throw new Error("Location details invalid");
 
-      if (!locationDetails || !Array.isArray(locationDetails) || locationDetails.length === 0) {
-        throw new Error("Location details are empty or invalid");
-      }
+    const acc_id = locationDetails[0]?.accountId;
+    const locationIds = locationDetails.map(loc => loc.locationId).filter(Boolean);
 
-      if (!token) {
-        throw new Error("Authentication token is missing");
-      }
+    if (!acc_id) throw new Error("Account ID missing");
+    if (locationIds.length === 0) throw new Error("No location IDs found");
 
-      const acc_id = locationDetails[0]?.accountId;
-      const locationIds = locationDetails.map((loc) => loc.locationId).filter(Boolean);
+    let allReviews = [];
 
-
-      if (!acc_id) {
-        throw new Error("Account ID is missing from location details");
-      }
-
-      if (locationIds.length === 0) {
-        throw new Error("No valid location IDs found");
-      }
-
-      let allReviews = [];
-      let pageToken = null;
+    for (const locId of locationIds) {
+      let nextPageToken = null;
       let pageCount = 0;
-      const maxPages = 10; // Safety limit to prevent infinite loops
 
       do {
         pageCount++;
-        console.log(`Fetching reviews page ${pageCount}...`);
 
-        const requestBody = {
-          acc_id,
-          locationIds,
-          access_token: token,
-          ...(pageToken && { pageToken })
-        };
+        const url = new URL(
+          `https://mybusiness.googleapis.com/v4/accounts/${acc_id}/locations/${locId}/reviews`
+        );
 
-        console.log("Request body:", JSON.stringify(requestBody, null, 2));
+        if (nextPageToken) {
+          url.searchParams.append("pageToken", nextPageToken);
+        }
 
-        const res = await fetch("https://n8n.srv968758.hstgr.cloud/webhook/b3f4dda4-aef1-4e87-a426-b503cee3612b", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
+        console.log("Fetching:", url.toString());
+
+        const res = await fetch(url.toString(), {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
         });
 
-        console.log("Response status:", res.status);
-        
         if (!res.ok) {
-          const errorText = await res.text();
-          console.error("API Error Response:", errorText);
-          throw new Error(`API request failed with status ${res.status}: ${errorText}`);
+          const e = await res.text();
+          throw new Error(`Google API Error: ${res.status} - ${e}`);
         }
 
         const data = await res.json();
-        console.log("API Response:", data);
+        console.log("Response:", data);
 
-        if (data.reviews && Array.isArray(data.reviews)) {
-          console.log(`Received ${data.reviews.length} reviews on page ${pageCount}`);
-          allReviews = [...allReviews, ...data.reviews];
-          pageToken = data.nextPageToken || null;
-        } else {
-          console.log("No reviews in response or invalid format");
-          pageToken = null;
+        if (Array.isArray(data.reviews)) {
+          allReviews.push(...data.reviews);
         }
 
-        // Safety check to prevent infinite loops
-        if (pageCount >= maxPages) {
-          console.warn("Reached maximum page limit");
-          break;
-        }
+        nextPageToken = data.nextPageToken || null;
 
-      } while (pageToken);
+        if (pageCount >= 10) break;
 
-      console.log(`Total reviews fetched: ${allReviews.length}`);
-
-      // Sort reviews: latest first (by createTime)
-      const sortedReviews = allReviews.sort((a, b) => {
-        const dateA = new Date(a.createTime);
-        const dateB = new Date(b.createTime);
-        return dateB - dateA;
-      });
-
-      // Save reviews to localStorage
-      localStorage.setItem("cachedReviews", JSON.stringify(sortedReviews));
-      localStorage.setItem("reviewsFetchedAt", Date.now().toString());
-      console.log("Reviews saved to localStorage");
-
-      setReviews(sortedReviews);
-      setHasLoadedReviews(true);
-      
-      if (sortedReviews.length === 0) {
-        toast.success("No reviews found for your locations", {
-          duration: 3000,
-          position: "top-center",
-        });
-      } else {
-        toast.success(`Successfully loaded ${sortedReviews.length} reviews`, {
-          duration: 3000,
-          position: "top-center",
-        });
-      }
-
-    } catch (err) {
-      console.error("Error fetching reviews:", err);
-      setError(err.message);
-      setHasLoadedReviews(true);
-      toast.error(`Error: ${err.message}`, {
-        duration: 5000,
-        position: "top-center",
-      });
-    } finally {
-      setLoading(false);
+      } while (nextPageToken);
     }
-  };
+
+    console.log("Total reviews:", allReviews.length);
+
+    const sortedReviews = allReviews.sort((a, b) => {
+      return new Date(b.createTime) - new Date(a.createTime);
+    });
+
+    localStorage.setItem("cachedReviews", JSON.stringify(sortedReviews));
+    localStorage.setItem("reviewsFetchedAt", Date.now().toString());
+
+    setReviews(sortedReviews);
+    setHasLoadedReviews(true);
+
+    toast.success(`Successfully loaded ${sortedReviews.length} reviews`);
+
+  } catch (err) {
+    console.error(err);
+    toast.error(err.message);
+    setError(err.message);
+    setHasLoadedReviews(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Auto-fetch reviews when component mounts and session is ready
   useEffect(() => {
