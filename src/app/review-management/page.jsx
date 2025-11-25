@@ -18,6 +18,7 @@ import {
   Building2,
   MapPin,
   ArrowLeft,
+  Wrench,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -62,96 +63,139 @@ export default function DashboardPage() {
     }
   }, []);
 
-const fetchReviews = async () => {
-  try {
-    setLoading(true);
-    setError(null);
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get location details from localStorage
+      const locationDetailsStr = localStorage.getItem("locationDetails");
+      console.log("Raw locationDetails from localStorage:", locationDetailsStr);
+      
+      if (!locationDetailsStr) {
+        throw new Error("No location details found in localStorage");
+      }
 
-    const locationDetailsStr = localStorage.getItem("locationDetails");
-    if (!locationDetailsStr) throw new Error("No location details found");
-    
-    const locationDetails = JSON.parse(locationDetailsStr);
-    const token = session?.accessToken;
+      const locationDetails = JSON.parse(locationDetailsStr);
 
-    if (!token) throw new Error("Authentication token missing");
-    if (!Array.isArray(locationDetails)) throw new Error("Location details invalid");
+      const token = session?.accessToken;
+      console.log("Session token exists:", !!token);
 
-    const acc_id = locationDetails[0]?.accountId;
-    const locationIds = locationDetails.map(loc => loc.locationId).filter(Boolean);
+      if (!locationDetails || !Array.isArray(locationDetails) || locationDetails.length === 0) {
+        throw new Error("Location details are empty or invalid");
+      }
 
-    if (!acc_id) throw new Error("Account ID missing");
-    if (locationIds.length === 0) throw new Error("No location IDs found");
+      if (!token) {
+        throw new Error("Authentication token is missing");
+      }
 
-    let allReviews = [];
+      const acc_id = locationDetails[0]?.accountId;
+      const locationIds = locationDetails.map((loc) => loc.locationId).filter(Boolean);
 
-    for (const locId of locationIds) {
-      let nextPageToken = null;
+
+      if (!acc_id) {
+        throw new Error("Account ID is missing from location details");
+      }
+
+      if (locationIds.length === 0) {
+        throw new Error("No valid location IDs found");
+      }
+
+      let allReviews = [];
+      let pageToken = null;
       let pageCount = 0;
+      const maxPages = 10; // Safety limit to prevent infinite loops
 
       do {
         pageCount++;
+        console.log(`Fetching reviews page ${pageCount}...`);
 
-        const url = new URL(
-          `https://mybusiness.googleapis.com/v4/accounts/${acc_id}/locations/${locId}/reviews`
-        );
+        const requestBody = {
+          acc_id,
+          locationIds,
+          access_token: token,
+          ...(pageToken && { pageToken })
+        };
 
-        if (nextPageToken) {
-          url.searchParams.append("pageToken", nextPageToken);
-        }
+        console.log("Request body:", JSON.stringify(requestBody, null, 2));
 
-        console.log("Fetching:", url.toString());
-
-        const res = await fetch(url.toString(), {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
+        const res = await fetch("https://n8n.srv968758.hstgr.cloud/webhook/b3f4dda4-aef1-4e87-a426-b503cee3612b", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
         });
 
+        console.log("Response status:", res.status);
+        
         if (!res.ok) {
-          const e = await res.text();
-          throw new Error(`Google API Error: ${res.status} - ${e}`);
+          const errorText = await res.text();
+          console.error("API Error Response:", errorText);
+          throw new Error(`API request failed with status ${res.status}: ${errorText}`);
         }
 
         const data = await res.json();
-        console.log("Response:", data);
+        console.log("API Response:", data);
 
-        if (Array.isArray(data.reviews)) {
-          allReviews.push(...data.reviews);
+        if (data.reviews && Array.isArray(data.reviews)) {
+          console.log(`Received ${data.reviews.length} reviews on page ${pageCount}`);
+          allReviews = [...allReviews, ...data.reviews];
+          pageToken = data.nextPageToken || null;
+        } else {
+          console.log("No reviews in response or invalid format");
+          pageToken = null;
         }
 
-        nextPageToken = data.nextPageToken || null;
+        // Safety check to prevent infinite loops
+        if (pageCount >= maxPages) {
+          console.warn("Reached maximum page limit");
+          break;
+        }
 
-        if (pageCount >= 10) break;
+      } while (pageToken);
 
-      } while (nextPageToken);
+      console.log(`Total reviews fetched: ${allReviews.length}`);
+
+      // Sort reviews: latest first (by createTime)
+      const sortedReviews = allReviews.sort((a, b) => {
+        const dateA = new Date(a.createTime);
+        const dateB = new Date(b.createTime);
+        return dateB - dateA;
+      });
+
+      // Save reviews to localStorage
+      localStorage.setItem("cachedReviews", JSON.stringify(sortedReviews));
+      localStorage.setItem("reviewsFetchedAt", Date.now().toString());
+      console.log("Reviews saved to localStorage");
+
+      setReviews(sortedReviews);
+      setHasLoadedReviews(true);
+      
+      if (sortedReviews.length === 0) {
+        toast.success("No reviews found for your locations", {
+          duration: 3000,
+          position: "top-center",
+        });
+      } else {
+        toast.success(`Successfully loaded ${sortedReviews.length} reviews`, {
+          duration: 3000,
+          position: "top-center",
+        });
+      }
+
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+      setError(err.message);
+      setHasLoadedReviews(true);
+      toast.error(`Error: ${err.message}`, {
+        duration: 5000,
+        position: "top-center",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    console.log("Total reviews:", allReviews.length);
-
-    const sortedReviews = allReviews.sort((a, b) => {
-      return new Date(b.createTime) - new Date(a.createTime);
-    });
-
-    localStorage.setItem("cachedReviews", JSON.stringify(sortedReviews));
-    localStorage.setItem("reviewsFetchedAt", Date.now().toString());
-
-    setReviews(sortedReviews);
-    setHasLoadedReviews(true);
-
-    toast.success(`Successfully loaded ${sortedReviews.length} reviews`);
-
-  } catch (err) {
-    console.error(err);
-    toast.error(err.message);
-    setError(err.message);
-    setHasLoadedReviews(true);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // Auto-fetch reviews when component mounts and session is ready
   useEffect(() => {
@@ -474,6 +518,9 @@ const fetchReviews = async () => {
     );
   };
 
+
+  
+
   if (checkingPlan || status === "loading") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center">
@@ -496,121 +543,29 @@ const fetchReviews = async () => {
         </Link>
       </div>
       <Toaster />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6">
-        <div className="mb-6 sm:mb-10">
-          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2 text-center">Customer Reviews</h1>
-          <p className="text-gray-600 text-sm sm:text-lg text-center px-2 sm:px-4">
-            Manage and respond to your Google Business reviews with AI assistance
-          </p>
-        </div>
+      <div className="bg-white p-16 rounded-2xl shadow-sm text-center border border-gray-100">
+  <Wrench className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+  <h2 className="text-gray-800 text-2xl font-bold mb-2">Feature Under Maintenance</h2>
 
-        {loading && !hasLoadedReviews ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center max-w-md">
-              <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Fetching Your Reviews</h2>
-              <p className="text-gray-600">
-                Please wait while we load all your customer reviews...
-              </p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border-2 border-red-200 p-8 rounded-2xl text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-red-900 mb-2">Error Loading Reviews</h3>
-            <p className="text-red-700 mb-6">{error}</p>
-            <div className="space-y-4">
-              <button
-                onClick={fetchReviews}
-                disabled={loading}
-                className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                Try Again
-              </button>
-              <div className="text-sm text-gray-600 max-w-2xl mx-auto">
-                <p className="font-semibold mb-2">Troubleshooting tips:</p>
-                <ul className="text-left space-y-1">
-                  <li>• Check your browser console (F12) for detailed error logs</li>
-                  <li>• Verify that location details are saved in localStorage</li>
-                  <li>• Ensure you're properly authenticated with Google</li>
-                  <li>• Try logging out and logging back in</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        ) : reviews.length === 0 ? (
-          <div className="bg-white p-16 rounded-2xl shadow-sm text-center border border-gray-100">
-            <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg mb-2">No reviews found</p>
-            <p className="text-gray-400 text-sm mb-6">Your business doesn't have any reviews yet</p>
-            <button
-              onClick={fetchReviews}
-              disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              Check Again
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-              <p className="text-gray-700 font-medium text-sm sm:text-base">
-                Showing {reviews.length} review{reviews.length !== 1 ? "s" : ""}
-              </p>
-              <button
-                onClick={fetchReviews}
-                disabled={loading}
-                className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all inline-flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                Refresh
-              </button>
-            </div>
+  <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
+    We’re currently improving this feature to give you a better experience.  
+    Please check back soon.
+  </p>
 
-            <div className="grid gap-6">
-              {currentReviews.map((review) => (
-                <ReviewCard key={review.reviewId} review={review} />
-              ))}
-            </div>
+  <button
+    // onClick={fetchReviews}
+    disabled={loading}
+    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
+  >
+    {loading ? (
+      <Loader2 className="w-4 h-4 animate-spin" />
+    ) : (
+      <RefreshCw className="w-4 h-4" />
+    )}
+    Refresh
+  </button>
+</div>
 
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 sm:gap-4 mt-6 sm:mt-10 px-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-                >
-                  <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Prev</span>
-                </button>
-                <span className="text-gray-700 font-medium text-sm sm:text-base">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-                >
-                  <span className="hidden sm:inline">Next</span> <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
     </div>
   );
 }
