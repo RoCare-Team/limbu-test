@@ -1179,29 +1179,41 @@ const submitRejection = async () => {
 };
 
 
-  const handleDownload = async (post) => {
-    if (!post.aiOutput) {
-      alert("No image available to download.");
+const handleDownload = async (post) => {
+  if (!post.aiOutput) {
+    alert("No image available to download.");
+    return;
+  }
+
+  try {
+    const apiUrl = `/api/downloadImage?url=${encodeURIComponent(post.aiOutput)}`;
+
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      showToast("Failed to download image", "error");
       return;
     }
-    try {
-      const response = await fetch(post.aiOutput);
-      if (!response.ok) throw new Error("Failed to fetch image.");
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `post-${Date.now()}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      showToast("Image downloaded successfully! 📥");
-    } catch (err) {
-      showToast("Failed to download image", "error");
-    }
-  };
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `post-${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+
+    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+
+    showToast("Image downloaded successfully! 📥");
+
+  } catch (err) {
+    showToast("Failed to download image", "error");
+  }
+};
+
 
   const handleShare = async (post) => {
     if (navigator.share) {

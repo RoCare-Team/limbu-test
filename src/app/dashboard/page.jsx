@@ -613,79 +613,95 @@ export default function DashboardPage() {
 const navItems = [
   {
     href: "/post-management",
-    icon: <PlusSquare className="h-4 w-4" />,
-    label: "Create & Post",
+    icon: <PlusSquare className="h-6 w-6" />,
+    label: "Create & Post Publish",
   },
   {
     href: "/review-management",
-    icon: <Star className="h-4 w-4" />,
-    label: "Review System",
+    icon: <Star className="h-6 w-6" />,
+    label: "Review Reply",
   },
   {
     href: "/get-magic-qr",
-    icon: <QrCode className="h-4 w-4" />,
-    label: "Generate QR",
+    icon: <QrCode className="h-6 w-6" />,
+    label: "Magic QR",
   },
   {
     href: "/wallet",
-    icon: <Wallet className="h-4 w-4" />,
-    label: "Wallet",
+    icon: <Wallet className="h-6 w-6" />,
+    label: "Wallet Recharge",
   },
 ];
 
 
-
 const NavLinks = ({ isAuthenticated }) => {
   return (
-   <div className="bg-transparent rounded-3xl p-0 md:mb-10">
-  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 text-center">
-    {navItems.map((item) => {
-      const isPublic =
-        item.href === "/post-management" || item.href === "/wallet";
-      const isEnabled = isAuthenticated || isPublic;
+    <div className="w-full max-w-3xl px-1 py-2 bg-transparent">
 
-      const FeatureIcon = (
-        <div
-          className={`flex flex-col items-center justify-center space-y-2 p-2 rounded-xl transition-all duration-300 ${
-            isAuthenticated ? "hover:bg-gray-100 cursor-pointer" : "cursor-pointer"
-          } ${pathname === item.href && isAuthenticated ? "scale-110" : ""}`}
-          onClick={
-            !isEnabled
-              ? () => signIn("google", { callbackUrl: "/dashboard" })
-              : undefined
+      <div
+        className="
+          grid
+          grid-cols-4                      /* mobile always 4 */
+          sm:grid-cols-[repeat(auto-fit,minmax(110px,1fr))] 
+          gap-4 sm:gap-6 
+          place-items-center
+        "
+      >
+        {navItems.map((item) => {
+          const isPublic =
+            item.href === "/post-management" || item.href === "/wallet";
+
+          const isEnabled = isAuthenticated || isPublic;
+
+          const FeatureIcon = (
+            <div
+              className={`
+                flex flex-col items-center justify-center 
+                space-y-1 p-1.5 sm:p-3 rounded-xl
+                cursor-pointer transition-all
+                ${pathname === item.href && isAuthenticated ? "scale-105" : ""}
+              `}
+              onClick={
+                !isEnabled
+                  ? () => signIn("google", { callbackUrl: item.href })
+                  : undefined
+              }
+            >
+              <div
+                className={`
+                  p-2.5 sm:p-4 rounded-2xl transition
+                  ${
+                    pathname === item.href && isAuthenticated
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-100 text-blue-700"
+                  }
+                `}
+              >
+                {item.icon}
+              </div>
+
+              <span className="text-[10px] sm:text-sm font-semibold text-gray-800 text-center leading-tight">
+                {item.label}
+              </span>
+            </div>
+          );
+
+          if (isEnabled) {
+            return (
+              <Link key={item.label} href={item.href}>
+                {FeatureIcon}
+              </Link>
+            );
           }
-        >
-          <div
-            className={`p-4 rounded-full transition-colors ${
-              pathname === item.href && isAuthenticated
-                ? "bg-blue-600 text-white"
-                : "bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600"
-            }`}
-          >
-            {item.icon}
-          </div>
-          <span className="text-xs sm:text-sm font-semibold text-gray-700">
-            {item.label}
-          </span>
-        </div>
-      );
 
-      if (isEnabled) {
-        return (
-          <Link key={item.label} href={item.href}>
-            {FeatureIcon}
-          </Link>
-        );
-      }
-
-      return <div key={item.label}>{FeatureIcon}</div>;
-    })}
-  </div>
-</div>
-
-
+          return <div key={item.label}>{FeatureIcon}</div>;
+        })}
+      </div>
+    </div>
   );
 };
+
+
 
   const fetchInProgress = useRef(false);
   const dataCache = useRef({});
@@ -1040,106 +1056,95 @@ const NavLinks = ({ isAuthenticated }) => {
     );
   }
 
-  // Unauthenticated state
+// Unauthenticated state
+// Unauthenticated state
 if (status === "unauthenticated") {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center py-6">
+    <div className="relative w-full flex flex-col items-center justify-center p-0 mx-auto bg-transparent">
 
-      {/* Soft Gradient Blobs for Filled Premium Background */}
-      <div className="absolute top-[-80px] left-[-80px] w-72 h-72 bg-blue-300/30 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-[-100px] right-[-80px] w-80 h-80 bg-purple-300/30 rounded-full blur-3xl"></div>
-      <div className="absolute top-[40%] left-[10%] w-64 h-64 bg-pink-300/20 rounded-full blur-[90px]"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-[#eef2ff] via-white to-[#f5e8ff]"></div>
+      {/* ---------- TOP ICON NAV BAR (Optimized Paytm Style) ---------- */}
+      <div className="w-full max-w-3xl bg-white/80 shadow-md px-6 py-6 rounded-2xl mb-8">
 
-      {/* CARD */}
-      <div
-        className="
-          relative z-10
-          w-full max-w-3xl rounded-2xl p-6 sm:p-10 mx-auto 
-          bg-white/70 backdrop-blur-xl shadow-xl border border-white/40
-        "
-      >
+        <div
+          className="
+            grid
+            grid-cols-[repeat(auto-fit,minmax(95px,1fr))]
+            gap-6
+            place-items-center
+          "
+        >
 
-        {/* Heading */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Connect your Business
-          </h1>
-          <p className="text-gray-600 text-sm sm:text-base">
-            Connect your account to manage your Google Business Profile
-          </p>
-        </div>
+          {navItems.map((item, i) => {
+            // --- UNAUTHENTICATED CLICK LOGIC ---
+            const handleClick = () => {
+              if (item.href === "/post-management") {
+                return router.push("/post-management");        // allowed
+              }
+              if (item.href === "/wallet") {
+                return router.push("/wallet");                // allowed
+              }
+              // review + magic = force login
+              return signIn("google", { callbackUrl: item.href });
+            };
 
-        {/* Icons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 justify-items-center mb-10">
+            return (
+              <button
+                key={i}
+                onClick={handleClick}
+                className="flex flex-col items-center text-[13px] text-gray-800"
+              >
+                <div className="p-4 rounded-2xl bg-blue-100 text-blue-700 shadow-sm">
+                  {item.icon}
+                </div>
 
-          {/* CREATE & POST → Link */}
-          <Link
-            href="/post-management"
-            className="flex flex-col items-center gap-1 cursor-pointer"
-          >
-            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center shadow">
-              <span className="text-xl">➕</span>
-            </div>
-            <p className="text-gray-700 text-xs sm:text-sm text-center">
-              Create & Post
-            </p>
-          </Link>
-
-          {/* REVIEW → Sign-in */}
-          <div
-            onClick={() => signIn("google", { callbackUrl: "/review-management" })}
-            className="flex flex-col items-center gap-1 cursor-pointer"
-          >
-            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center shadow">
-              <span className="text-xl">⭐</span>
-            </div>
-            <p className="text-gray-700 text-xs sm:text-sm text-center">
-              Review System
-            </p>
-          </div>
-
-          {/* QR → Sign-in */}
-          <div
-            onClick={() => signIn("google", { callbackUrl: "/get-magic-qr" })}
-            className="flex flex-col items-center gap-1 cursor-pointer"
-          >
-            <div className="w-14 h-14 rounded-xl bg-indigo-100 flex items-center justify-center shadow">
-              <span className="text-xl">🔳</span>
-            </div>
-            <p className="text-gray-700 text-xs sm:text-sm text-center">
-              Generate QR
-            </p>
-          </div>
-
-          {/* WALLET → Link */}
-          <Link
-            href="/wallet"
-            className="flex flex-col items-center gap-1 cursor-pointer"
-          >
-            <div className="w-14 h-14 rounded-xl bg-pink-100 flex items-center justify-center shadow">
-              <span className="text-xl">💼</span>
-            </div>
-            <p className="text-gray-700 text-xs sm:text-sm text-center">
-              Wallet
-            </p>
-          </Link>
+                <span className="mt-2 text-center leading-tight font-semibold">
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
 
         </div>
+      </div>
 
-        {/* Sign-in Button */}
+      {/* ---------- MAIN CONTENT ---------- */}
+      <div className="w-full max-w-2xl text-center pt-2 pb-10">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Grow Your Business with Smart AI Tools
+        </h1>
+
+        <p className="text-gray-600 text-[15px] max-w-lg mx-auto mb-6 leading-relaxed">
+          Boost visibility, automate reviews, create stunning AI visuals, and
+          manage your Google Business Profile.{" "}
+          <span className="font-semibold text-gray-900">
+            Connect your business and scale faster.
+          </span>
+        </p>
+
         <button
           onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 
-            text-white py-3 rounded-lg text-sm font-semibold 
-            hover:scale-[1.03] transition-all shadow-md flex items-center justify-center gap-2"
+          className="
+            bg-gradient-to-r from-blue-600 to-purple-600
+            text-white font-semibold
+            px-8 py-3 rounded-lg
+            hover:opacity-90 transition
+            flex items-center justify-center gap-3 mx-auto text-base shadow-md
+          "
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 488 512">
-            <path d="M488 261.8C488 403.3 391.1 504 248 504..." />
+          <svg
+            className="w-5 h-5"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 488 512"
+            fill="currentColor"
+          >
+            <path d="M488 261.8C488 403.3 391.1 504 248 504C110.8 504 0 393.2 0 256S110.8 8 248 8c66.9 0 122.4 24.5 165.2 64.9l-66.8 64.9C318.6 109.9 285.1 96 248 96C150.6 96 72 174.6 72 272s78.6 176 176 176c90.1 0 148.4-51.8 160.3-124.6H248v-99.6h240C487.3 232.8 488 247.5 488 261.8z" />
           </svg>
-          Sign in with Google
+          Connect your Business
         </button>
 
+        <p className="text-gray-500 text-sm mt-3">
+          Fast • Secure • Your Google Business Profile stays under your control
+        </p>
       </div>
     </div>
   );
@@ -1148,15 +1153,11 @@ if (status === "unauthenticated") {
 
 
 
+
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Toaster position="top-right" /> 
-      <NavLinks isAuthenticated={true} />
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-6">
-
-      {/* Insights Modal */}
       <InsightsModal
         isOpen={showInsightsModal}
         onClose={() => setShowInsightsModal(false)}
@@ -1169,14 +1170,15 @@ if (status === "unauthenticated") {
         searchKeywords={searchKeywordsData}
         searchKeywordsLoading={searchKeywordsLoading}
       />
-
-
+      <Toaster position="top-right" />
 
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10 backdrop-blur-sm bg-white/95">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-6">
-          {/* Top Navigation Tabs */}
-         
+          {/* Top Navigation Icons */}
+          <div className="mb-4 sm:mb-6">
+            <NavLinks isAuthenticated={true} />
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
             {/* Left side: Title and Welcome Message */}
@@ -1241,6 +1243,9 @@ if (status === "unauthenticated") {
           </div>
         </div>
       </div>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto pb-6">
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Loading State */}
