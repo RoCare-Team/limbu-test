@@ -354,37 +354,56 @@ const handleAddUser = async () => {
       setUpdatingWallet(false);
     }
   };
-
 const AdminPanelButton = async (userId) => {
   setImpersonatingUser(userId);
+
   try {
     const adminToken = localStorage.getItem("adminToken");
+
+    console.log("🔍 Admin Token Sent:", adminToken);
+
+    if (!adminToken) {
+      alert("Admin token missing. Please login as admin again.");
+      return;
+    }
 
     const res = await fetch("/api/admin/login-as-user", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
+        "Authorization": `Bearer ${adminToken}`,
       },
       body: JSON.stringify({ userId }),
     });
 
+    console.log("🔍 Response Status:", res.status);
+
     const data = await res.json();
 
+    console.log("🔍 API Response:", data);
+
+    if (!res.ok) {
+      alert(data.error || "Something went wrong");
+      setImpersonatingUser(null);
+      return;
+    }
+
     if (data?.token) {
-      localStorage.setItem("token", data.token);  // user token
+      // Save User Token
+      localStorage.setItem("token", data.token);
       localStorage.setItem("impersonatedUser", userId);
-      localStorage.setItem("userId", data.user.userId);  // SAVE USER-ID HERE
+      localStorage.setItem("userId", data.user.userId);
 
       window.location.href = "/dashboard";
     } else {
-      alert("Unable to login as user");
+      alert("Unable to impersonate user");
     }
   } catch (error) {
-    console.log(error);
+    console.log("❌ Frontend error:", error);
     setImpersonatingUser(null);
   }
 };
+
 
 
 
