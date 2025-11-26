@@ -37,6 +37,26 @@ const Toast = ({ message, type = "success" }) => (
 // Location Selection Modal
 const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
   const [selectedLocations, setSelectedLocations] = useState([]);
+  const [checkmark, setCheckmark] = useState(['post', 'photo']); // Default to both selected
+
+  const handleCheckmarkChange = (option) => {
+    setCheckmark(prev =>
+      prev.includes(option)
+        ? prev.filter(item => item !== option)
+        : [...prev, option]
+    );
+  };
+
+  const getPayload = () => {
+    const hasPost = checkmark.includes('post');
+    const hasPhoto = checkmark.includes('photo');
+
+    if (hasPost && hasPhoto) return 'both';
+    if (hasPost) return 'post';
+    if (hasPhoto) return 'photo';
+
+    return 'post'; // Default to 'post' if nothing is selected
+  };
 
   const toggleLocation = (locationId) => {
     setSelectedLocations(prev =>
@@ -63,6 +83,29 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
             {/* <div className="text-5xl sm:text-6xl mb-3">📍</div> */}
             <h3 className="text-2xl sm:text-3xl font-black text-gray-900">Select Locations</h3>
             <p className="text-gray-600 text-sm sm:text-base mt-2">Choose locations to post (50 coins per location)</p>
+            <div className="flex justify-center gap-4 sm:gap-6 mt-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="post-checkbox"
+                  checked={checkmark.includes('post')}
+                  onChange={() => handleCheckmarkChange('post')}
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="post-checkbox" className="ml-2 text-gray-700 font-medium cursor-pointer">Post</label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="photo-checkbox"
+                  checked={checkmark.includes('photo')}
+                  onChange={() => handleCheckmarkChange('photo')}
+                  className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                />
+                <label htmlFor="photo-checkbox" className="ml-2 text-gray-700 font-medium cursor-pointer">Photo</label>
+              </div>
+            </div>
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-xl p-4">
@@ -126,7 +169,7 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm }) => {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => onConfirm(selectedLocations)}
+              onClick={() => onConfirm(selectedLocations, getPayload())}
               disabled={selectedLocations.length === 0}
               className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 sm:py-4 rounded-xl font-bold hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
@@ -980,7 +1023,9 @@ const [showRejectModal, setShowRejectModal] = useState(false);
     }
   };
 
-  const handleLocationConfirm = async (selectedLocationIds) => {
+  const handleLocationConfirm = async (selectedLocationIds, checkmark) => {
+    console.log("checkmark");
+    
     setShowLocationModal(false);
 
     if (selectedLocationIds.length === 0) {
@@ -1050,6 +1095,7 @@ const [showRejectModal, setShowRejectModal] = useState(false);
             output: post?.aiOutput || "",
             description: post?.description || "",
             accessToken: session?.accessToken || "",
+            checkmark: checkmark,
           }),
         }
       );

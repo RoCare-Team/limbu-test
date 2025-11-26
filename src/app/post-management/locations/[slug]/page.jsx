@@ -404,6 +404,29 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
 
           {post.status === "approved" && (
             <div className="space-y-2 sm:space-y-3">
+              {/* Checkbox for Post/Photo selection */}
+              <div className="flex justify-center gap-4 sm:gap-6 pt-2 pb-2">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`post-checkbox-${post._id}`}
+                    checked={post.checkmark?.includes('post') ?? true}
+                    onChange={() => onEditDescription(post._id, post.description, 'post')}
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor={`post-checkbox-${post._id}`} className="ml-2 text-gray-700 font-medium cursor-pointer">Post</label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`photo-checkbox-${post._id}`}
+                    checked={post.checkmark?.includes('photo') ?? true}
+                    onChange={() => onEditDescription(post._id, post.description, 'photo')}
+                    className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                  />
+                  <label htmlFor={`photo-checkbox-${post._id}`} className="ml-2 text-gray-700 font-medium cursor-pointer">Photo</label>
+                </div>
+              </div>
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3">
                 <button
                   onClick={() => handlePost(post)}
@@ -719,7 +742,26 @@ export default function PostManagement() {
     }
   };
 
-  const handleEditDescription = async (id, newDescription) => {
+  const handleEditDescription = async (id, newDescription, checkmarkOption = null) => {
+    const currentPost = posts.find(p => p._id === id);
+    let newCheckmark = Array.isArray(currentPost?.checkmark) ? [...currentPost.checkmark] : ['post', 'photo'];
+
+    if (checkmarkOption) {
+      if (newCheckmark.includes(checkmarkOption)) {
+        newCheckmark = newCheckmark.filter(item => item !== checkmarkOption);
+      } else {
+        newCheckmark = [...newCheckmark, checkmarkOption];
+      }
+    }
+
+    const getPayload = () => {
+      const hasPost = newCheckmark.includes('post');
+      const hasPhoto = newCheckmark.includes('photo');
+      if (hasPost && hasPhoto) return 'both';
+      if (hasPost) return 'post';
+      if (hasPhoto) return 'photo';
+      return 'post'; // Default to 'post' if nothing is selected
+    };
     const userId = localStorage.getItem("userId");
 
     try {
@@ -730,6 +772,7 @@ export default function PostManagement() {
           id,
           description: newDescription,
           userId: userId,
+          checkmark: getPayload(),
         }),
       });
 
@@ -741,11 +784,21 @@ export default function PostManagement() {
 
       showToast("Description Updated Successfully! ✅");
       setPosts((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, description: newDescription } : p))
+        prev.map((p) => (p._id === id ? { ...p, description: newDescription, checkmark: newCheckmark } : p))
       );
     } catch (err) {
       showToast("Error updating description", "error");
     }
+  };
+
+  const getCheckmarkPayload = (post) => {
+    const checkmark = Array.isArray(post.checkmark) ? post.checkmark : ['post', 'photo'];
+    const hasPost = checkmark.includes('post');
+    const hasPhoto = checkmark.includes('photo');
+    if (hasPost && hasPhoto) return 'both';
+    if (hasPost) return 'post';
+    if (hasPhoto) return 'photo';
+    return 'post'; // Default to 'post' if nothing is selected
   };
 
   const handlePost = async (post) => {

@@ -867,15 +867,17 @@ const NavLinks = ({ isAuthenticated }) => {
   }, [session?.user?.email, status, initialFetchDone, fetchInitialData]);
 
   const handleListingData = (listing) => {
-    const dataToSend = {
-      locality: listing?.storefrontAddress?.locality || "",
-      website: listing?.websiteUri || "",
-    };
+        router.push("/post-management");
 
-    localStorage.setItem("listingData", JSON.stringify(dataToSend));
-    localStorage.setItem("accountId", listing.accountId);
+    // const dataToSend = {
+    //   locality: listing?.storefrontAddress?.locality || "",
+    //   website: listing?.websiteUri || "",
+    // };
 
-    router.push(`/post-management/${listing.name}`);
+    // localStorage.setItem("listingData", JSON.stringify(dataToSend));
+    // localStorage.setItem("accountId", listing.accountId);
+
+    // router.push(`/post-management/${listing.name}`);
   };
 
   // Handle View Insights
@@ -1107,15 +1109,17 @@ if (status === "unauthenticated") {
         </div>
       </div>
 
-      {/* ---------- MAIN CONTENT ---------- */}
-      <div className="w-full max-w-2xl text-center pt-2 pb-10">
-  <h1 className="text-3xl font-extrabold text-gray-900 mb-4">
-    Grow Your Business with Smart AI Tools
+{/* ---------- MAIN CONTENT ---------- */}
+<div className="w-full max-w-2xl text-center pt-2 pb-12">
+  <h1
+    className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4 leading-snug cursor-pointer"
+    onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+  >
+    <span className="text-blue-600 cursor-pointer">Connect Your Business</span>
   </h1>
 
-  <p className="text-gray-700 text-[16px] font-medium max-w-lg mx-auto mb-6 leading-relaxed">
-    Connect your business account and manage your Google Business Profile 
-    with powerful AI automation.
+  <p className="text-gray-700 text-[17px] font-medium max-w-lg mx-auto mb-8 leading-relaxed">
+    Connect your business and ensure your Google Business Profile is properly linked and managed using this email.
   </p>
 
   <button
@@ -1123,13 +1127,14 @@ if (status === "unauthenticated") {
     className="
       bg-gradient-to-r from-blue-600 to-purple-600
       text-white font-semibold
-      px-8 py-3 rounded-lg
+      px-10 py-4 rounded-xl
       hover:opacity-90 transition
-      flex items-center justify-center gap-3 mx-auto text-base shadow-md
+      flex items-center justify-center gap-3 mx-auto 
+      text-lg shadow-lg
     "
   >
     <svg
-      className="w-5 h-5"
+      className="w-6 h-6"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 488 512"
       fill="currentColor"
@@ -1139,10 +1144,11 @@ if (status === "unauthenticated") {
     Connect Your Business
   </button>
 
-  <p className="text-gray-600 text-sm mt-3 font-medium">
+  <p className="text-gray-600 text-sm mt-4 font-medium">
     Fast • Secure • Full Control of Your Google Business Profile
   </p>
 </div>
+
 
     </div>
   );
