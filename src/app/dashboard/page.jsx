@@ -614,7 +614,7 @@ const navItems = [
   {
     href: "/post-management",
     icon: <PlusSquare className="h-6 w-6" />,
-    label: "Create & Post Publish",
+    label: "Create & Publish Post",
   },
   {
     href: "/review-management",
@@ -835,7 +835,7 @@ const NavLinks = ({ isAuthenticated }) => {
         console.log("📤 Storing listings for admin dashboard...");
         await storeUserListingsForAdmin(userEmail, locationsWithVoM);
         
-        toast.success(`✅ Loaded ${locationsWithVoM.length} listings successfully!`);
+        // toast.success(`✅ Loaded ${locationsWithVoM.length} listings successfully!`);
         setCacheStatus(`${locationsWithVoM.length} listings loaded and cached`);
       } else {
         console.log("❌ No locations found for this account");

@@ -18,7 +18,6 @@ import {
   Building2,
   MapPin,
   ArrowLeft,
-  Wrench,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -518,9 +517,6 @@ export default function DashboardPage() {
     );
   };
 
-
-  
-
   if (checkingPlan || status === "loading") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center">
@@ -543,29 +539,121 @@ export default function DashboardPage() {
         </Link>
       </div>
       <Toaster />
-      <div className="bg-white p-16 rounded-2xl shadow-sm text-center border border-gray-100">
-  <Wrench className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-  <h2 className="text-gray-800 text-2xl font-bold mb-2">Feature Under Maintenance</h2>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6">
+        <div className="mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2 text-center">Customer Reviews</h1>
+          <p className="text-gray-600 text-sm sm:text-lg text-center px-2 sm:px-4">
+            Manage and respond to your Google Business reviews with AI assistance
+          </p>
+        </div>
 
-  <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
-    We’re currently improving this feature to give you a better experience.  
-    Please check back soon.
-  </p>
+        {loading && !hasLoadedReviews ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center max-w-md">
+              <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Fetching Your Reviews</h2>
+              <p className="text-gray-600">
+                Please wait while we load all your customer reviews...
+              </p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border-2 border-red-200 p-8 rounded-2xl text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-red-900 mb-2">Error Loading Reviews</h3>
+            <p className="text-red-700 mb-6">{error}</p>
+            <div className="space-y-4">
+              <button
+                onClick={fetchReviews}
+                disabled={loading}
+                className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Try Again
+              </button>
+              <div className="text-sm text-gray-600 max-w-2xl mx-auto">
+                <p className="font-semibold mb-2">Troubleshooting tips:</p>
+                <ul className="text-left space-y-1">
+                  <li>• Check your browser console (F12) for detailed error logs</li>
+                  <li>• Verify that location details are saved in localStorage</li>
+                  <li>• Ensure you're properly authenticated with Google</li>
+                  <li>• Try logging out and logging back in</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="bg-white p-16 rounded-2xl shadow-sm text-center border border-gray-100">
+            <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg mb-2">No reviews found</p>
+            <p className="text-gray-400 text-sm mb-6">Your business doesn't have any reviews yet</p>
+            <button
+              onClick={fetchReviews}
+              disabled={loading}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Check Again
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+              <p className="text-gray-700 font-medium text-sm sm:text-base">
+                Showing {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+              </p>
+              <button
+                onClick={fetchReviews}
+                disabled={loading}
+                className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all inline-flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Refresh
+              </button>
+            </div>
 
-  <button
-    // onClick={fetchReviews}
-    disabled={loading}
-    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all inline-flex items-center gap-2 disabled:opacity-50"
-  >
-    {loading ? (
-      <Loader2 className="w-4 h-4 animate-spin" />
-    ) : (
-      <RefreshCw className="w-4 h-4" />
-    )}
-    Refresh
-  </button>
-</div>
+            <div className="grid gap-6">
+              {currentReviews.map((review) => (
+                <ReviewCard key={review.reviewId} review={review} />
+              ))}
+            </div>
 
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 sm:gap-4 mt-6 sm:mt-10 px-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+                >
+                  <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Prev</span>
+                </button>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg bg-white text-gray-600 hover:text-blue-600 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+                >
+                  <span className="hidden sm:inline">Next</span> <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
