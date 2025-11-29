@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Search, Filter, X, Crown, Zap, Shield, Mail, Phone, Calendar, Edit2, Trash2, Plus, User, User2Icon, Image as ImageIcon, Eye, ZoomIn, Wallet } from "lucide-react";
 
 export default function UserManagement() {
@@ -40,19 +41,7 @@ export default function UserManagement() {
     premium: 0,
     active: 0
   });
-
-  useEffect(() => {
-    fetchUsers();
-    fetchConnectedBusinessUsers();
-  }, []);
-
-  useEffect(() => {
-    if (users.length > 0) {
-      fetchAllUserPostsCounts();
-    }
-  }, [users]);
-
-  useEffect(() => {
+  const calculateFilteredUsers = () => {
     let result = [...users];
 
     if (searchQuery) {
@@ -101,7 +90,7 @@ export default function UserManagement() {
     }
 
     setFilteredUsers(result);
-  }, [searchQuery, filterStatus, filterDate, users, connectedBusinessUsers]);
+  };
 
   useEffect(() => {
     const total = users.length;
@@ -113,18 +102,64 @@ export default function UserManagement() {
     setStats({ total, basic, standard, premium, active });
   }, [users]);
 
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/users");
       const data = await res.json();
       if (data.success) setUsers(data.users);
+      return data.success ? data.users : [];
     } catch (err) {
       console.error("Error fetching users:", err);
+      return [];
     } finally {
       setLoading(false);
     }
   };
+
+  const mergeAllData = useCallback(async () => {
+    setLoading(true);
+    const initialUsers = await fetchUsers();
+    if (!initialUsers || initialUsers.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const businessPromises = initialUsers.map(usr =>
+      fetch(`/api/admin/saveBussiness?email=${usr.email}`).then(res => res.json())
+    );
+
+    const businessResults = await Promise.all(businessPromises);
+
+    const finalUsers = initialUsers.map((usr, index) => {
+      const businessData = businessResults[index];
+      const business = businessData?.listings?.find(item => item?.userEmail?.toLowerCase() === usr.email.toLowerCase());
+      return {
+        ...usr,
+        isBusinessConnected: !!business,
+        businessListings: business?.listings || [],
+      };
+    });
+
+    setUsers(finalUsers);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    mergeAllData();
+    fetchConnectedBusinessUsers();
+  }, [mergeAllData]);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      fetchAllUserPostsCounts();
+    }
+  }, [users]);
+
+  useEffect(() => {
+    calculateFilteredUsers();
+  }, [searchQuery, filterStatus, filterDate, users, connectedBusinessUsers]);
 
   const fetchConnectedBusinessUsers = async () => {
     try {
@@ -404,18 +439,6 @@ const AdminPanelButton = async (userId) => {
   }
 };
 
-
-
-
-
-
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setFilterStatus("All");
-    setFilterDate("All");
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
@@ -427,49 +450,15 @@ const AdminPanelButton = async (userId) => {
     );
   }
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterStatus("All");
+    setFilterDate("All");
+  };
+
+
+  console.log("useruseruser",users);
   
-console.log("userPosts",filteredUsers);
-
-
-const mergeUsersWithBusiness = async () => {
-  let finalArray = [];
-
-  for (const usr of filteredUsers) {
-    const email = usr.email;
-
-    try {
-      // Business API call
-      const res = await fetch(`/api/admin/saveBussiness?email=${email}`);
-      const data = await res.json();
-
-      // Listings extract
-      const businessListings = data?.listings?.[0]?.listings || [];
-
-      // Push user with business
-      finalArray.push({
-        ...usr,
-        businessListings: businessListings,   // <-- PURE ARRAY MERGE
-      });
-
-    } catch (err) {
-      console.log("Error:", err);
-
-      finalArray.push({
-        ...usr,
-        businessListings: []   // no business
-      });
-    }
-  }
-
-  console.log("FINAL MERGED ARRAY:", finalArray);
-  setMergedUsers(finalArray); // <-- store in state
-};
-
-
-
-console.log("mergedUsersmergedUsers",mergedUsers);
-
-
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6">
@@ -669,7 +658,7 @@ console.log("mergedUsersmergedUsers",mergedUsers);
             <table className="min-w-full">
               <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Info</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Name</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Name</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Wallet</th>
@@ -677,7 +666,6 @@ console.log("mergedUsersmergedUsers",mergedUsers);
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Joined Date</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Login Button</th>
-                  {/* <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -690,15 +678,27 @@ console.log("mergedUsersmergedUsers",mergedUsers);
                     onClick={() => handleViewPosts(user)}
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                          {user.email?.charAt(0).toUpperCase()}
-                        </div>
+                      {user.businessListings && user.businessListings.length > 0 ? (
+
                         <div>
-                          <div className="font-semibold text-gray-800">{user.userId}</div>
-                          <div className="text-xs text-gray-500">ID: {user._id?.slice(-8)}</div>
+                          <div className="font-semibold text-gray-800">
+                            {user.businessListings[0].title}  {user.businessListings[0].address.locality}
+                          </div>
+                          {user.businessListings.length > 1 && (
+                            <Link
+                              href={`/admin/user-listings?userId=${user.userId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-blue-600 hover:underline mt-1"
+                            >
+                              View More ({user.businessListings.length - 1})
+                            </Link>
+                          )}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 italic">
+                          Waiting......
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
@@ -849,17 +849,6 @@ console.log("mergedUsersmergedUsers",mergedUsers);
                             )}
                           </button>
 </td>
-
-{mergedUsers.map(user => (
-  <div key={user.userId}>
-    <h2>{user.fullName}</h2>
-
-    {user.businessListings.map((biz, i) => (
-      <p key={i}>👉 {biz.title}</p>
-    ))}
-
-  </div>
-))}
 
 
 

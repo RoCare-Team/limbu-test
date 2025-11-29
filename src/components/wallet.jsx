@@ -318,43 +318,6 @@ export default function SmartWalletRecharge() {
                 </div>
               </div>
             </div>
-
-            {/* Payment Breakdown */}
-            <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-5 h-5 text-indigo-600" />
-                <h3 className="font-bold text-gray-800">Payment Breakdown</h3>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                  <span className="text-gray-600">Base Amount</span>
-                  <span className="font-semibold text-gray-800">₹{amount.toFixed(2)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                  <span className="text-gray-600">GST (18%)</span>
-                  <span className="font-semibold text-gray-800">₹{gstAmount}</span>
-                </div>
-                
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-lg font-bold text-gray-800">Total Amount</span>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    ₹{totalAmount}
-                  </span>
-                </div>
-
-                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700 font-medium">You'll Receive</span>
-                    <div className="flex items-center gap-2">
-                      <Coins className="w-5 h-5 text-green-600" />
-                      <span className="text-xl font-bold text-green-600">{coins} Coins</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Middle - Recharge Form */}
@@ -419,6 +382,43 @@ export default function SmartWalletRecharge() {
                 {amount < 5000 && "₹1 = 1 Coin • "}
                 Minimum recharge: ₹200
               </p>
+            </div>
+
+            {/* Payment Breakdown */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-bold text-gray-800">Payment Breakdown</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                  <span className="text-gray-600">Base Amount</span>
+                  <span className="font-semibold text-gray-800">₹{amount.toFixed(2)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                  <span className="text-gray-600">GST (18%)</span>
+                  <span className="font-semibold text-gray-800">₹{gstAmount}</span>
+                </div>
+                
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-lg font-bold text-gray-800">Total Amount</span>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    ₹{totalAmount}
+                  </span>
+                </div>
+
+                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700 font-medium">You'll Receive</span>
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-green-600" />
+                      <span className="text-xl font-bold text-green-600">{coins} Coins</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <button

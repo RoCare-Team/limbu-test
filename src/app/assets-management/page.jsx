@@ -1,524 +1,281 @@
 "use client";
-import { useState } from "react";
-import { Upload, ImageIcon, Palette, Layout, Sparkles, Type, Grid3x3, Move, ZoomIn, RotateCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Star, TrendingUp, Check, Loader2 } from "lucide-react";
 
-export default function AssetsManagement() {
-  const [backgroundColor, setBackgroundColor] = useState("#1e293b");
-  const [colorPalette, setColorPalette] = useState("");
-  const [productImage, setProductImage] = useState(null);
-  const [overlayImage, setOverlayImage] = useState(null);
-  const [textOverlay, setTextOverlay] = useState("");
-  const [productPreview, setProductPreview] = useState(null);
-  const [overlayPreview, setOverlayPreview] = useState(null);
-  
-  // Position and transform states
-  const [productPosition, setProductPosition] = useState({ x: 50, y: 50 });
-  const [productScale, setProductScale] = useState(100);
-  const [productRotation, setProductRotation] = useState(0);
-  
-  const [overlayPosition, setOverlayPosition] = useState({ x: 80, y: 20 });
-  const [overlayScale, setOverlayScale] = useState(100);
-  const [overlayRotation, setOverlayRotation] = useState(0);
-  
-  const [textPosition, setTextPosition] = useState({ x: 50, y: 80 });
-  const [textSize, setTextSize] = useState(36);
-  const [textColor, setTextColor] = useState("#ffffff");
+export default function KeywordResearchTool() {
+  const [keyword, setKeyword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [selectedKeywords, setSelectedKeywords] = useState([]);
+  const [savedQueries, setSavedQueries] = useState([]);
 
-  const handleImageUpload = (e, setter, previewSetter) => {
-    const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setter(url);
-      if (previewSetter) previewSetter(url);
+  // Load saved queries and selected keywords from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("savedQueries");
+    if (saved) {
+      setSavedQueries(JSON.parse(saved));
+    }
+    
+    const savedSelected = localStorage.getItem("selectedKeywords");
+    if (savedSelected) {
+      setSelectedKeywords(JSON.parse(savedSelected));
+    }
+
+    // Load primary category and fetch keywords automatically
+    const primaryCategory = localStorage.getItem("primaryCategory");
+    if (primaryCategory) {
+      setKeyword(primaryCategory);
+      // Auto-fetch keywords on load
+      fetchKeywords(primaryCategory);
+    }
+  }, []);
+
+  const fetchKeywords = async (searchKeyword) => {
+    if (!searchKeyword.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/keyword-research?query=${encodeURIComponent(searchKeyword)}`
+      );
+      const data = await response.json();
+      setResults(data);
+
+      // Save to localStorage
+      const newQuery = {
+        query: searchKeyword,
+        timestamp: new Date().toISOString(),
+        volume: data.volume_score
+      };
+      const updatedQueries = [newQuery, ...savedQueries.slice(0, 9)];
+      setSavedQueries(updatedQueries);
+      localStorage.setItem("savedQueries", JSON.stringify(updatedQueries));
+    } catch (error) {
+      console.error("Error fetching keyword data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const predefinedBackgrounds = [
-    "#1e293b", "#7c3aed", "#dc2626", "#059669", "#d97706", 
-    "#0891b2", "#db2777", "#4f46e5", "#000000", "#ffffff"
-  ];
+  const handleKeywordSearch = async () => {
+    fetchKeywords(keyword);
+  };
 
-  const colorPalettes = [
-    { id: 1, name: "Sunset", colors: ["#FF6B6B", "#FFD93D", "#6BCB77"] },
-    { id: 2, name: "Ocean", colors: ["#4D96FF", "#6BCB77", "#FFD93D"] },
-    { id: 3, name: "Purple Dreams", colors: ["#9D84B7", "#C996CC", "#E8B4BC"] },
-    { id: 4, name: "Neon", colors: ["#00FFF5", "#FF00FF", "#FFFF00"] },
-  ];
+  const toggleKeywordSelection = (kw) => {
+    const updatedSelection = selectedKeywords.includes(kw) 
+      ? selectedKeywords.filter(k => k !== kw)
+      : [...selectedKeywords, kw];
+    
+    setSelectedKeywords(updatedSelection);
+    localStorage.setItem("selectedKeywords", JSON.stringify(updatedSelection));
+  };
+
+  const loadSavedQuery = (query) => {
+    setKeyword(query);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Keyword Research Tool
+          </h1>
+          <p className="text-gray-600">
+            Discover high-volume keywords and grow your reach
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Control Panel */}
-          <div className="lg:col-span-1 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-            
-            {/* Background Color Picker */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                  <Layout className="w-5 h-5 text-white" />
+          {/* Search & Saved Queries */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Search Box */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+                  <Search className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-800">Color Palette</h2>
-              </div>
-              
-              <div className="mb-4">
-                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-blue-400 transition-all cursor-pointer">
-                  <input
-                    type="color"
-                    value={backgroundColor}
-                    onChange={(e) => setBackgroundColor(e.target.value)}
-                    className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-300"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-700">Custom Color</p>
-                    <p className="text-xs text-gray-500 font-mono">{backgroundColor}</p>
-                  </div>
-                </label>
+                <h2 className="text-lg font-semibold text-gray-800">Search Keywords</h2>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-3">Quick Colors</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {predefinedBackgrounds.map((color) => (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleKeywordSearch()}
+                  placeholder="Enter keyword..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:outline-none transition-all"
+                />
+
+                <button
+                  onClick={handleKeywordSearch}
+                  disabled={loading || !keyword.trim()}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-5 h-5" />
+                      Search
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Saved Queries */}
+            {savedQueries.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Searches</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {savedQueries
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .map((query, idx) => (
                     <button
-                      key={color}
-                      onClick={() => setBackgroundColor(color)}
-                      className={`w-full aspect-square rounded-lg transition-all duration-300 ${
-                        backgroundColor === color
-                          ? "ring-4 ring-blue-500 ring-offset-2 scale-110"
-                          : "hover:scale-110"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
+                      key={idx}
+                      onClick={() => loadSavedQuery(query.query)}
+                      className="w-full text-left px-4 py-3 rounded-lg bg-gray-50 hover:bg-indigo-50 transition-all group"
                     >
-                      {backgroundColor === color && (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className={`w-3 h-3 rounded-full ${color === '#ffffff' || color === '#d97706' ? 'bg-gray-800' : 'bg-white'}`} />
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-700 group-hover:text-indigo-600 truncate">
+                          {query.query}
+                        </p>
+                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-1 rounded">
+                          {query.volume}
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Color Palette Selector */}
-            {/* <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
-                  <Palette className="w-5 h-5 text-white" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-800">Color Palette</h2>
-              </div>
-              
-              <div className="space-y-3">
-                {colorPalettes.map((palette) => (
-                  <div
-                    key={palette.id}
-                    onClick={() => setColorPalette(palette.id)}
-                    className={`p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                      colorPalette === palette.id
-                        ? "ring-4 ring-blue-500 bg-blue-50"
-                        : "bg-gray-50 hover:bg-gray-100"
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-gray-700 mb-2">{palette.name}</p>
-                    <div className="flex gap-2">
-                      {palette.colors.map((color, idx) => (
-                        <div
-                          key={idx}
-                          className="flex-1 h-8 rounded-lg"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div> */}
-
-            {/* Product Image Upload & Controls */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                  <ImageIcon className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold text-gray-800">Product Image</h3>
-              </div>
-              
-              <label className="relative block cursor-pointer group mb-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-all duration-300 group-hover:bg-blue-50">
-                  {productPreview ? (
-                    <img src={productPreview} alt="preview" className="max-h-32 mx-auto rounded-lg object-contain" />
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="w-10 h-10 mx-auto text-gray-400 group-hover:text-blue-500 transition-colors" />
-                      <p className="text-sm font-medium text-gray-700">Upload Product</p>
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  onChange={(e) => handleImageUpload(e, setProductImage, setProductPreview)}
-                  className="hidden"
-                  accept="image/*"
-                />
-              </label>
-
-              {productPreview && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Move className="w-4 h-4" /> Position X: {productPosition.x}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={productPosition.x}
-                      onChange={(e) => setProductPosition({...productPosition, x: e.target.value})}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Move className="w-4 h-4" /> Position Y: {productPosition.y}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={productPosition.y}
-                      onChange={(e) => setProductPosition({...productPosition, y: e.target.value})}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <ZoomIn className="w-4 h-4" /> Scale: {productScale}%
-                    </label>
-                    <input
-                      type="range"
-                      min="20"
-                      max="200"
-                      value={productScale}
-                      onChange={(e) => setProductScale(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <RotateCw className="w-4 h-4" /> Rotation: {productRotation}°
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="360"
-                      value={productRotation}
-                      onChange={(e) => setProductRotation(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setProductImage(null);
-                      setProductPreview(null);
-                    }}
-                    className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Overlay Image & Controls */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg">
-                  <Grid3x3 className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold text-gray-800">Other Image</h3>
-              </div>
-              
-              <label className="relative block cursor-pointer group mb-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-green-400 transition-all duration-300 group-hover:bg-green-50">
-                  {overlayPreview ? (
-                    <img src={overlayPreview} alt="overlay" className="max-h-32 mx-auto rounded-lg object-contain" />
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="w-10 h-10 mx-auto text-gray-400 group-hover:text-green-500 transition-colors" />
-                      <p className="text-sm font-medium text-gray-700">Add Decoration</p>
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  onChange={(e) => handleImageUpload(e, setOverlayImage, setOverlayPreview)}
-                  className="hidden"
-                  accept="image/*"
-                />
-              </label>
-
-              {overlayPreview && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Move className="w-4 h-4" /> Position X: {overlayPosition.x}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={overlayPosition.x}
-                      onChange={(e) => setOverlayPosition({...overlayPosition, x: e.target.value})}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Move className="w-4 h-4" /> Position Y: {overlayPosition.y}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={overlayPosition.y}
-                      onChange={(e) => setOverlayPosition({...overlayPosition, y: e.target.value})}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <ZoomIn className="w-4 h-4" /> Scale: {overlayScale}%
-                    </label>
-                    <input
-                      type="range"
-                      min="20"
-                      max="200"
-                      value={overlayScale}
-                      onChange={(e) => setOverlayScale(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <RotateCw className="w-4 h-4" /> Rotation: {overlayRotation}°
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="360"
-                      value={overlayRotation}
-                      onChange={(e) => setOverlayRotation(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setOverlayImage(null);
-                      setOverlayPreview(null);
-                    }}
-                    className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Text Overlay & Controls */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
-                  <Type className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-semibold text-gray-800">Text Overlay</h3>
-              </div>
-              
-              <input
-                type="text"
-                value={textOverlay}
-                onChange={(e) => setTextOverlay(e.target.value)}
-                placeholder="Enter text"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none transition-all mb-4"
-              />
-
-              {textOverlay && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Move className="w-4 h-4" /> Position X: {textPosition.x}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={textPosition.x}
-                      onChange={(e) => setTextPosition({...textPosition, x: e.target.value})}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Move className="w-4 h-4" /> Position Y: {textPosition.y}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={textPosition.y}
-                      onChange={(e) => setTextPosition({...textPosition, y: e.target.value})}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Type className="w-4 h-4" /> Font Size: {textSize}px
-                    </label>
-                    <input
-                      type="range"
-                      min="16"
-                      max="120"
-                      value={textSize}
-                      onChange={(e) => setTextSize(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      Text Color
-                    </label>
-                    <input
-                      type="color"
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      className="w-full h-10 rounded-lg cursor-pointer"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Preview Panel */}
+          {/* Results Panel */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-32">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Live Preview</h2>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span>Real-time</span>
-                </div>
-              </div>
-
-              <div 
-                className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-inner transition-all duration-500"
-                style={{ backgroundColor }}
-              >
-                {/* Color Palette Accent */}
-                {colorPalette && (
-                  <div className="absolute inset-0 opacity-20">
-                    {colorPalettes.find(p => p.id === colorPalette)?.colors.map((color, idx) => (
-                      <div
-                        key={idx}
-                        className="absolute w-32 h-32 rounded-full blur-3xl"
-                        style={{
-                          backgroundColor: color,
-                          top: `${20 + idx * 30}%`,
-                          left: `${10 + idx * 25}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Product Image */}
-                {/* {productImage && (
-                  <div 
-                    className="absolute transition-all duration-300"
-                    style={{
-                      left: `${productPosition.x}%`,
-                      top: `${productPosition.y}%`,
-                      transform: `translate(-50%, -50%) scale(${productScale / 100}) rotate(${productRotation}deg)`,
-                    }}
-                  >
-                    <div className="relative">
-                      <div className="absolute -inset-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl blur-2xl opacity-20" />
-                      <img
-                        src={productImage}
-                        alt="product"
-                        className="relative max-w-[300px] max-h-[300px] object-contain drop-shadow-2xl"
-                      />
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              {results ? (
+                <div className="space-y-6">
+                  {/* Header Info */}
+                  <div className="flex items-center justify-between pb-6 border-b border-gray-200">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                        "{results.query}"
+                      </h2>
+                      <p className="text-gray-600">
+                        {results.suggestions.length} keyword suggestions found
+                      </p>
                     </div>
-                  </div>
-                )} */}
-
-                {/* Overlay Image */}
-                {overlayImage && (
-                  <div 
-                    className="absolute transition-all duration-300"
-                    style={{
-                      left: `${overlayPosition.x}%`,
-                      top: `${overlayPosition.y}%`,
-                      transform: `translate(-50%, -50%) scale(${overlayScale / 100}) rotate(${overlayRotation}deg)`,
-                    }}
-                  >
-                    <img
-                      src={overlayImage}
-                      alt="overlay"
-                      className="max-w-[200px] max-h-[200px] object-contain drop-shadow-xl"
-                    />
-                  </div>
-                )}
-
-                {/* Text Overlay */}
-                {textOverlay && (
-                  <div 
-                    className="absolute transition-all duration-300"
-                    style={{
-                      left: `${textPosition.x}%`,
-                      top: `${textPosition.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                  >
-                    <h2 
-                      className="font-bold drop-shadow-2xl text-center px-8 whitespace-nowrap"
-                      style={{
-                        fontSize: `${textSize}px`,
-                        color: textColor
-                      }}
-                    >
-                      {textOverlay}
-                    </h2>
-                  </div>
-                )}
-
-                {/* Empty State */}
-                {/* {!productImage && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="w-16 h-16 mx-auto bg-white bg-opacity-20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <ImageIcon className="w-8 h-8 text-white opacity-60" />
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-indigo-600">
+                        {results.volume_score}
                       </div>
-                      <p className="text-white font-medium opacity-80">Upload a product image</p>
-                      <p className="text-sm text-white opacity-60">Your composition will appear here</p>
+                      <p className="text-sm text-gray-600">Volume Score</p>
                     </div>
                   </div>
-                )} */}
-              </div>
+
+                  {/* Suggestions List */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Keyword Suggestions
+                      </h3>
+                      {selectedKeywords.length > 0 && (
+                        <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                          {selectedKeywords.length} selected
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      {results.suggestions.map((suggestion, idx) => {
+                        const isSelected = selectedKeywords.includes(suggestion);
+                        // Generate a realistic volume score (you can replace with actual API data if available)
+                        const volumeScore = Math.floor(Math.random() * 50) + 50;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => toggleKeywordSelection(suggestion)}
+                            className={`w-full px-5 py-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${
+                              isSelected
+                                ? 'border-indigo-500 bg-indigo-50'
+                                : 'border-gray-200 hover:border-indigo-300 bg-white hover:bg-indigo-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                isSelected 
+                                  ? 'border-indigo-600 bg-indigo-600' 
+                                  : 'border-gray-300 group-hover:border-indigo-400'
+                              }`}>
+                                {isSelected && <Check className="w-4 h-4 text-white" />}
+                              </div>
+                              <span className={`font-medium flex-1 ${
+                                isSelected ? 'text-indigo-700' : 'text-gray-700'
+                              }`}>
+                                {suggestion}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <div className={`text-lg font-bold ${
+                                  isSelected ? 'text-indigo-600' : 'text-gray-700'
+                                }`}>
+                                  {volumeScore}
+                                </div>
+                                <div className="text-xs text-gray-500">volume</div>
+                              </div>
+                              <Star className={`w-5 h-5 transition-all ${
+                                isSelected 
+                                  ? 'text-indigo-500 fill-indigo-500' 
+                                  : 'text-gray-300 group-hover:text-indigo-400'
+                              }`} />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Selected Keywords Summary */}
+                  {selectedKeywords.length > 0 && (
+                    <div className="mt-6 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-indigo-600" />
+                        Selected Keywords ({selectedKeywords.length})
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedKeywords.map((kw, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-white rounded-lg text-sm font-medium text-indigo-700 border border-indigo-200"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 mx-auto bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Search className="w-10 h-10 text-indigo-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    Start Your Keyword Research
+                  </h3>
+                  <p className="text-gray-600">
+                    Enter a keyword to discover related search terms and volume data
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

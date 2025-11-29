@@ -339,7 +339,7 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
             className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-xl text-sm sm:text-base text-gray-800 focus:ring-4 focus:ring-blue-300 focus:border-blue-500 outline-none transition-all min-h-[100px] sm:min-h-[120px] resize-none placeholder:text-gray-400 bg-gray-50"
             disabled={loading}
           />
-          {/* {suggestedKeywords.length > 0 && (
+          {suggestedKeywords.length > 0 && (
             <div className="pt-2">
               <p className="text-xs font-semibold text-gray-500 mb-2">Suggestions:</p>
               <div className="flex flex-wrap gap-2">
@@ -355,7 +355,7 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
                 ))}
               </div>
             </div>
-          )} */}
+          )}
         </div>
 
         <div className="space-y-2 sm:space-y-3">
@@ -1585,7 +1585,7 @@ export default function PostManagement() {
         <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 mt-16 sm:mt-8 shadow-2xl border-4 border-white">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
             <Sparkles className="w-8 h-8 sm:w-10 sm:h-10" />
-            Post Management
+            Post Management With Assets
           </h1>
           <p className="text-blue-100 text-sm sm:text-base md:text-lg font-medium">
             Create stunning GMB posts with AI in seconds ✨

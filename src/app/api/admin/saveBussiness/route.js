@@ -79,12 +79,36 @@ export async function POST(req) {
 }
 
 // -------------------- GET API (Admin Dashboard) --------------------
-export async function GET() {
+export async function GET(req) {
   try {
     await connectDB();
-    const allBusinesses = await AdminBusiness.find().sort({ timestamp: -1 });
 
-    const formatted = allBusinesses.map((entry) => {
+    // 🔥 Query Params se email read karo
+    const { searchParams } = new URL(req.url);
+    const email = searchParams.get("email");
+
+    if (!email) {
+      return NextResponse.json(
+        { success: false, message: "Email is required!" },
+        { status: 400 }
+      );
+    }
+
+    // 🔥 Database me sirf isi email ka business find karo
+    const businesses = await AdminBusiness.find({
+      userEmail: email.toLowerCase(),
+    }).sort({ timestamp: -1 });
+
+    if (!businesses || businesses.length === 0) {
+      return NextResponse.json({
+        success: true,
+        listings: [],
+        count: 0,
+      });
+    }
+
+    // 🔥 Format business listings
+    const formatted = businesses.map((entry) => {
       const userListings = entry.listings.map((listing) => ({
         title: listing.title || listing.accountName || "Untitled",
         locationId: listing.metadata?.name || "N/A",
@@ -94,9 +118,9 @@ export async function GET() {
         website: listing.websiteUri || "",
         address: {
           addressLines: listing.storefrontAddress
-            ? [`${listing.storefrontAddress.regionCode}`]
+            ? [`${listing.storefrontAddress.locality}`]
             : ["N/A"],
-          locality: listing.storefrontAddress?.regionCode || "N/A",
+          locality: listing.storefrontAddress?.locality || "N/A",
         },
       }));
 

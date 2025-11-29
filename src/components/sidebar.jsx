@@ -43,6 +43,8 @@ import Link from 'next/link';
 import {  MenuIcon, Wand } from 'lucide-react';
 import logoDash from "../../public/images/bg-logo.png"
 import Image from 'next/image';
+import WebAssetIcon from '@mui/icons-material/WebAsset';
+import { CassetteTape } from 'lucide-react';
 
 const drawerWidth = 260;
 
@@ -397,6 +399,7 @@ const fetchNotifications = async () => {
   { text: 'POST Management', icon: <AccountIcon />, path: '/post-management' },
   { text: 'Review Management', icon: <PostIcon />, path: '/review-management' },
 
+
   {
     text: 'Get Magic QR',
     icon: <Wand />,
@@ -405,6 +408,10 @@ const fetchNotifications = async () => {
       { text: 'Get Customer Review', path: '/reviews/get-customer-review' }
     ]
   },
+    // { text: 'Assets Management', icon: <WebAssetIcon/>, path: '/assets-management' },
+    // { text: 'Assets Post Management', icon: <CassetteTape/>, path: '/assets-management-post' },
+
+
 ];
 
   // const getPlanConfig = (plan) => {

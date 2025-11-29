@@ -109,6 +109,7 @@ export async function checkVoiceOfMerchant(accessToken, locationName) {
 // --- Admin Storage Helper ---
 export async function storeUserListingsForAdmin(userEmail, listings) {
   
+  
   try {
     const response = await fetch('/api/admin/saveBussiness', {
       method: 'POST',
@@ -955,6 +956,7 @@ const NavLinks = ({ isAuthenticated }) => {
   useEffect(() => {
     if (accounts.length > 0) {
       const allListings = accounts.flatMap((acc) => acc.listings);
+      
       
       const locationDetails = allListings.map(item => {
         const locationId = item.name.split("/")[1];
