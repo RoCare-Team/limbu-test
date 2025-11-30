@@ -1,281 +1,386 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Search, Star, TrendingUp, Check, Loader2 } from "lucide-react";
+import { Upload, ImageIcon, Palette, X, Check, Download, Copy } from "lucide-react";
 
-export default function KeywordResearchTool() {
-  const [keyword, setKeyword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const [selectedKeywords, setSelectedKeywords] = useState([]);
-  const [savedQueries, setSavedQueries] = useState([]);
+export default function AssetsManager() {
+  const [assets, setAssets] = useState({
+    colourPalette: "",
+    size: "1080x1350",
+    characterImage: "",
+    uniformImage: "",
+    productImage: "",
+    backgroundImage: "",
+    logoImage: ""
+  });
 
-  // Load saved queries and selected keywords from localStorage on mount
+  const [previews, setPreviews] = useState({});
+  const [copiedPayload, setCopiedPayload] = useState(false);
+
+  const sizeOptions = [
+    { label: "Instagram Post", value: "1080x1080" },
+    { label: "Instagram Story", value: "1080x1920" },
+    { label: "Instagram Portrait", value: "1080x1350" },
+    { label: "Facebook Post", value: "1200x630" },
+    { label: "Twitter Post", value: "1200x675" },
+    { label: "LinkedIn Post", value: "1200x627" },
+    { label: "Custom", value: "custom" }
+  ];
+
+  const colorPalettes = [
+    { label: "Warm Sunset", value: "warm, yellow, orange, red" },
+    { label: "Cool Ocean", value: "cool, blue, teal, cyan" },
+    { label: "Nature Green", value: "fresh, green, lime, mint" },
+    { label: "Royal Purple", value: "luxe, purple, violet, magenta" },
+    { label: "Monochrome", value: "minimal, black, white, gray" },
+    { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold" }
+  ];
+
+  // Load saved assets from storage
   useEffect(() => {
-    const saved = localStorage.getItem("savedQueries");
-    if (saved) {
-      setSavedQueries(JSON.parse(saved));
-    }
-    
-    const savedSelected = localStorage.getItem("selectedKeywords");
-    if (savedSelected) {
-      setSelectedKeywords(JSON.parse(savedSelected));
-    }
-
-    // Load primary category and fetch keywords automatically
-    const primaryCategory = localStorage.getItem("primaryCategory");
-    if (primaryCategory) {
-      setKeyword(primaryCategory);
-      // Auto-fetch keywords on load
-      fetchKeywords(primaryCategory);
-    }
+    loadAssetsFromStorage();
   }, []);
 
-  const fetchKeywords = async (searchKeyword) => {
-    if (!searchKeyword.trim()) return;
-
-    setLoading(true);
+  const loadAssetsFromStorage = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/keyword-research?query=${encodeURIComponent(searchKeyword)}`
-      );
-      const data = await response.json();
-      setResults(data);
-
-      // Save to localStorage
-      const newQuery = {
-        query: searchKeyword,
-        timestamp: new Date().toISOString(),
-        volume: data.volume_score
-      };
-      const updatedQueries = [newQuery, ...savedQueries.slice(0, 9)];
-      setSavedQueries(updatedQueries);
-      localStorage.setItem("savedQueries", JSON.stringify(updatedQueries));
+      const result = await window.storage.get('design-assets');
+      if (result && result.value) {
+        const savedAssets = JSON.parse(result.value);
+        setAssets(savedAssets);
+        setPreviews(savedAssets);
+      }
     } catch (error) {
-      console.error("Error fetching keyword data:", error);
-    } finally {
-      setLoading(false);
+      console.log('No saved assets found');
     }
   };
 
-  const handleKeywordSearch = async () => {
-    fetchKeywords(keyword);
+  const saveAssetsToStorage = async (updatedAssets) => {
+    try {
+      await window.storage.set('design-assets', JSON.stringify(updatedAssets));
+    } catch (error) {
+      console.error('Error saving assets:', error);
+    }
   };
 
-  const toggleKeywordSelection = (kw) => {
-    const updatedSelection = selectedKeywords.includes(kw) 
-      ? selectedKeywords.filter(k => k !== kw)
-      : [...selectedKeywords, kw];
-    
-    setSelectedKeywords(updatedSelection);
-    localStorage.setItem("selectedKeywords", JSON.stringify(updatedSelection));
+  const handleImageUpload = (key, file) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        const updatedAssets = {
+          ...assets,
+          [key]: base64String
+        };
+        setAssets(updatedAssets);
+        setPreviews(prev => ({ ...prev, [key]: base64String }));
+        saveAssetsToStorage(updatedAssets);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const loadSavedQuery = (query) => {
-    setKeyword(query);
+  const handleUrlInput = (key, url) => {
+    const updatedAssets = {
+      ...assets,
+      [key]: url
+    };
+    setAssets(updatedAssets);
+    setPreviews(prev => ({ ...prev, [key]: url }));
+    saveAssetsToStorage(updatedAssets);
   };
+
+  const removeAsset = (key) => {
+    const updatedAssets = {
+      ...assets,
+      [key]: ""
+    };
+    setAssets(updatedAssets);
+    setPreviews(prev => {
+      const newPreviews = { ...prev };
+      delete newPreviews[key];
+      return newPreviews;
+    });
+    saveAssetsToStorage(updatedAssets);
+  };
+
+  const handleColorPaletteChange = (value) => {
+    const updatedAssets = {
+      ...assets,
+      colourPalette: value
+    };
+    setAssets(updatedAssets);
+    saveAssetsToStorage(updatedAssets);
+  };
+
+  const handleSizeChange = (value) => {
+    const updatedAssets = {
+      ...assets,
+      size: value
+    };
+    setAssets(updatedAssets);
+    saveAssetsToStorage(updatedAssets);
+  };
+
+  const generatePayload = () => {
+    return JSON.stringify(assets, null, 2);
+  };
+
+  const copyPayload = () => {
+    navigator.clipboard.writeText(generatePayload());
+    setCopiedPayload(true);
+    setTimeout(() => setCopiedPayload(false), 2000);
+  };
+
+  const downloadPayload = () => {
+    const blob = new Blob([generatePayload()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'design-assets-payload.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const imageFields = [
+    { key: "characterImage", label: "Character Image", icon: "👤" },
+    { key: "uniformImage", label: "Uniform Image", icon: "👕" },
+    { key: "productImage", label: "Product Image", icon: "📦" },
+    { key: "backgroundImage", label: "Background Image", icon: "🖼️" },
+    { key: "logoImage", label: "Logo Image", icon: "🏷️" }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Keyword Research Tool
-          </h1>
-          <p className="text-gray-600">
-            Discover high-volume keywords and grow your reach
-          </p>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                Assets Manager
+              </h1>
+              <p className="text-gray-600">
+                Upload and manage all your design assets in one place
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={copyPayload}
+                className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl font-medium transition-all flex items-center gap-2"
+              >
+                {copiedPayload ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedPayload ? 'Copied!' : 'Copy'}
+              </button>
+              <button
+                onClick={downloadPayload}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+            </div>
+          </div>
         </div>
 
+        {/* Payload Preview - REMOVED */}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Search & Saved Queries */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Search Box */}
+          {/* Configuration Panel */}
+          <div className="space-y-6">
+            {/* Color Palette */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
-                  <Search className="w-5 h-5 text-white" />
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
+                  <Palette className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-800">Search Keywords</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Color Palette</h2>
               </div>
+              
+              <div className="space-y-3">
+                {/* Color Picker */}
+                <div className="p-4 border-2 border-gray-200 rounded-xl bg-gray-50">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pick Colors
+                  </label>
+                  <input
+                    type="color"
+                    onChange={(e) => handleColorPaletteChange(e.target.value)}
+                    className="w-full h-12 rounded-lg cursor-pointer border-2 border-gray-300"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Selected: {assets.colourPalette || 'No color selected'}
+                  </p>
+                </div>
 
-              <div className="space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-2 bg-white text-gray-500">or choose preset</span>
+                  </div>
+                </div>
+
+                {colorPalettes.map((palette) => (
+                  <button
+                    key={palette.value}
+                    onClick={() => handleColorPaletteChange(palette.value)}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      assets.colourPalette === palette.value
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800">{palette.label}</p>
+                        <p className="text-xs text-gray-500 mt-1">{palette.value}</p>
+                      </div>
+                      {assets.colourPalette === palette.value && (
+                        <Check className="w-5 h-5 text-purple-600" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+                
                 <input
                   type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleKeywordSearch()}
-                  placeholder="Enter keyword..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:outline-none transition-all"
+                  value={assets.colourPalette}
+                  onChange={(e) => handleColorPaletteChange(e.target.value)}
+                  placeholder="Or type custom palette..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-all"
                 />
-
-                <button
-                  onClick={handleKeywordSearch}
-                  disabled={loading || !keyword.trim()}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-5 h-5" />
-                      Search
-                    </>
-                  )}
-                </button>
               </div>
             </div>
 
-            {/* Saved Queries */}
-            {savedQueries.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Searches</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {savedQueries
-                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                    .map((query, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => loadSavedQuery(query.query)}
-                      className="w-full text-left px-4 py-3 rounded-lg bg-gray-50 hover:bg-indigo-50 transition-all group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-700 group-hover:text-indigo-600 truncate">
-                          {query.query}
-                        </p>
-                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-1 rounded">
-                          {query.volume}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            {/* Size Selector */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Canvas Size</h2>
+              
+              <div className="space-y-2">
+                {sizeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleSizeChange(option.value)}
+                    className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
+                      assets.size === option.value
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-700">{option.label}</span>
+                      <span className="text-xs text-gray-500">{option.value}</span>
+                    </div>
+                  </button>
+                ))}
+                
+                <input
+                  type="text"
+                  value={assets.size}
+                  onChange={(e) => handleSizeChange(e.target.value)}
+                  placeholder="Custom size (e.g., 1920x1080)"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-all"
+                />
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Results Panel */}
+          {/* Image Upload Panel */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              {results ? (
-                <div className="space-y-6">
-                  {/* Header Info */}
-                  <div className="flex items-center justify-between pb-6 border-b border-gray-200">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                        "{results.query}"
-                      </h2>
-                      <p className="text-gray-600">
-                        {results.suggestions.length} keyword suggestions found
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-indigo-600">
-                        {results.volume_score}
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Image Assets</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {imageFields.map((field) => (
+                  <div key={field.key} className="border-2 border-gray-200 rounded-xl p-5 hover:border-purple-300 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{field.icon}</span>
+                        <h3 className="font-semibold text-gray-800">{field.label}</h3>
                       </div>
-                      <p className="text-sm text-gray-600">Volume Score</p>
-                    </div>
-                  </div>
-
-                  {/* Suggestions List */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Keyword Suggestions
-                      </h3>
-                      {selectedKeywords.length > 0 && (
-                        <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                          {selectedKeywords.length} selected
-                        </span>
+                      {assets[field.key] && (
+                        <button
+                          onClick={() => removeAsset(field.key)}
+                          className="p-1 hover:bg-red-100 rounded-lg transition-all"
+                        >
+                          <X className="w-4 h-4 text-red-600" />
+                        </button>
                       )}
                     </div>
 
-                    <div className="space-y-2">
-                      {results.suggestions.map((suggestion, idx) => {
-                        const isSelected = selectedKeywords.includes(suggestion);
-                        // Generate a realistic volume score (you can replace with actual API data if available)
-                        const volumeScore = Math.floor(Math.random() * 50) + 50;
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => toggleKeywordSelection(suggestion)}
-                            className={`w-full px-5 py-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${
-                              isSelected
-                                ? 'border-indigo-500 bg-indigo-50'
-                                : 'border-gray-200 hover:border-indigo-300 bg-white hover:bg-indigo-50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                                isSelected 
-                                  ? 'border-indigo-600 bg-indigo-600' 
-                                  : 'border-gray-300 group-hover:border-indigo-400'
-                              }`}>
-                                {isSelected && <Check className="w-4 h-4 text-white" />}
-                              </div>
-                              <span className={`font-medium flex-1 ${
-                                isSelected ? 'text-indigo-700' : 'text-gray-700'
-                              }`}>
-                                {suggestion}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <div className={`text-lg font-bold ${
-                                  isSelected ? 'text-indigo-600' : 'text-gray-700'
-                                }`}>
-                                  {volumeScore}
-                                </div>
-                                <div className="text-xs text-gray-500">volume</div>
-                              </div>
-                              <Star className={`w-5 h-5 transition-all ${
-                                isSelected 
-                                  ? 'text-indigo-500 fill-indigo-500' 
-                                  : 'text-gray-300 group-hover:text-indigo-400'
-                              }`} />
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Selected Keywords Summary */}
-                  {selectedKeywords.length > 0 && (
-                    <div className="mt-6 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
-                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-indigo-600" />
-                        Selected Keywords ({selectedKeywords.length})
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedKeywords.map((kw, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-white rounded-lg text-sm font-medium text-indigo-700 border border-indigo-200"
-                          >
-                            {kw}
-                          </span>
-                        ))}
+                    {/* Preview */}
+                    {previews[field.key] ? (
+                      <div className="mb-3 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
+                        <img
+                          src={previews[field.key]}
+                          alt={field.label}
+                          className="w-full h-40 object-cover"
+                        />
                       </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 mx-auto bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mb-4">
-                    <Search className="w-10 h-10 text-indigo-600" />
+                    ) : (
+                      <div className="mb-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 h-40 flex items-center justify-center">
+                        <div className="text-center">
+                          <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">No image</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    <label className="block mb-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(field.key, e.target.files[0])}
+                        className="hidden"
+                      />
+                      <div className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition-all cursor-pointer text-center flex items-center justify-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload
+                      </div>
+                    </label>
+
+                    {/* URL Input */}
+                    <input
+                      type="text"
+                      value={assets[field.key]}
+                      onChange={(e) => handleUrlInput(field.key, e.target.value)}
+                      placeholder="Or paste URL..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-purple-400 focus:outline-none transition-all"
+                    />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    Start Your Keyword Research
-                  </h3>
-                  <p className="text-gray-600">
-                    Enter a keyword to discover related search terms and volume data
-                  </p>
+                ))}
+              </div>
+
+              {/* Summary Card */}
+              <div className="mt-8 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Check className="w-5 h-5 text-purple-600" />
+                  Asset Summary
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Color Palette</p>
+                    <p className="font-semibold text-gray-800 text-sm truncate">
+                      {assets.colourPalette || 'Not set'}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Canvas Size</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {assets.size}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Images Uploaded</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {Object.values(assets).filter(v => v && v.includes('http') || v.includes('data:image')).length} / 5
+                    </p>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

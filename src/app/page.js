@@ -80,8 +80,8 @@ export default function LimbuAILanding() {
   const postImages = [
    
     { name: "Post 6", image: PostImage6 },
-    { name: "Post 7", image: PostImage7 },
-    { name: "Post 8", image: PostImage8 },
+    // { name: "Post 7", image: PostImage7 },
+    // { name: "Post 8", image: PostImage8 },
     { name: "Post 9", image: PostImage9 },
     { name: "Post 10", image: PostImage10 },
      { name: "Post 1", image: PostImage1 },

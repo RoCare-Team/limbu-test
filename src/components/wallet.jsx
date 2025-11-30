@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation";
 
 export default function SmartWalletRecharge() {
   const [userId, setUserId] = useState("");
-  const [amount, setAmount] = useState(500);
+  const [amount, setAmount] = useState(5000);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -35,6 +35,7 @@ export default function SmartWalletRecharge() {
   const [loadingTx, setLoadingTx] = useState(true);
   const [filterType, setFilterType] = useState("all");
   const [showTransactions, setShowTransactions] = useState(false);
+  const [gstNumber, setGstNumber] = useState("");
 
   // Calculate coins with bonus offers
   const getCoinsForAmount = (amt) => {
@@ -119,6 +120,7 @@ export default function SmartWalletRecharge() {
           userId,
           plan: planData,
           amount: parseFloat(totalAmount),
+          gstin: gstNumber,
         }),
       });
 
@@ -268,9 +270,9 @@ export default function SmartWalletRecharge() {
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
           {/* Left Side - Info Card */}
-          <div className="space-y-6 lg:col-span-1">
+          <div className="space-y-6 lg:col-span-1 order-2 lg:order-1">
             <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -321,7 +323,7 @@ export default function SmartWalletRecharge() {
           </div>
 
           {/* Middle - Recharge Form */}
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-8 space-y-6 lg:col-span-2">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-8 space-y-6 lg:col-span-2 order-1 lg:order-2">
             <div>
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-600" />
@@ -384,6 +386,22 @@ export default function SmartWalletRecharge() {
               </p>
             </div>
 
+            <div>
+              <label className="block text-gray-800 font-semibold mb-3 flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-indigo-600" />
+                GST Number (Optional)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={gstNumber}
+                  onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 font-medium text-lg bg-white"
+                  placeholder="Enter your GSTIN"
+                  maxLength="15"
+                />
+              </div>
+            </div>
             {/* Payment Breakdown */}
             <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 p-6">
               <div className="flex items-center gap-2 mb-4">

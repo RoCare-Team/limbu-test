@@ -408,7 +408,7 @@ const fetchNotifications = async () => {
       { text: 'Get Customer Review', path: '/reviews/get-customer-review' }
     ]
   },
-    // { text: 'Assets Management', icon: <WebAssetIcon/>, path: '/assets-management' },
+    { text: 'Assets Management', icon: <WebAssetIcon/>, path: '/assets-management' },
     // { text: 'Assets Post Management', icon: <CassetteTape/>, path: '/assets-management-post' },
 
 
