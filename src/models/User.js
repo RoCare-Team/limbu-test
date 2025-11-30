@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema(
     wallet: { type: Number, default: 0 },
             freeUsedCount: { type: Number },
 
+                        GstNumber: { type: String },
+
+
 
     subscription: {
       plan: { type: String },

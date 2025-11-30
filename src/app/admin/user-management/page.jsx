@@ -664,6 +664,7 @@ const AdminPanelButton = async (userId) => {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Wallet</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Posts</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">GST Number</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Joined Date</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Login Button</th>
                 </tr>
@@ -779,6 +780,36 @@ const AdminPanelButton = async (userId) => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
+  <div className="space-y-1">
+    {user.gst ? (
+      <div className="flex items-center gap-2 text-sm text-gray-700">
+        
+        {/* GST Icon */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-4 h-4 text-blue-500"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M16 8a6 6 0 11-12 0 6 6 0 0112 0z"
+          />
+        </svg>
+
+        {/* GST Number */}
+        <span>{user.gst}</span>
+      </div>
+    ) : (
+      <span className="text-xs text-gray-400 italic">No GST added</span>
+    )}
+  </div>
+</td>
+
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-gray-400" />
                         <div className="text-sm text-gray-700">
@@ -803,6 +834,8 @@ const AdminPanelButton = async (userId) => {
                         </div>
                       </div>
                     </td>
+
+                  
 
 
                     <td className="px-6 py-4">

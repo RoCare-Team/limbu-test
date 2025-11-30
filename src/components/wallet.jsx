@@ -52,9 +52,9 @@ export default function SmartWalletRecharge() {
 
   const presetAmounts = [
     { price: 200, coins: 200, popular: false, bonus: null },
-    { price: 500, coins: 500, popular: true, bonus: null },
+    { price: 500, coins: 500, popular: false, bonus: null },
     { price: 1000, coins: 1000, popular: false, bonus: null },
-    { price: 5000, coins: 6000, popular: false, bonus: "+1000 Bonus" },
+    { price: 5000, coins: 6000, popular: true, bonus: "+1000 Bonus" },
     { price: 10000, coins: 12000, popular: false, bonus: "+2000 Bonus" },
     { price: 20000, coins: 24000, popular: false, bonus: "+4000 Bonus" },
     { price: 50000, coins: 60000, popular: false, bonus: "+10000 Bonus" },
@@ -341,7 +341,7 @@ export default function SmartWalletRecharge() {
                     }`}
                   >
                     {pkg.popular && (
-                      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
+                      <span className="absolute -top-2 -left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
                         Popular
                       </span>
                     )}
