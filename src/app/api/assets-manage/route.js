@@ -1,4 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
+import dbConnect from "@/lib/dbConnect";
+import Assets from "@/models/assets";
 
 // -------------------------------
 // Cloudinary Config
@@ -10,10 +12,10 @@ cloudinary.config({
 });
 
 // -------------------------------
-// Helper: Upload image to Cloudinary
+// Helper: Upload to Cloudinary
 // -------------------------------
 async function uploadToCloudinary(imageUrl, folderName) {
-  if (!imageUrl || imageUrl.trim() === "") return null; // Skip if empty
+  if (!imageUrl || imageUrl.trim() === "") return null;
 
   const result = await cloudinary.uploader.upload(imageUrl, {
     folder: folderName,
@@ -28,9 +30,12 @@ async function uploadToCloudinary(imageUrl, folderName) {
 // -------------------------------
 export async function POST(req) {
   try {
+    await dbConnect();
+
     const body = await req.json();
 
     const {
+      userId,                  // 🔥 required field
       colourPalette,
       size,
       characterImage,
@@ -40,21 +45,24 @@ export async function POST(req) {
       logoImage,
     } = body;
 
-    console.log("Uploading images (if provided)…");
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "userId is required" }),
+        { status: 400 }
+      );
+    }
 
-    // Upload images to Cloudinary (optional fields)
+    console.log("Uploading images…");
+
     const finalCharacter = await uploadToCloudinary(characterImage, "ai_assets/character");
     const finalUniform = await uploadToCloudinary(uniformImage, "ai_assets/uniform");
     const finalProduct = await uploadToCloudinary(productImage, "ai_assets/product");
     const finalBackground = await uploadToCloudinary(backgroundImage, "ai_assets/background");
     const finalLogo = await uploadToCloudinary(logoImage, "ai_assets/logo");
 
-    console.log("Upload complete!");
-
-    // -------------------------------
-    // FINAL GENERATED PAYLOAD
-    // -------------------------------
-    const resultPayload = {
+    // Save in DB
+    const savedData = await Assets.create({
+      userId,                                  // 🔥 save user id
       colourPalette,
       size,
       characterImage: finalCharacter,
@@ -62,22 +70,55 @@ export async function POST(req) {
       productImage: finalProduct,
       backgroundImage: finalBackground,
       logoImage: finalLogo,
-    };
-
-    return new Response(JSON.stringify({ success: true, data: resultPayload }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
     });
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Saved to DB", data: savedData }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
 
   } catch (error) {
     console.error("API Error:", error);
-
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
+      { status: 500 }
+    );
+  }
+}
+
+
+// 
+export async function GET(req) {
+  try {
+    await connectDB();
+
+    // Get search params (example: /api/assets?userId=123)
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    let results;
+
+    if (userId) {
+      // Fetch assets for a specific user
+      results = await Assets.find({ userId }).sort({ createdAt: -1 });
+    } else {
+      // Fetch all assets
+      results = await Assets.find().sort({ createdAt: -1 });
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data: results }),
       {
-        status: 500,
+        status: 200,
         headers: { "Content-Type": "application/json" },
       }
+    );
+
+  } catch (error) {
+    console.error("GET API Error:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500 }
     );
   }
 }
