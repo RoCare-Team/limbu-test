@@ -8,12 +8,10 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, unique: true }, // removed `required: true`
 
     wallet: { type: Number, default: 0 },
-            freeUsedCount: { type: Number },
+    freeUsedCount: { type: Number },
+    GstNumber: { type: String },
 
-                        GstNumber: { type: String },
-
-
-
+    
     subscription: {
       plan: { type: String },
       paymentId: { type: String },
