@@ -6,4 +6,5 @@ const OtpSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+
 export default mongoose.models.Otp || mongoose.model("Otp", OtpSchema);
