@@ -15,4 +15,5 @@ const AssetsSchema = new mongoose.Schema(
 );
 
 
+
 export default mongoose.models.Assets || mongoose.model("Assets", AssetsSchema);
