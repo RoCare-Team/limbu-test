@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/dbConnect";
 import Post from "@/models/PostStatus";
+import mongoose from "mongoose";
 
 // Helper to return JSON response
 const json = (body, status = 200) =>
@@ -40,19 +41,49 @@ export async function GET(req) {
   }
 }
 
-/**
- * POST -> Create a new post
- * Body: { userId: "MB-02", prompt, output?, status? }
- */
 export async function POST(req) {
   try {
     await dbConnect();
+    const body = await req.json();
 
-    const { userId, status,aiOutput,description,promat } = await req.json();
-    if (!userId  || !aiOutput || !description) {
-      return json({ success: false, error: "userId and prompt are required" }, 400);
+    // Check if it's a request for bulk post counts
+    if (Array.isArray(body.userIds)) {
+      const { userIds } = body;
+      if (userIds.length === 0) {
+        return json({ success: true, data: {} });
+      }
+
+      const counts = await Post.aggregate([
+        { $match: { userId: { $in: userIds } } },
+        {
+          $group: {
+            _id: "$userId",
+            total: { $sum: 1 },
+            posted: { $sum: { $cond: [{ $eq: ["$status", "posted"] }, 1, 0] } },
+            approved: { $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ["$status", "rejected"] }, 1, 0] } },
+            pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+          },
+        },
+      ]);
+
+      const countsMap = counts.reduce((acc, item) => {
+        acc[item._id] = item;
+        delete item._id;
+        return acc;
+      }, {});
+
+      return json({ success: true, data: countsMap });
     }
 
+    // Original logic to create a new post
+    const { userId, status, aiOutput, description, promat } = body;
+    if (!userId || !aiOutput || !description) {
+      return json(
+        { success: false, error: "userId, aiOutput, and description are required" },
+        400
+      );
+    }
     const newPost = await Post.create({
       userId,
       aiOutput,
@@ -60,7 +91,6 @@ export async function POST(req) {
       promat,
       status: status || "pending",
     });
-
     return json({ success: true, data: newPost }, 201);
   } catch (err) {
     console.error("Error saving post:", err);
