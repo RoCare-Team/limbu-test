@@ -8,18 +8,18 @@ export async function POST() {
     await dbConnect();
 
     // Check if subadmin exists
-    const existingAdmin = await Admin.findOne({ email: "hanish@gmail.com" });
+    const existingAdmin = await Admin.findOne({ email: "priyamehrotragandhi@gmail.com" });
     if (existingAdmin) {
       return NextResponse.json({ message: "Sub Admin already exists" }, { status: 200 });
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash("hanish@123", 10);
+    const hashedPassword = await bcrypt.hash("priya@6500", 10);
 
     // Create Sub Admin
     await Admin.create({
       fullName: "Sub Admin",
-      email: "hanish@gmail.com",
+      email: "priyamehrotragandhi@gmail.com",
       password: hashedPassword,
       role: "subadmin",
     });

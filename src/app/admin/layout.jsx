@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, User, Settings, BarChart3, Users, ArrowUpLeft } from "lucide-react";
+import { LeaderboardSharp } from "@mui/icons-material";
 
 export default function AdminLayout({ children }) {
   const [open, setOpen] = useState(true);
@@ -12,6 +13,7 @@ export default function AdminLayout({ children }) {
     { name: "Notification", icon: <Users size={18} />, href: "/admin/notification" },
     // { name: "Post management", icon: <Users size={18} />, href: "/admin/post-management" },
     { name: "SAVE Bussiness", icon: <Users size={18} />, href: "/admin/store-bussiness" },
+    { name: "Leads From Contact Form", icon: <LeaderboardSharp size={18} />, href: "/admin/contact-form" },
     { name: "Settings", icon: <Settings size={18} />, href: "/admin/settings" },
     { name: "Visit Website", icon: <ArrowUpLeft  size={18} />, href: "/" },
   ];

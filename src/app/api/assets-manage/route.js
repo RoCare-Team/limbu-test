@@ -12,30 +12,36 @@ cloudinary.config({
 });
 
 // -------------------------------
-// Helper: Upload to Cloudinary
+// Helper → Upload Image
 // -------------------------------
-async function uploadToCloudinary(imageUrl, folderName) {
-  if (!imageUrl || imageUrl.trim() === "") return null;
+const uploadToCloud = async (url, folder) => {
+  if (!url || !url.trim()) return null;
 
-  const result = await cloudinary.uploader.upload(imageUrl, {
-    folder: folderName,
+  const uploaded = await cloudinary.uploader.upload(url, {
+    folder,
     resource_type: "image",
   });
 
-  return result.secure_url;
-}
+  return uploaded.secure_url;
+};
 
 // -------------------------------
-// MAIN API FUNCTION
+// Helper → Update Images Only If Provided
+// -------------------------------
+const processImage = async (incoming, existing, folder) => {
+  return incoming ? await uploadToCloud(incoming, folder) : existing;
+};
+
+// -------------------------------
+// POST → Create Asset
 // -------------------------------
 export async function POST(req) {
   try {
     await dbConnect();
-
     const body = await req.json();
 
     const {
-      userId,                  // 🔥 required field
+      userId,
       colourPalette,
       size,
       characterImage,
@@ -46,79 +52,163 @@ export async function POST(req) {
     } = body;
 
     if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, error: "userId is required" }),
+      return Response.json(
+        { success: false, error: "userId is required" },
         { status: 400 }
       );
     }
 
-    console.log("Uploading images…");
-
-    const finalCharacter = await uploadToCloudinary(characterImage, "ai_assets/character");
-    const finalUniform = await uploadToCloudinary(uniformImage, "ai_assets/uniform");
-    const finalProduct = await uploadToCloudinary(productImage, "ai_assets/product");
-    const finalBackground = await uploadToCloudinary(backgroundImage, "ai_assets/background");
-    const finalLogo = await uploadToCloudinary(logoImage, "ai_assets/logo");
-
-    // Save in DB
-    const savedData = await Assets.create({
-      userId,                                  // 🔥 save user id
+    const saved = await Assets.create({
+      userId,
       colourPalette,
       size,
-      characterImage: finalCharacter,
-      uniformImage: finalUniform,
-      productImage: finalProduct,
-      backgroundImage: finalBackground,
-      logoImage: finalLogo,
+      characterImage: await uploadToCloud(characterImage, "ai_assets/character"),
+      uniformImage: await uploadToCloud(uniformImage, "ai_assets/uniform"),
+      productImage: await uploadToCloud(productImage, "ai_assets/product"),
+      backgroundImage: await uploadToCloud(backgroundImage, "ai_assets/background"),
+      logoImage: await uploadToCloud(logoImage, "ai_assets/logo"),
     });
 
-    return new Response(
-      JSON.stringify({ success: true, message: "Saved to DB", data: savedData }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { success: true, message: "Asset created", data: saved },
+      { status: 200 }
     );
-
   } catch (error) {
-    console.error("API Error:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500 }
-    );
+    console.error("POST Error:", error);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
-
-// 
+// -------------------------------
+// GET → Fetch All / By User
+// -------------------------------
 export async function GET(req) {
   try {
-    await connectDB();
+    await dbConnect();
 
-    // Get search params (example: /api/assets?userId=123)
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
-    let results;
+    const query = userId ? { userId } : {};
+    const results = await Assets.find(query).sort({ createdAt: -1 });
 
-    if (userId) {
-      // Fetch assets for a specific user
-      results = await Assets.find({ userId }).sort({ createdAt: -1 });
-    } else {
-      // Fetch all assets
-      results = await Assets.find().sort({ createdAt: -1 });
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, data: results }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+    return Response.json(
+      { success: true, data: results },
+      { status: 200 }
     );
-
   } catch (error) {
-    console.error("GET API Error:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500 }
+    console.error("GET Error:", error);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// -------------------------------
+// PUT → Update Asset
+// -------------------------------
+export async function PUT(req) {
+  try {
+    await dbConnect();
+    const body = await req.json();
+
+    const {
+      id,
+      colourPalette,
+      size,
+      characterImage,
+      uniformImage,
+      productImage,
+      backgroundImage,
+      logoImage,
+    } = body;
+
+    if (!id)
+      return Response.json(
+        { success: false, error: "id is required" },
+        { status: 400 }
+      );
+
+    const existing = await Assets.findById(id);
+    if (!existing)
+      return Response.json(
+        { success: false, error: "Asset not found" },
+        { status: 404 }
+      );
+
+    const updated = await Assets.findByIdAndUpdate(
+      id,
+      {
+        colourPalette: colourPalette ?? existing.colourPalette,
+        size: size ?? existing.size,
+        characterImage: await processImage(
+          characterImage,
+          existing.characterImage,
+          "ai_assets/character"
+        ),
+        uniformImage: await processImage(
+          uniformImage,
+          existing.uniformImage,
+          "ai_assets/uniform"
+        ),
+        productImage: await processImage(
+          productImage,
+          existing.productImage,
+          "ai_assets/product"
+        ),
+        backgroundImage: await processImage(
+          backgroundImage,
+          existing.backgroundImage,
+          "ai_assets/background"
+        ),
+        logoImage: await processImage(
+          logoImage,
+          existing.logoImage,
+          "ai_assets/logo"
+        ),
+        updatedAt: new Date(),
+      },
+      { new: true }
     );
+
+    return Response.json(
+      { success: true, message: "Asset updated", data: updated },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("PUT Error:", error);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// -------------------------------
+// DELETE → Remove Asset
+// -------------------------------
+export async function DELETE(req) {
+  try {
+    await dbConnect();
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id)
+      return Response.json(
+        { success: false, error: "id is required" },
+        { status: 400 }
+      );
+
+    const deleted = await Assets.findByIdAndDelete(id);
+
+    if (!deleted)
+      return Response.json(
+        { success: false, error: "Asset not found" },
+        { status: 404 }
+      );
+
+    return Response.json(
+      { success: true, message: "Asset deleted", data: deleted },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("DELETE Error:", error);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }

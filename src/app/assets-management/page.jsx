@@ -1,415 +1,601 @@
-  "use client";
-  import { useState, useEffect, useCallback } from "react";
-  import { Upload, ImageIcon, Palette, X, Check, Download, Copy, Loader, Server } from "lucide-react";
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { Upload, Image, Palette, X, Check, Download, Copy, Loader, Server, AlertCircle } from "lucide-react";
 
-  export default function AssetsManager() {
-    const [assets, setAssets] = useState({
-      colourPalette: "",
-      size: "1080x1350",
-      characterImage: "",
-      uniformImage: "",
-      productImage: "",
-      backgroundImage: "",
-      logoImage: ""
-    });
+export default function AssetsManager() {
+  const [assets, setAssets] = useState({
+    colourPalette: "",
+    size: "1080x1350",
+    characterImage: "",
+    uniformImage: "",
+    productImage: [],
+    backgroundImage: "",
+    logoImage: ""
+  });
 
-    const [previews, setPreviews] = useState({});
-    const [copiedPayload, setCopiedPayload] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-    const [userId, setUserId] = useState(null);
+  const [previews, setPreviews] = useState({});
+  const [copiedPayload, setCopiedPayload] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [assetId, setAssetId] = useState(null);
+  const [error, setError] = useState(null);
 
-    const sizeOptions = [
-      { label: "Instagram Post", value: "1080x1080" },
-      { label: "Instagram Story", value: "1080x1920" },
-      { label: "Instagram Portrait", value: "1080x1350" },
-      { label: "Facebook Post", value: "1200x630" },
-      { label: "Twitter Post", value: "1200x675" },
-      { label: "LinkedIn Post", value: "1200x627" },
-      { label: "Custom", value: "custom" }
-    ];
+  const sizeOptions = [
+    { label: "Instagram Post", value: "1080x1080" },
+    { label: "Instagram Story", value: "1080x1920" },
+    { label: "Instagram Portrait", value: "1080x1350" },
+    { label: "Facebook Post", value: "1200x630" },
+    { label: "Twitter Post", value: "1200x675" },
+    { label: "LinkedIn Post", value: "1200x627" },
+    { label: "Custom", value: "custom" }
+  ];
 
-    const colorPalettes = [
-      { label: "Warm Sunset", value: "warm, yellow, orange, red" },
-      { label: "Cool Ocean", value: "cool, blue, teal, cyan" },
-      { label: "Nature Green", value: "fresh, green, lime, mint" },
-      { label: "Royal Purple", value: "luxe, purple, violet, magenta" },
-      { label: "Monochrome", value: "minimal, black, white, gray" },
-      { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold" }
-    ];
+  const colorPalettes = [
+    { label: "Warm Sunset", value: "warm, yellow, orange, red" },
+    { label: "Cool Ocean", value: "cool, blue, teal, cyan" },
+    { label: "Nature Green", value: "fresh, green, lime, mint" },
+    { label: "Royal Purple", value: "luxe, purple, violet, magenta" },
+    { label: "Monochrome", value: "minimal, black, white, gray" },
+    { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold" }
+  ];
 
-    // Load saved assets from storage
-    useEffect(() => {
-      const storedUserId = localStorage.getItem("userId");
-      if (storedUserId) {
-        setUserId(storedUserId);
-        loadAssetsFromServer(storedUserId);
+  // Initialize userId from localStorage
+  useEffect(() => {
+    const storedUserId = localStorage.getItem("userId");
+    if (storedUserId) {
+      setUserId(storedUserId);
+      loadAssetsFromServer(storedUserId);
+    } else {
+      // Generate a new userId if none exists
+      const newUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem("userId", newUserId);
+      setUserId(newUserId);
+    }
+  }, []);
+
+  const loadAssetsFromServer = async (currentUserId) => {
+    try {
+      const res = await fetch(`/api/assets-manage?userId=${currentUserId}`);
+      const result = await res.json();
+      
+      if (result.success && result.data.length > 0) {
+        const latestAssets = result.data[0];
+        setAssetId(latestAssets._id);
+        
+        // Convert productImage to array if it's a string
+        const productImageArray = latestAssets.productImage 
+          ? (Array.isArray(latestAssets.productImage) 
+              ? latestAssets.productImage 
+              : [latestAssets.productImage])
+          : [];
+
+        const loadedAssets = {
+          colourPalette: latestAssets.colourPalette || "",
+          size: latestAssets.size || "1080x1350",
+          characterImage: latestAssets.characterImage || "",
+          uniformImage: latestAssets.uniformImage || "",
+          productImage: productImageArray,
+          backgroundImage: latestAssets.backgroundImage || "",
+          logoImage: latestAssets.logoImage || ""
+        };
+
+        setAssets(loadedAssets);
+        
+        // Set previews for all loaded images
+        const newPreviews = {
+          characterImage: latestAssets.characterImage,
+          uniformImage: latestAssets.uniformImage,
+          backgroundImage: latestAssets.backgroundImage,
+          logoImage: latestAssets.logoImage,
+          productImage: productImageArray
+        };
+        
+        setPreviews(newPreviews);
       }
-    }, []);
+    } catch (error) {
+      console.error('Error loading assets:', error);
+      setError('Failed to load saved assets');
+    }
+  };
 
-    const loadAssetsFromServer = async (currentUserId) => {
-      try {
-        const res = await fetch(`/api/assets-manage?userId=${currentUserId}`);
-        const result = await res.json();
-        if (result.success && result.data.length > 0) {
-          // Load the most recent asset entry
-          const latestAssets = result.data[0];
-          setAssets(latestAssets);
-          setPreviews(latestAssets); // Assuming saved data has URLs
-        }
-      } catch (error) {
-        console.log('No saved assets found on server', error);
-      }
-    };
+  const saveAssetsToServer = useCallback(async (updatedAssets) => {
+    if (!userId) return;
+    
+    setIsSaving(true);
+    setIsSaved(false);
+    setError(null);
 
-    const saveAssetsToServer = useCallback(async (updatedAssets) => {
-      if (!userId) return;
-      setIsSaving(true);
-      setIsSaved(false);
-      try {
-        await fetch('/api/assets-manage', {
+    try {
+      // Backend expects productImage as a single string (first image) or empty
+      const backendPayload = {
+        userId,
+        colourPalette: updatedAssets.colourPalette,
+        size: updatedAssets.size,
+        characterImage: updatedAssets.characterImage,
+        uniformImage: updatedAssets.uniformImage,
+        productImage: Array.isArray(updatedAssets.productImage) && updatedAssets.productImage.length > 0
+          ? updatedAssets.productImage[0]
+          : "",
+        backgroundImage: updatedAssets.backgroundImage,
+        logoImage: updatedAssets.logoImage
+      };
+
+      let response;
+      
+      if (assetId) {
+        // Update existing asset
+        response = await fetch('/api/assets-manage', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: assetId,
+            ...backendPayload
+          }),
+        });
+      } else {
+        // Create new asset
+        response = await fetch('/api/assets-manage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...updatedAssets, userId }),
+          body: JSON.stringify(backendPayload),
         });
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        if (!assetId && result.data._id) {
+          setAssetId(result.data._id);
+        }
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
-      } catch (error) {
-        console.error('Error saving assets:', error);
-      } finally {
-        setIsSaving(false);
+      } else {
+        throw new Error(result.error || 'Failed to save assets');
       }
-    }, [userId]);
+    } catch (error) {
+      console.error('Error saving assets:', error);
+      setError('Failed to save assets. Please try again.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [userId, assetId]);
 
-    const handleImageUpload = (key, file) => {
-      if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result;
-          const updatedAssets = {
+  const handleImageUpload = (key, file) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result;
+        let updatedAssets;
+
+        if (key === 'productImage') {
+          updatedAssets = {
             ...assets,
-            [key]: base64String
+            productImage: [...assets.productImage, base64String]
           };
-          setAssets(updatedAssets);
+          setPreviews(prev => ({ 
+            ...prev, 
+            productImage: [...(prev.productImage || []), base64String] 
+          }));
+        } else {
+          updatedAssets = { ...assets, [key]: base64String };
           setPreviews(prev => ({ ...prev, [key]: base64String }));
-          saveAssetsToServer(updatedAssets);
-        };
-        reader.readAsDataURL(file);
+        }
+
+        setAssets(updatedAssets);
+        await saveAssetsToServer(updatedAssets);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUrlInput = (key, url, index = -1) => {
+    if (!url || !url.trim()) return;
+
+    let updatedAssets;
+    if (key === 'productImage') {
+      const newProductImages = [...assets.productImage];
+      if (index >= 0) {
+        newProductImages[index] = url;
+      } else {
+        newProductImages.push(url);
       }
-    };
-
-    const handleUrlInput = (key, url) => {
-      const updatedAssets = {
-        ...assets,
-        [key]: url
-      };
-      setAssets(updatedAssets);
+      updatedAssets = { ...assets, productImage: newProductImages };
+      setPreviews(prev => ({ ...prev, productImage: newProductImages }));
+    } else {
+      updatedAssets = { ...assets, [key]: url };
       setPreviews(prev => ({ ...prev, [key]: url }));
-      saveAssetsToServer(updatedAssets);
-    };
+    }
+    setAssets(updatedAssets);
+    saveAssetsToServer(updatedAssets);
+  };
 
-    const removeAsset = (key) => {
-      const updatedAssets = {
-        ...assets,
-        [key]: ""
-      };
-      setAssets(updatedAssets);
+  const removeAsset = async (key, index = -1) => {
+    let updatedAssets;
+    if (key === 'productImage' && index >= 0) {
+      const newProductImages = assets.productImage.filter((_, i) => i !== index);
+      updatedAssets = { ...assets, productImage: newProductImages };
+      setPreviews(prev => ({ ...prev, productImage: newProductImages }));
+    } else {
+      updatedAssets = { ...assets, [key]: "" };
       setPreviews(prev => {
         const newPreviews = { ...prev };
         delete newPreviews[key];
         return newPreviews;
       });
-      saveAssetsToServer(updatedAssets);
+    }
+    setAssets(updatedAssets);
+    await saveAssetsToServer(updatedAssets);
+  };
+
+  const handleColorPaletteChange = async (value) => {
+    const updatedAssets = {
+      ...assets,
+      colourPalette: value
     };
+    setAssets(updatedAssets);
+    await saveAssetsToServer(updatedAssets);
+  };
 
-    const handleColorPaletteChange = (value) => {
-      const updatedAssets = {
-        ...assets,
-        colourPalette: value
-      };
-      setAssets(updatedAssets);
-      saveAssetsToServer(updatedAssets);
+  const handleSizeChange = async (value) => {
+    const updatedAssets = {
+      ...assets,
+      size: value
     };
+    setAssets(updatedAssets);
+    await saveAssetsToServer(updatedAssets);
+  };
 
-    const handleSizeChange = (value) => {
-      const updatedAssets = {
-        ...assets,
-        size: value
-      };
-      setAssets(updatedAssets);
-      saveAssetsToServer(updatedAssets);
-    };
+  const generatePayload = () => {
+    return JSON.stringify(assets, null, 2);
+  };
 
-    const generatePayload = () => {
-      return JSON.stringify(assets, null, 2);
-    };
+  const copyPayload = () => {
+    navigator.clipboard.writeText(generatePayload());
+    setCopiedPayload(true);
+    setTimeout(() => setCopiedPayload(false), 2000);
+  };
 
-    const copyPayload = () => {
-      navigator.clipboard.writeText(generatePayload());
-      setCopiedPayload(true);
-      setTimeout(() => setCopiedPayload(false), 2000);
-    };
+  const downloadPayload = () => {
+    const blob = new Blob([generatePayload()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'design-assets-payload.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-    const downloadPayload = () => {
-      const blob = new Blob([generatePayload()], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'design-assets-payload.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    };
+  const imageFields = [
+    { key: "characterImage", label: "Character Image", icon: "👤" },
+    { key: "uniformImage", label: "Uniform Image", icon: "👕" },
+    { key: "backgroundImage", label: "Background Image", icon: "🖼️" },
+    { key: "logoImage", label: "Logo Image", icon: "🏷️" }
+  ];
 
-    const imageFields = [
-      { key: "characterImage", label: "Character Image", icon: "👤" },
-      { key: "uniformImage", label: "Uniform Image", icon: "👕" },
-      { key: "productImage", label: "Product Image", icon: "📦" },
-      { key: "backgroundImage", label: "Background Image", icon: "🖼️" },
-      { key: "logoImage", label: "Logo Image", icon: "🏷️" }
-    ];
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                Assets Manager
+              </h1>
+              <p className="text-gray-600">
+                Upload and manage all your design assets in one place. Changes are saved automatically.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3 flex-wrap">
+              {isSaving && <Loader className="w-5 h-5 animate-spin text-purple-600" />}
+              {isSaved && (
+                <span className="text-green-600 font-medium flex items-center gap-1">
+                  <Check className="w-5 h-5" /> Saved!
+                </span>
+              )}
+              {error && (
+                <span className="text-red-600 font-medium flex items-center gap-1">
+                  <AlertCircle className="w-5 h-5" /> {error}
+                </span>
+              )}
+              <button
+                onClick={() => saveAssetsToServer(assets)}
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                <Server className="w-4 h-4" />
+                Save Manually
+              </button>
+              <button
+                onClick={copyPayload}
+                className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl font-medium transition-all flex items-center gap-2"
+              >
+                {copiedPayload ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedPayload ? 'Copied!' : 'Copy'}
+              </button>
+              <button
+                onClick={downloadPayload}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+            </div>
+          </div>
+        </div>
 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Header */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-                  Assets Manager
-                </h1>
-                <p className="text-gray-600">
-                  Upload and manage all your design assets in one place. Changes are saved automatically.
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Configuration Panel */}
+          <div className="space-y-6">
+            {/* Color Palette */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
+                  <Palette className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-800">Color Palette</h2>
               </div>
-              <div className="flex items-center gap-3">
-                {isSaving && <Loader className="w-5 h-5 animate-spin text-purple-600" />}
-                {isSaved && <span className="text-green-600 font-medium flex items-center gap-1"><Check className="w-5 h-5" /> Saved!</span>}
-                <button
-                  onClick={() => saveAssetsToServer(assets)}
-                  className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl font-medium transition-all flex items-center gap-2"
-                >
-                  <Server className="w-4 h-4" />
-                  Save Manually
-                </button>
+              
+              <div className="space-y-3">
+                {/* Color Picker */}
+                <div className="p-4 border-2 border-gray-200 rounded-xl bg-gray-50">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pick Colors
+                  </label>
+                  <input
+                    type="color"
+                    onChange={(e) => handleColorPaletteChange(e.target.value)}
+                    className="w-full h-12 rounded-lg cursor-pointer border-2 border-gray-300"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Selected: {assets.colourPalette || 'No color selected'}
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-2 bg-white text-gray-500">or choose preset</span>
+                  </div>
+                </div>
+
+                {colorPalettes.map((palette) => (
+                  <button
+                    key={palette.value}
+                    onClick={() => handleColorPaletteChange(palette.value)}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      assets.colourPalette === palette.value
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800">{palette.label}</p>
+                        <p className="text-xs text-gray-500 mt-1">{palette.value}</p>
+                      </div>
+                      {assets.colourPalette === palette.value && (
+                        <Check className="w-5 h-5 text-purple-600" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+                
+                <input
+                  type="text"
+                  value={assets.colourPalette}
+                  onChange={(e) => handleColorPaletteChange(e.target.value)}
+                  placeholder="Or type custom palette..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-all"
+                />
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={copyPayload}
-                  className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl font-medium transition-all flex items-center gap-2"
-                >
-                  {copiedPayload ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copiedPayload ? 'Copied!' : 'Copy'}
-                </button>
-                <button
-                  onClick={downloadPayload}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
+            </div>
+
+            {/* Size Selector */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Canvas Size</h2>
+              
+              <div className="space-y-2">
+                {sizeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleSizeChange(option.value)}
+                    className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
+                      assets.size === option.value
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-700">{option.label}</span>
+                      <span className="text-xs text-gray-500">{option.value}</span>
+                    </div>
+                  </button>
+                ))}
+                
+                <input
+                  type="text"
+                  value={assets.size}
+                  onChange={(e) => handleSizeChange(e.target.value)}
+                  placeholder="Custom size (e.g., 1920x1080)"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-all"
+                />
               </div>
             </div>
           </div>
 
-          {/* Payload Preview - REMOVED */}
+          {/* Image Upload Panel */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Image Assets</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {imageFields.map((field) => (
+                  <div key={field.key} className="border-2 border-gray-200 rounded-xl p-5 hover:border-purple-300 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{field.icon}</span>
+                        <h3 className="font-semibold text-gray-800">{field.label}</h3>
+                      </div>
+                      {assets[field.key] && (
+                        <button
+                          onClick={() => removeAsset(field.key)}
+                          className="p-1 hover:bg-red-100 rounded-lg transition-all"
+                        >
+                          <X className="w-4 h-4 text-red-600" />
+                        </button>
+                      )}
+                    </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Configuration Panel */}
-            <div className="space-y-6">
-              {/* Color Palette */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
-                    <Palette className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-800">Color Palette</h2>
-                </div>
-                
-                <div className="space-y-3">
-                  {/* Color Picker */}
-                  <div className="p-4 border-2 border-gray-200 rounded-xl bg-gray-50">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Pick Colors
+                    {/* Preview */}
+                    {previews[field.key] ? (
+                      <div className="mb-3 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
+                        <img
+                          src={previews[field.key]}
+                          alt={field.label}
+                          className="w-full h-40 object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mb-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 h-40 flex items-center justify-center">
+                        <div className="text-center">
+                          <Image className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">No image</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    <label className="block mb-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(field.key, e.target.files[0])}
+                        className="hidden"
+                      />
+                      <div className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition-all cursor-pointer text-center flex items-center justify-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload
+                      </div>
                     </label>
+
+                    {/* URL Input */}
                     <input
-                      type="color"
-                      onChange={(e) => handleColorPaletteChange(e.target.value)}
-                      className="w-full h-12 rounded-lg cursor-pointer border-2 border-gray-300"
+                      type="text"
+                      value={assets[field.key]}
+                      onChange={(e) => handleUrlInput(field.key, e.target.value)}
+                      placeholder="Or paste URL..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-purple-400 focus:outline-none transition-all"
                     />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Selected: {assets.colourPalette || 'No color selected'}
-                    </p>
                   </div>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="px-2 bg-white text-gray-500">or choose preset</span>
-                    </div>
-                  </div>
-
-                  {colorPalettes.map((palette) => (
-                    <button
-                      key={palette.value}
-                      onClick={() => handleColorPaletteChange(palette.value)}
-                      className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                        assets.colourPalette === palette.value
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-purple-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-800">{palette.label}</p>
-                          <p className="text-xs text-gray-500 mt-1">{palette.value}</p>
-                        </div>
-                        {assets.colourPalette === palette.value && (
-                          <Check className="w-5 h-5 text-purple-600" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                  
-                  <input
-                    type="text"
-                    value={assets.colourPalette}
-                    onChange={(e) => handleColorPaletteChange(e.target.value)}
-                    placeholder="Or type custom palette..."
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-all"
-                  />
-                </div>
+                ))}
               </div>
 
-              {/* Size Selector */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Canvas Size</h2>
-                
-                <div className="space-y-2">
-                  {sizeOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleSizeChange(option.value)}
-                      className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
-                        assets.size === option.value
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-purple-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-700">{option.label}</span>
-                        <span className="text-xs text-gray-500">{option.value}</span>
-                      </div>
-                    </button>
-                  ))}
-                  
-                  <input
-                    type="text"
-                    value={assets.size}
-                    onChange={(e) => handleSizeChange(e.target.value)}
-                    placeholder="Custom size (e.g., 1920x1080)"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-all"
-                  />
+              {/* Product Images Section */}
+              <div className="mt-8 border-t-2 border-dashed border-gray-200 pt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-2xl">📦</span>
+                  <h3 className="text-xl font-bold text-gray-800">Product Images</h3>
+                  <span className="text-sm text-gray-500">(First image will be saved to database)</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Image Upload Panel */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Image Assets</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {imageFields.map((field) => (
-                    <div key={field.key} className="border-2 border-gray-200 rounded-xl p-5 hover:border-purple-300 transition-all">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{field.icon}</span>
-                          <h3 className="font-semibold text-gray-800">{field.label}</h3>
-                        </div>
-                        {assets[field.key] && (
-                          <button
-                            onClick={() => removeAsset(field.key)}
-                            className="p-1 hover:bg-red-100 rounded-lg transition-all"
-                          >
-                            <X className="w-4 h-4 text-red-600" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Preview */}
-                      {previews[field.key] ? (
-                        <div className="mb-3 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
-                          <img
-                            src={previews[field.key]}
-                            alt={field.label}
-                            className="w-full h-40 object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="mb-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 h-40 flex items-center justify-center">
-                          <div className="text-center">
-                            <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">No image</p>
-                          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Array.isArray(assets.productImage) && assets.productImage.map((img, index) => (
+                    <div key={index} className="relative group border-2 border-gray-200 rounded-lg p-2">
+                      <img
+                        src={img}
+                        alt={`Product ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-md"
+                      />
+                      {index === 0 && (
+                        <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                          Primary
                         </div>
                       )}
-
-                      {/* Upload Button */}
-                      <label className="block mb-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(field.key, e.target.files[0])}
-                          className="hidden"
-                        />
-                        <div className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition-all cursor-pointer text-center flex items-center justify-center gap-2">
-                          <Upload className="w-4 h-4" />
-                          Upload
-                        </div>
-                      </label>
-
-                      {/* URL Input */}
-                      <input
-                        type="text"
-                        value={assets[field.key]}
-                        onChange={(e) => handleUrlInput(field.key, e.target.value)}
-                        placeholder="Or paste URL..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-purple-400 focus:outline-none transition-all"
-                      />
+                      <button
+                        onClick={() => removeAsset('productImage', index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all shadow-md opacity-0 group-hover:opacity-100"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
                   ))}
-                </div>
 
-                {/* Summary Card */}
-                <div className="mt-8 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200">
-                  <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <Check className="w-5 h-5 text-purple-600" />
-                    Asset Summary
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-3 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">Color Palette</p>
-                      <p className="font-semibold text-gray-800 text-sm truncate">
-                        {assets.colourPalette || 'Not set'}
-                      </p>
+                  {/* Upload new product image card */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col justify-center items-center text-center h-full min-h-[140px]">
+                     <label className="block mb-2 w-full">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => {
+                          for (const file of e.target.files) {
+                            handleImageUpload('productImage', file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <div className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition-all cursor-pointer text-center flex items-center justify-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload Product(s)
+                      </div>
+                    </label>
+                    <div className="relative w-full my-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-xs">
+                        <span className="px-2 bg-white text-gray-500">or</span>
+                      </div>
                     </div>
-                    <div className="bg-white p-3 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">Canvas Size</p>
-                      <p className="font-semibold text-gray-800 text-sm">
-                        {assets.size}
-                      </p>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">Images Uploaded</p>
-                      <p className="font-semibold text-gray-800 text-sm">
-                        {Object.values(assets).filter(v => v && v.includes('http') || v.includes('data:image')).length} / 5
-                      </p>
-                    </div>
+                    <input
+                      type="text"
+                      onKeyDown={(e) => { 
+                        if (e.key === 'Enter' && e.target.value) { 
+                          handleUrlInput('productImage', e.target.value); 
+                          e.target.value = ''; 
+                        } 
+                      }}
+                      placeholder="Paste URL and press Enter"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-purple-400 focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary Card */}
+              <div className="mt-8 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Check className="w-5 h-5 text-purple-600" />
+                  Asset Summary
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Color Palette</p>
+                    <p className="font-semibold text-gray-800 text-sm truncate">
+                      {assets.colourPalette || 'Not set'}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Canvas Size</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {assets.size}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Images Uploaded</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {
+                        (Object.values(assets).filter(v => typeof v === 'string' && (v.includes('http') || v.includes('data:image'))).length) +
+                        (Array.isArray(assets.productImage) ? assets.productImage.length : 0)
+                      } total
+                    </p>
                   </div>
                 </div>
               </div>
@@ -417,5 +603,6 @@
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}

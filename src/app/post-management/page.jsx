@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
   Send,
+  Paperclip,
   MapPin,
   ArrowLeft,
 } from "lucide-react";
@@ -309,9 +310,11 @@ const SuccessOverlay = ({ onComplete, postsCount }) => {
 };
 
 // Post Input Component
-const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) => {
+const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo }) => {
   const removeImage = () => setLogo(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState([]);
+  const [showAssets, setShowAssets] = useState(false);
+  const [selectedAssets, setSelectedAssets] = useState([]);
 
   useEffect(() => {
     try {
@@ -324,6 +327,17 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
     }
   }, []);
 
+  const handleAssetToggle = (asset) => { 
+    const isSelected = selectedAssets.some(a => a.url === asset.url);
+    let newSelectedAssets;
+    if (isSelected) {
+      newSelectedAssets = selectedAssets.filter(a => a.url !== asset.url);
+    } else {
+      newSelectedAssets = [...selectedAssets, asset];
+    }
+    setSelectedAssets(newSelectedAssets);
+
+  }; 
   return (
     <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-blue-200 p-4 sm:p-6 md:p-8">
       <div className="flex flex-col space-y-4 sm:space-y-6">
@@ -339,26 +353,11 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
             className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-xl text-sm sm:text-base text-gray-800 focus:ring-4 focus:ring-blue-300 focus:border-blue-500 outline-none transition-all min-h-[100px] sm:min-h-[120px] resize-none placeholder:text-gray-400 bg-gray-50"
             disabled={loading}
           />
-          {/* {suggestedKeywords.length > 0 && (
-            <div className="pt-2">
-              <p className="text-xs font-semibold text-gray-500 mb-2">Suggestions:</p>
-              <div className="flex flex-wrap gap-2">
-                {suggestedKeywords.map((keyword, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setPrompt(keyword)}
-                    disabled={loading}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all disabled:opacity-50"
-                  >
-                    {keyword}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )} */}
+
         </div>
 
-        <div className="space-y-2 sm:space-y-3">
+        {/* Logo Upload */}
+        <div className="space-y-2 sm:space-y-3 mb-4">
           <label className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
             <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
             Add Your Logo (Optional)
@@ -395,9 +394,72 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
             </div>
           )}
         </div>
+{/* 
+             {assets && assets.length > 0 && (
+            <div className="pt-2 pb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAssets}
+                  onChange={() => setShowAssets(!showAssets)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="font-bold text-gray-700">Create image with assets</span>
+              </label>
+              {showAssets && (
+                <div className="pt-4">
+                  <p className="text-sm font-bold text-gray-600 mb-3">
+                    Select assets to use:
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {assets.map((asset, index) => (
+                      <div key={index} className="relative">
+                        <label className="cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="absolute top-2 right-2 h-5 w-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300 z-20"
+                            checked={selectedAssets.some(a => a.url === asset.url)}
+                            onChange={() => handleAssetToggle(asset)}
+                          />
+                          <div className={`group relative border-2 rounded-lg overflow-hidden hover:shadow-md transition-all ${selectedAssets.some(a => a.url === asset.url) ? 'border-blue-500' : 'border-gray-200'}`}>
+                            <img src={asset.url} alt={asset.name} className="w-20 h-20 object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-white text-xs font-bold text-center px-1">{asset.name}</span>
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )} */}
+
+
+
+
+          {suggestedKeywords.length > 0 && (
+            <div className="pt-2">
+              <p className="text-xs font-semibold text-gray-500 mb-2">Suggestions:</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestedKeywords.map((keyword, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setPrompt(keyword)}
+                    disabled={loading}
+                    className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all disabled:opacity-50"
+                  >
+                    {keyword}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )} 
+        </div>
 
         <button
-          onClick={onGenerate}
+          onClick={() => onGenerate(selectedAssets, showAssets)}
           disabled={loading || !prompt.trim()}
           className="w-full inline-flex items-center justify-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-6 sm:px-8 py-4 sm:py-5 rounded-xl hover:shadow-2xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-black text-base sm:text-lg"
         >
@@ -405,14 +467,13 @@ const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) =>
           Generate Post with AI
         </button>
 
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-3 sm:p-4">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-3 sm:p-4 mt-4">
           <p className="text-xs sm:text-sm text-amber-900 flex items-start gap-2">
             <span className="text-lg sm:text-xl">💡</span>
             <span><strong>Pro Tip:</strong> Be specific about your business, offer details, colors, and style for best results!</span>
           </p>
         </div>
       </div>
-    </div>
   );
 };
 
@@ -712,6 +773,7 @@ export default function PostManagement() {
   const [isPosting, setIsPosting] = useState(false);
   const [postsGeneratedCount, setPostsGeneratedCount] = useState(0);
 
+  const [userAssets, setUserAssets] = useState([]);
   const [rejectPostId, setRejectPostId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -742,6 +804,33 @@ export default function PostManagement() {
     }
   }, []);
 
+  // Fetch user assets
+  useEffect(() => {
+    const fetchUserAssets = async () => {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        try {
+          const res = await fetch(`/api/assets-manage?userId=${userId}`);
+          const result = await res.json();
+          if (result.success && result.data.length > 0) {
+            const latestAssets = result.data[0]; // Use the most recent asset set
+            const imageAssets = [
+              { name: 'Character', url: latestAssets.characterImage },
+              { name: 'Uniform', url: latestAssets.uniformImage },
+              { name: 'Background', url: latestAssets.backgroundImage },
+              { name: 'Logo', url: latestAssets.logoImage },
+            ]
+              .concat((Array.isArray(latestAssets.productImage) ? latestAssets.productImage : [latestAssets.productImage]).map((p, i) => ({ name: `Product ${i + 1}`, url: p })))
+              .filter(asset => asset.url && typeof asset.url === 'string');
+            setUserAssets(imageAssets);
+          }
+        } catch (error) {
+          console.error("Failed to fetch user assets:", error);
+        }
+      }
+    };
+    fetchUserAssets();
+  }, []);
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -805,7 +894,15 @@ export default function PostManagement() {
       reader.onerror = (err) => reject(err);
     });
 
-  const handleGenerateClick = async () => {
+  const handleGenerateClick = async (selectedAssets, useAssetsFlow) => {
+    if (useAssetsFlow) {
+      await handleImageGenerateWithAssets(selectedAssets);
+    } else {
+      await handleAiAgent(selectedAssets);
+    }
+  };
+
+  const handleAiAgent = async (selectedAssets = []) => {
     if (!prompt.trim()) {
       showToast("Please enter a prompt before generating!", "error");
       return;
@@ -860,6 +957,7 @@ export default function PostManagement() {
         body: JSON.stringify({
           prompt: prompt,
           logo: logoBase64,
+          assets: selectedAssets, // Pass selected assets to the API
         }),
       });
 
@@ -948,7 +1046,154 @@ export default function PostManagement() {
     }
   };
 
-  const handleDateChange = (id, value) => {
+  const handleImageGenerateWithAssets = async (selectedAssets = []) => {
+    if (!prompt.trim()) {
+      showToast("Please enter a prompt before generating!", "error");
+      return;
+    }
+
+    const userId = localStorage.getItem("userId");
+
+    try {
+      // Check wallet balance for AI generation (150 coins)
+      const userRes = await fetch(`/api/auth/signup?userId=${userId}`);
+      if (!userRes.ok) {
+        showToast("Failed to fetch user data", "error");
+        return;
+      }
+
+      const userData = await userRes.json();
+      const walletBalance = userData.wallet || 0;
+      setUserWallet(walletBalance);
+
+      // Check if user has sufficient balance for AI generation (150 coins)
+      if (walletBalance < 150) {
+        setRequiredCoins(150);
+        setShowInsufficientBalance(true);
+        return;
+      }
+
+      // Start AI generation process
+      setIsGenerating(true);
+      setAiResponse(null);
+      setCountdown(59);
+
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Convert logo to base64 if provided
+      let logoBase64 = null;
+      if (logo) {
+        logoBase64 = await fileToBase64(logo);
+      }
+
+      // Call the asset generation API
+      const res = await fetch("https://n8n.limbutech.in/webhook/6678555b-a0a2-4cbf-b157-7d0f831bd51c", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: prompt,
+          colourPalette: "warm, yellow, orange, red", // Example, can be made dynamic
+          size: "1:1", // Example, can be made dynamic
+          characterImage: selectedAssets.find(a => a.name === 'Character')?.url || "",
+          uniformImage: selectedAssets.find(a => a.name === 'Uniform')?.url || "",
+          productImage: selectedAssets.find(a => a.name.startsWith('Product'))?.url || "",
+          backgroundImage: selectedAssets.find(a => a.name === 'Background')?.url || "",
+          logoImage: selectedAssets.find(a => a.name === 'Logo')?.url || logoBase64 || "",
+          platform: "gmb"
+        }),
+      });
+
+      clearInterval(timer);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate post from AI agent.");
+      }
+
+      const apiResponse = await res.json();
+      // The direct response from n8n is now the data we need
+      if (apiResponse.status !== "true" && !apiResponse.success) {
+        throw new Error(apiResponse.error || apiResponse.message || "AI asset generation failed.");
+      }
+
+      const data = apiResponse.success ? apiResponse.data : apiResponse;
+
+      const postRes = await fetch("/api/post-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          aiOutput: data.image,
+          description: data.description,
+          logoUrl: data.logoUrl,
+          status: "pending",
+          promat: data.user_input,
+          locations: [], // No locations assigned yet
+        }),
+      });
+
+      const postData = await postRes.json();
+
+      if (!postData.success) {
+        throw new Error(postData.error || "Failed to save post in database.");
+      }
+
+      // Deduct 150 coins for AI generation
+      const walletRes = await fetch(`/api/auth/signup?userId=${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: 150,
+          type: "deduct",
+          reason: "image_generated",
+          metadata: {
+            aiPrompt: prompt,
+            logoUsed: !!logo,
+          }
+        }),
+      });
+
+      const walletData = await walletRes.json();
+
+      if (walletData.error) {
+        console.warn("Wallet deduction failed:", walletData.error);
+        showToast(walletData.error, "error");
+      } else {
+        showToast("150 coins deducted for AI generation ✅", "success");
+        setUserWallet((prev) => Math.max(0, prev - 150));
+      }
+
+      // Update frontend state
+      setPosts((prev) => [postData.data, ...prev]);
+      setAllCounts((prev) => ({
+        ...prev,
+        total: prev.total + 1,
+        pending: prev.pending + 1,
+      }));
+
+      showToast("AI Post Generated & Saved Successfully! 🎉");
+
+      setPrompt("");
+      setLogo(null);
+      setCountdown(0);
+    } catch (error) {
+      console.error("Generation Error:", error);
+      showToast(error.message || "Failed to generate AI post!", "error");
+    } finally {
+      setIsGenerating(false);
+      setCountdown(0);
+    }
+  };
+
+    const handleDateChange = (id, value) => {
     setScheduleDates((prev) => ({ ...prev, [id]: value }));
   };
 
@@ -1595,10 +1840,11 @@ export default function PostManagement() {
         <PostInput
           prompt={prompt}
           setPrompt={setPrompt}
-          logo={logo}
-          setLogo={setLogo}
           onGenerate={handleGenerateClick}
           loading={isGenerating}
+          logo={logo}
+          setLogo={setLogo}
+          assets={userAssets}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4">
