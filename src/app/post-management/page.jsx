@@ -318,6 +318,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
   const [showAssets, setShowAssets] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState([]);
 
+  const [updatingAsset, setUpdatingAsset] = useState(null);
   const sizeOptions = [
     { label: "1:1", value: "1:1" },
     { label: "2:3", value: "2:3" },
@@ -347,7 +348,39 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
 
 
-  const handleCheckBoxChange = () => {
+  const handleCheckBoxChange = async () => {
+    // If there's no assetId, it means the user has no assets saved yet.
+    // We'll create a default asset record for them.
+    if (!assetId) {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        showToast("User ID not found. Please log in again.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/assets-manage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            size: "3:4", // Default size as requested
+            colourPalette: "warm, yellow, orange, red", // Default color
+            // Other fields will be empty by default in the backend
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          showToast("Default assets created!", "info");
+          await fetchUserAssets(); // Refresh assets to get the new assetId and data
+        } else {
+          throw new Error(result.error || "Failed to create default assets.");
+        }
+      } catch (error) {
+        showToast(error.message, "error");
+      }
+    }
     setShowAssets(!showAssets);
     setSelectedCheckbox(!selectedCheckbox)
   };
@@ -366,6 +399,8 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 const handleAssetUpload = async (e, asset) => {
   const file = e.target.files?.[0];
   if (!file) return;
+
+  setUpdatingAsset(asset.name);
 
   try {
     // 1️⃣ Convert file → Base64
@@ -400,20 +435,17 @@ const handleAssetUpload = async (e, asset) => {
     const result = await res.json();
 
     if (result.success) {
-      fetchUserAssets();
-      // 3️⃣ UI update (show Cloudinary URL)
-      setUserAssets(prev =>
-        prev.map(a =>
-          a.name === asset.name ? { ...a, url: result.data[fieldName] } : a
-        )
-      );
-
-      // toast.success(`${asset.name} updated successfully`);
+      showToast(`${asset.name} updated successfully!`, "success");
+      await fetchUserAssets();
+    } else {
+      throw new Error(result.error || `Failed to upload ${asset.name}`);
     }
 
   } catch (error) {
     console.error("Upload failed:", error);
-    // toast.error("Failed to upload asset");
+    showToast(error.message, "error");
+  } finally {
+    setUpdatingAsset(null);
   }
 };
 
@@ -429,6 +461,8 @@ const handleAssetChange = async (asset, newValue) => {
     return;
   }
 
+  setUpdatingAsset(asset.name);
+
   try {
     const res = await fetch("/api/assets-manage", {
       method: "PUT",
@@ -442,14 +476,16 @@ const handleAssetChange = async (asset, newValue) => {
     const result = await res.json();
 
     if (result.success) {
-      fetchUserAssets(); // Refresh assets from server
-      // You can add a success toast here if you like
+      showToast(`${asset.name} updated successfully!`, "success");
+      await fetchUserAssets(); // Refresh assets from server
     } else {
       throw new Error(result.error || `Failed to update ${asset.name}`);
     }
   } catch (error) {
     console.error(`Failed to update ${asset.name}:`, error);
-    // You can add an error toast here
+    showToast(error.message, "error");
+  } finally {
+    setUpdatingAsset(null);
   }
 };
 
@@ -471,6 +507,8 @@ const handleAssetDelete = async (asset) => {
     return;
   }
 
+  setUpdatingAsset(asset.name);
+
   try {
     // Use DELETE method and pass params in the URL
     const res = await fetch(`/api/assets-manage?id=${assetId}&field=${fieldName}`, {
@@ -481,13 +519,15 @@ const handleAssetDelete = async (asset) => {
 
     if (result.success) {
       showToast(`${asset.name} removed successfully!`, "success");
-      fetchUserAssets(); // Refresh assets from the server to update UI
+      await fetchUserAssets(); // Refresh assets from the server to update UI
     } else {
       throw new Error(result.error || `Failed to remove ${asset.name}`);
     }
   } catch (error) {
     console.error(`Failed to remove ${asset.name}:`, error);
     showToast(error.message, "error");
+  } finally {
+    setUpdatingAsset(null);
   }
 };
 
@@ -627,22 +667,30 @@ const handleAssetDelete = async (asset) => {
                 {/* ============= UPLOAD CARD IF NO ASSET ============= */}
                 {!asset.url && (
                   <div className="w-32 h-32 rounded-lg bg-gray-100 border border-gray-300 flex flex-col items-center justify-center hover:shadow transition-all">
-                    <label className="cursor-pointer flex flex-col items-center">
-                      <div className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md">
-                        Upload Asset
+                    {updatingAsset === asset.name ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                        <span className="text-xs text-gray-600">
+                          Updating...
+                        </span>
                       </div>
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleAssetUpload(e, asset)}
-                      />
-                    </label>
-
-                    <span className="text-[10px] text-gray-500 mt-1">
-                      PNG, JPG
-                    </span>
+                    ) : (
+                      <>
+                        <label className="cursor-pointer flex flex-col items-center gap-1">
+                          <div className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md">
+                            Upload Asset
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleAssetUpload(e, asset)}
+                            disabled={updatingAsset}
+                          />
+                          <span className="text-[10px] text-gray-500 mt-1">PNG, JPG</span>
+                        </label>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -653,6 +701,7 @@ const handleAssetDelete = async (asset) => {
                     onChange={(e) =>
                       handleAssetChange(asset, e.target.value)
                     }
+                    disabled={!!updatingAsset}
                     className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500"
                   >
                     {sizeOptions.map((option) => (
@@ -669,6 +718,7 @@ const handleAssetDelete = async (asset) => {
                   <select
                     value={asset.url}
                     onChange={(e) => handleAssetChange(asset, e.target.value)}
+                    disabled={!!updatingAsset}
                     className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="" disabled>Select a palette</option>
@@ -698,11 +748,20 @@ const handleAssetDelete = async (asset) => {
                           ${isSelected ? "border-blue-500 shadow-sm" : "border-gray-300"}
                           hover:shadow`}
                       >
-                      <img
-                        src={asset.url}
-                        alt={asset.name}
-                        className="w-full h-full object-cover"
-                      />
+                        {updatingAsset === asset.name ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-100">
+                            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                            <span className="text-xs text-gray-600">
+                              Updating...
+                            </span>
+                          </div>
+                        ) : (
+                          <img
+                            src={asset.url}
+                            alt={asset.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
                       </div>
                       <button
                         onClick={() => handleAssetDelete(asset)}
@@ -1127,6 +1186,17 @@ export default function PostManagement() {
         ];
 
         setUserAssets(imageAssets);
+      } else {
+        // If no assets are found, set default assets for the UI
+        setUserAssets([
+          { name: "Character", url: "" },
+          { name: "Product", url: "" },
+          { name: "Uniform", url: "" },
+          { name: "Background", url: "" },
+          { name: "Logo", url: "" },
+          { name: "Size", url: "3:4" }, // Default aspect ratio
+          { name: "Color", url: "warm, yellow, orange, red" }, // Default color palette
+        ]);
       }
     } catch (error) {
       console.error("Failed to fetch user assets:", error);
