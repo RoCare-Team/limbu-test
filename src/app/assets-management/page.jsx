@@ -20,24 +20,29 @@ export default function AssetsManager() {
   const [userId, setUserId] = useState(null);
   const [assetId, setAssetId] = useState(null);
   const [error, setError] = useState(null);
+  
+const sizeOptions = [
+  { label: "1:1", value: "1:1" },
+  { label: "2:3", value: "2:3" },
+  { label: "3:2", value: "3:2" },
+  { label: "3:4", value: "3:4" },
+  { label: "4:3", value: "4:3" },
+  { label: "4:5", value: "4:5" },
+  { label: "5:4", value: "5:4" },
+  { label: "9:16", value: "9:16" },
+  { label: "16:9", value: "16:9" },
+  { label: "21:9", value: "21:9" },
+  { label: "Custom", value: "custom" }
+];
 
-  const sizeOptions = [
-    { label: "Instagram Post", value: "1080x1080" },
-    { label: "Instagram Story", value: "1080x1920" },
-    { label: "Instagram Portrait", value: "1080x1350" },
-    { label: "Facebook Post", value: "1200x630" },
-    { label: "Twitter Post", value: "1200x675" },
-    { label: "LinkedIn Post", value: "1200x627" },
-    { label: "Custom", value: "custom" }
-  ];
 
   const colorPalettes = [
-    { label: "Warm Sunset", value: "warm, yellow, orange, red" },
-    { label: "Cool Ocean", value: "cool, blue, teal, cyan" },
-    { label: "Nature Green", value: "fresh, green, lime, mint" },
-    { label: "Royal Purple", value: "luxe, purple, violet, magenta" },
-    { label: "Monochrome", value: "minimal, black, white, gray" },
-    { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold" }
+    { label: "Warm Sunset", value: "warm, yellow, orange, red", colors: ["#FFC700", "#FF8C00", "#FF4500", "#D2691E"] },
+    { label: "Cool Ocean", value: "cool, blue, teal, cyan", colors: ["#00BFFF", "#48D1CC", "#20B2AA", "#4682B4"] },
+    { label: "Nature Green", value: "fresh, green, lime, mint", colors: ["#32CD32", "#98FB98", "#2E8B57", "#ADFF2F"] },
+    { label: "Royal Purple", value: "luxe, purple, violet, magenta", colors: ["#8A2BE2", "#9932CC", "#DA70D6", "#BA55D3"] },
+    { label: "Monochrome", value: "minimal, black, white, gray", colors: ["#000000", "#808080", "#C0C0C0", "#FFFFFF"] },
+    { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold", colors: ["#FF1493", "#00FF00", "#FFD700", "#1E90FF"] }
   ];
 
   // Initialize userId from localStorage
@@ -212,21 +217,26 @@ export default function AssetsManager() {
   };
 
   const removeAsset = async (key, index = -1) => {
+    // Add a confirmation dialog to prevent accidental deletion
+    if (!confirm(`Are you sure you want to remove this ${key === 'productImage' ? 'product image' : 'asset'}?`)) {
+      return;
+    }
+
     let updatedAssets;
     if (key === 'productImage' && index >= 0) {
       const newProductImages = assets.productImage.filter((_, i) => i !== index);
       updatedAssets = { ...assets, productImage: newProductImages };
       setPreviews(prev => ({ ...prev, productImage: newProductImages }));
     } else {
-      updatedAssets = { ...assets, [key]: "" };
+      updatedAssets = { ...assets, [key]: "" }; // Set the specific field to empty
       setPreviews(prev => {
         const newPreviews = { ...prev };
-        delete newPreviews[key];
+        newPreviews[key] = ""; // Clear the preview as well
         return newPreviews;
       });
     }
     setAssets(updatedAssets);
-    await saveAssetsToServer(updatedAssets);
+    await saveAssetsToServer(updatedAssets); // Save the changes to the server
   };
 
   const handleColorPaletteChange = async (value) => {
@@ -278,7 +288,7 @@ export default function AssetsManager() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-2 py-6">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -380,6 +390,11 @@ export default function AssetsManager() {
                       <div>
                         <p className="font-medium text-gray-800">{palette.label}</p>
                         <p className="text-xs text-gray-500 mt-1">{palette.value}</p>
+                        <div className="flex gap-1 mt-2">
+                          {palette.colors.map(color => (
+                            <div key={color} className="w-5 h-5 rounded-full border border-gray-200" style={{ backgroundColor: color }}></div>
+                          ))}
+                        </div>
                       </div>
                       {assets.colourPalette === palette.value && (
                         <Check className="w-5 h-5 text-purple-600" />
@@ -414,8 +429,13 @@ export default function AssetsManager() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-700">{option.label}</span>
-                      <span className="text-xs text-gray-500">{option.value}</span>
+                      <div>
+                        <span className="font-medium text-gray-700">{option.label}</span>
+                        <span className="text-xs text-gray-500 ml-2">{option.value}</span>
+                      </div>
+                      {assets.size === option.value && (
+                        <Check className="w-5 h-5 text-purple-600" />
+                      )}
                     </div>
                   </button>
                 ))}

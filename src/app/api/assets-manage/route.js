@@ -188,27 +188,62 @@ export async function DELETE(req) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const field = searchParams.get("field");
 
-    if (!id)
+    if (!id || !field) {
       return Response.json(
-        { success: false, error: "id is required" },
+        { success: false, error: "id & field are required" },
         { status: 400 }
       );
+    }
 
-    const deleted = await Assets.findByIdAndDelete(id);
+    // Only allowed fields to clear
+    const allowedFields = [
+      "characterImage",
+      "uniformImage",
+      "productImage",
+      "backgroundImage",
+      "logoImage",
+      "size",
+      "colourPalette",
+    ];
 
-    if (!deleted)
+    if (!allowedFields.includes(field)) {
+      return Response.json(
+        { success: false, error: "Invalid field" },
+        { status: 400 }
+      );
+    }
+
+    // Clear that specific field
+    const updateObj = {};
+    updateObj[field] = ""; // <-- यही empty करेगा
+
+    const updated = await Assets.findByIdAndUpdate(
+      id,
+      { $set: updateObj },
+      { new: true }
+    );
+
+    if (!updated) {
       return Response.json(
         { success: false, error: "Asset not found" },
         { status: 404 }
       );
+    }
 
     return Response.json(
-      { success: true, message: "Asset deleted", data: deleted },
+      {
+        success: true,
+        message: `${field} removed successfully`,
+        data: updated,
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.error("DELETE Error:", error);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }

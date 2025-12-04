@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Loader2,
   CheckCircle,
@@ -310,11 +310,190 @@ const SuccessOverlay = ({ onComplete, postsCount }) => {
 };
 
 // Post Input Component
-const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo }) => {
+const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo,assetId, fetchUserAssets, setUserAssets, showToast }) => {
+  console.log("assets",assets);
+  
   const removeImage = () => setLogo(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState([]);
   const [showAssets, setShowAssets] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState([]);
+
+  const sizeOptions = [
+    { label: "1:1", value: "1:1" },
+    { label: "2:3", value: "2:3" },
+    { label: "3:2", value: "3:2" },
+    { label: "3:4", value: "3:4" },
+    { label: "4:3", value: "4:3" },
+    { label: "4:5", value: "4:5" },
+    { label: "5:4", value: "5:4" },
+    { label: "9:16", value: "9:16" },
+    { label: "16:9", value: "16:9" },
+    { label: "21:9", value: "21:9" },
+  ];
+
+  const colorPalettes = [
+    { label: "Warm Sunset", value: "warm, yellow, orange, red", colors: ["#FFC700", "#FF8C00", "#FF4500", "#D2691E"] },
+    { label: "Cool Ocean", value: "cool, blue, teal, cyan", colors: ["#00BFFF", "#48D1CC", "#20B2AA", "#4682B4"] },
+    { label: "Nature Green", value: "fresh, green, lime, mint", colors: ["#32CD32", "#98FB98", "#2E8B57", "#ADFF2F"] },
+    { label: "Royal Purple", value: "luxe, purple, violet, magenta", colors: ["#8A2BE2", "#9932CC", "#DA70D6", "#BA55D3"] },
+    { label: "Monochrome", value: "minimal, black, white, gray", colors: ["#000000", "#808080", "#C0C0C0", "#FFFFFF"] },
+    { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold", colors: ["#FF1493", "#00FF00", "#FFD700", "#1E90FF"] }
+  ];
+
+
+  const [selectedCheckbox, setSelectedCheckbox] = useState(false);
+
+  const [pendingUpdates, setPendingUpdates] = useState({});
+
+
+
+  const handleCheckBoxChange = () => {
+    setShowAssets(!showAssets);
+    setSelectedCheckbox(!selectedCheckbox)
+  };
+
+  const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+
+
+const handleAssetUpload = async (e, asset) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  try {
+    // 1️⃣ Convert file → Base64
+    const base64Image = await fileToBase64(file);
+
+    const fieldMap = {
+      Character: "characterImage",
+      Product: "productImage",
+      Uniform: "uniformImage",
+      Background: "backgroundImage",
+      Logo: "logoImage",
+      Size: "size",
+      Color: "colourPalette"
+    };
+
+    const fieldName = fieldMap[asset.name];
+    if (!fieldName) {
+      console.error("Unknown field:", asset.name);
+      return;
+    }
+
+    // 2️⃣ API ko base64 bhejna → Cloudinary upload backend me hoga
+    const res = await fetch("/api/assets-manage", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: assetId,
+        [fieldName]: base64Image   // ← BASE64 SENT HERE
+      }),
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      fetchUserAssets();
+      // 3️⃣ UI update (show Cloudinary URL)
+      setUserAssets(prev =>
+        prev.map(a =>
+          a.name === asset.name ? { ...a, url: result.data[fieldName] } : a
+        )
+      );
+
+      // toast.success(`${asset.name} updated successfully`);
+    }
+
+  } catch (error) {
+    console.error("Upload failed:", error);
+    // toast.error("Failed to upload asset");
+  }
+};
+
+const handleAssetChange = async (asset, newValue) => {
+  const fieldMap = {
+    Size: "size",
+    Color: "colourPalette"
+  };
+
+  const fieldName = fieldMap[asset.name];
+  if (!fieldName) {
+    console.error("Unknown asset field:", asset.name);
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/assets-manage", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: assetId,
+        [fieldName]: newValue
+      }),
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      fetchUserAssets(); // Refresh assets from server
+      // You can add a success toast here if you like
+    } else {
+      throw new Error(result.error || `Failed to update ${asset.name}`);
+    }
+  } catch (error) {
+    console.error(`Failed to update ${asset.name}:`, error);
+    // You can add an error toast here
+  }
+};
+
+const handleAssetDelete = async (asset) => {
+  if (!confirm(`Are you sure you want to remove the ${asset.name}?`)) return;
+
+  const fieldMap = {
+    Character: "characterImage",
+    Product: "productImage", // This was correct, but ensuring it's clear
+    Uniform: "uniformImage",
+    Background: "backgroundImage",
+    Logo: "logoImage",
+  };
+
+  const fieldName = fieldMap[asset.name];
+  if (!fieldName) {
+    console.error("Unknown asset for deletion:", asset.name);
+    showToast("Cannot delete this asset type.", "error");
+    return;
+  }
+
+  try {
+    // Use DELETE method and pass params in the URL
+    const res = await fetch(`/api/assets-manage?id=${assetId}&field=${fieldName}`, {
+      method: "DELETE",
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      showToast(`${asset.name} removed successfully!`, "success");
+      fetchUserAssets(); // Refresh assets from the server to update UI
+    } else {
+      throw new Error(result.error || `Failed to remove ${asset.name}`);
+    }
+  } catch (error) {
+    console.error(`Failed to remove ${asset.name}:`, error);
+    showToast(error.message, "error");
+  }
+};
+
+
+  
+
 
   useEffect(() => {
     try {
@@ -338,6 +517,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     setSelectedAssets(newSelectedAssets);
 
   }; 
+  
   return (
     <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-blue-200 p-4 sm:p-6 md:p-8">
       <div className="flex flex-col space-y-4 sm:space-y-6">
@@ -357,7 +537,8 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
         </div>
 
         {/* Logo Upload */}
-        <div className="space-y-2 sm:space-y-3 mb-4">
+        {!selectedCheckbox ? (
+          <div className="space-y-2 sm:space-y-3 mb-4">
           <label className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
             <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
             Add Your Logo (Optional)
@@ -394,47 +575,155 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
             </div>
           )}
         </div>
-{/* 
-             {assets && assets.length > 0 && (
-            <div className="pt-2 pb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showAssets}
-                  onChange={() => setShowAssets(!showAssets)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="font-bold text-gray-700">Create image with assets</span>
-              </label>
-              {showAssets && (
-                <div className="pt-4">
-                  <p className="text-sm font-bold text-gray-600 mb-3">
-                    Select assets to use:
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {assets.map((asset, index) => (
-                      <div key={index} className="relative">
-                        <label className="cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="absolute top-2 right-2 h-5 w-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300 z-20"
-                            checked={selectedAssets.some(a => a.url === asset.url)}
-                            onChange={() => handleAssetToggle(asset)}
-                          />
-                          <div className={`group relative border-2 rounded-lg overflow-hidden hover:shadow-md transition-all ${selectedAssets.some(a => a.url === asset.url) ? 'border-blue-500' : 'border-gray-200'}`}>
-                            <img src={asset.url} alt={asset.name} className="w-20 h-20 object-cover" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <span className="text-white text-xs font-bold text-center px-1">{asset.name}</span>
-                            </div>
-                          </div>
-                        </label>
+        ) : ""}
+{assets && (
+  <div className="pt-2 pb-4">
+    {/* MAIN TOGGLE */}
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={showAssets}
+        onChange={handleCheckBoxChange}
+        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      />
+      <span className="font-bold text-gray-700">Create image with assets</span>
+    </label>
+
+    {/* SHOW ASSETS SECTION */}
+    {showAssets && (
+      <div className="pt-4">
+        <p className="text-sm font-bold text-gray-600 mb-3">
+          Select assets to use:
+        </p>
+
+        {/* WRAPPER CARD */}
+        <div className="w-full border border-gray-300 rounded-xl p-6 flex flex-wrap gap-8">
+
+          {assets.map((asset, index) => {
+            const isSelected = selectedAssets.some(
+              (a) => a.name === asset.name && a.url === asset.url
+            );
+
+            return (
+              <div key={index} className="flex flex-col w-32">
+
+                {/* LABEL + CHECKBOX */}
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-gray-800">
+                      {asset.name}
+                    </span>
+                  </div>
+                  {asset.url && asset.name !== "Size" && asset.name !== "Color" && (
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleAssetToggle(asset)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+
+                {/* ============= UPLOAD CARD IF NO ASSET ============= */}
+                {!asset.url && (
+                  <div className="w-32 h-32 rounded-lg bg-gray-100 border border-gray-300 flex flex-col items-center justify-center hover:shadow transition-all">
+                    <label className="cursor-pointer flex flex-col items-center">
+                      <div className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md">
+                        Upload Asset
+                      </div>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleAssetUpload(e, asset)}
+                      />
+                    </label>
+
+                    <span className="text-[10px] text-gray-500 mt-1">
+                      PNG, JPG
+                    </span>
+                  </div>
+                )}
+
+                {/* ============= SIZE DROPDOWN ============= */}
+                {asset.url && asset.name === "Size" && (
+                  <select
+                    value={asset.url}
+                    onChange={(e) =>
+                      handleAssetChange(asset, e.target.value)
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {sizeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* ============= COLOR DROPDOWN ============= */}
+                {asset.url && asset.name === "Color" && (
+                 <>
+                  <select
+                    value={asset.url}
+                    onChange={(e) => handleAssetChange(asset, e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="" disabled>Select a palette</option>
+                    {colorPalettes.map((palette) => (
+                      <option key={palette.value} value={palette.value}>
+                        {palette.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-1 mt-2 justify-center">
+                    {(colorPalettes.find(p => p.value === asset.url)?.colors || []).map((color, i) => (
+                      <div key={i} className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: color }}>
+                        &nbsp;
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          )} */}
+                 </>
+                )}
+
+                {/* ============= IMAGE CARD ============= */}
+                {asset.url &&
+                  asset.name !== "Size" &&
+                  asset.name !== "Color" && (
+                    <div className="relative group">
+                      <div
+                        className={`w-32 h-32 border rounded-xl overflow-hidden transition-all 
+                          ${isSelected ? "border-blue-500 shadow-sm" : "border-gray-300"}
+                          hover:shadow`}
+                      >
+                      <img
+                        src={asset.url}
+                        alt={asset.name}
+                        className="w-full h-full object-cover"
+                      />
+                      </div>
+                      <button
+                        onClick={() => handleAssetDelete(asset)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all shadow-md"
+                        title={`Remove ${asset.name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+
+
 
 
 
@@ -763,6 +1052,7 @@ export default function PostManagement() {
   const { slug } = useParams();
   const { data: session } = useSession();
 
+
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("total");
   const [prompt, setPrompt] = useState("");
@@ -778,9 +1068,13 @@ export default function PostManagement() {
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
 
+  const [assetId, setAssetId] = useState(null);
+
 
   // Load locations from localStorage
   const [availableLocations, setAvailableLocations] = useState([]);
+
+
 
   useEffect(() => {
     const stored = localStorage.getItem("locationDetails");
@@ -804,33 +1098,47 @@ export default function PostManagement() {
     }
   }, []);
 
-  // Fetch user assets
-  useEffect(() => {
-    const fetchUserAssets = async () => {
-      const userId = localStorage.getItem("userId");
-      if (userId) {
-        try {
-          const res = await fetch(`/api/assets-manage?userId=${userId}`);
-          const result = await res.json();
-          if (result.success && result.data.length > 0) {
-            const latestAssets = result.data[0]; // Use the most recent asset set
-            const imageAssets = [
-              { name: 'Character', url: latestAssets.characterImage },
-              { name: 'Uniform', url: latestAssets.uniformImage },
-              { name: 'Background', url: latestAssets.backgroundImage },
-              { name: 'Logo', url: latestAssets.logoImage },
-            ]
-              .concat((Array.isArray(latestAssets.productImage) ? latestAssets.productImage : [latestAssets.productImage]).map((p, i) => ({ name: `Product ${i + 1}`, url: p })))
-              .filter(asset => asset.url && typeof asset.url === 'string');
-            setUserAssets(imageAssets);
-          }
-        } catch (error) {
-          console.error("Failed to fetch user assets:", error);
-        }
+  const fetchUserAssets = useCallback(async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    try {
+      const res = await fetch(`/api/assets-manage?userId=${userId}`);
+      const result = await res.json();
+      
+      if (result.success && result.data.length > 0) {
+        const latestAssets = result.data[0];
+        setAssetId(latestAssets._id);
+        
+        const productImagesArray = Array.isArray(latestAssets.productImage)
+          ? latestAssets.productImage
+          : latestAssets.productImage
+          ? [latestAssets.productImage]
+          : [];
+
+        const imageAssets = [
+          { name: "Character", url: latestAssets.characterImage || "" },
+          { name: "Product", url: latestAssets.productImage || "" },
+          { name: "Uniform", url: latestAssets.uniformImage || "" },
+          { name: "Background", url: latestAssets.backgroundImage || "" },
+          { name: "Logo", url: latestAssets.logoImage || "" },
+          { name: "Size", url: latestAssets.size || "" },
+          { name: "Color", url: latestAssets.colourPalette || "" },
+        ];
+
+        setUserAssets(imageAssets);
       }
-    };
-    fetchUserAssets();
+    } catch (error) {
+      console.error("Failed to fetch user assets:", error);
+    }
   }, []);
+
+
+
+  useEffect(() => { fetchUserAssets(); }, [fetchUserAssets]);
+  
+
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -1046,6 +1354,8 @@ export default function PostManagement() {
     }
   };
 
+  
+  
   const handleImageGenerateWithAssets = async (selectedAssets = []) => {
     if (!prompt.trim()) {
       showToast("Please enter a prompt before generating!", "error");
@@ -1100,10 +1410,10 @@ export default function PostManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic: prompt,
-          colourPalette: "warm, yellow, orange, red", // Example, can be made dynamic
-          size: "1:1", // Example, can be made dynamic
+          colourPalette: userAssets.find(a => a.name === 'Color')?.url || "",
+          size: userAssets.find(a => a.name === 'Size')?.url || "1:1",
           characterImage: selectedAssets.find(a => a.name === 'Character')?.url || "",
-          uniformImage: selectedAssets.find(a => a.name === 'Uniform')?.url || "",
+          uniformImage: selectedAssets.find(a => a.name === 'Uniform')?.url || "", 
           productImage: selectedAssets.find(a => a.name.startsWith('Product'))?.url || "",
           backgroundImage: selectedAssets.find(a => a.name === 'Background')?.url || "",
           logoImage: selectedAssets.find(a => a.name === 'Logo')?.url || logoBase64 || "",
@@ -1119,6 +1429,9 @@ export default function PostManagement() {
       }
 
       const apiResponse = await res.json();
+
+      console.log("apiResponse",apiResponse);
+      
       // The direct response from n8n is now the data we need
       if (apiResponse.status !== "true" && !apiResponse.success) {
         throw new Error(apiResponse.error || apiResponse.message || "AI asset generation failed.");
@@ -1845,6 +2158,10 @@ export default function PostManagement() {
           logo={logo}
           setLogo={setLogo}
           assets={userAssets}
+          setUserAssets={setUserAssets}
+          fetchUserAssets={fetchUserAssets}
+          assetId={assetId}
+          showToast={showToast}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4">

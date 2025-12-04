@@ -90,7 +90,7 @@ export default function LimbuAILanding() {
       title: "Magic QR",
       description: "Filter negative reviews with smart QR technology",
       color: "from-indigo-500 to-indigo-600",
-      link: "/magic-qr"
+      link: "/get-magic-qr"
     }
   ];
 
