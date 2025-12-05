@@ -1,6 +1,6 @@
 "use server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://limbu.ai";
 
 export async function createDefaultAssetsAction(userId) {
     return await fetch(`${API_URL}/api/assets-manage`, {
