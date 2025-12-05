@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, Sparkles } from 'lucide-react';
 
+
 const SuccessOverlay = ({ onComplete, postsCount }) => {
     useEffect(() => {
       const timer = setTimeout(() => {
