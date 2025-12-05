@@ -1,7 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, Filter, X, Crown, Zap, Shield, Mail, Phone, Calendar, Edit2, Trash2, Plus, User, User2Icon, Image as ImageIcon, Eye, ZoomIn, Wallet } from "lucide-react";
+import { Search, Filter, X, Crown, Zap, Shield, Mail, Phone, Calendar, Edit2, Trash2, Plus, User, User2Icon, Image as ImageIcon, Eye, ZoomIn, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -16,6 +16,7 @@ export default function UserManagement() {
   const [userPosts, setUserPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [fullViewImage, setFullViewImage] = useState(null);
+  const [pagination, setPagination] = useState(null);
   const [connectedBusinessUsers, setConnectedBusinessUsers] = useState([]);
   const [updatingWallet, setUpdatingWallet] = useState(false);
   const [walletModalUser, setWalletModalUser] = useState(null);
@@ -33,6 +34,7 @@ export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterDate, setFilterDate] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -41,74 +43,32 @@ export default function UserManagement() {
     premium: 0,
     active: 0
   });
-  const calculateFilteredUsers = () => {
-    let result = [...users];
-
-    if (searchQuery) {
-      result = result.filter(
-        (user) =>
-          user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.userId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.phone?.includes(searchQuery)
-      );
-    }
-
-    if (filterStatus !== "All") {
-      if (filterStatus === "active") {
-        result = result.filter((user) => isUserConnected(user.email));
-      } else if (filterStatus === "inactive") {
-        result = result.filter((user) => !isUserConnected(user.email));
-      }
-    }
-
-    if (filterDate !== "All") {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      result = result.filter((user) => {
-        if (!user.createdAt) return false;
-        const userDate = new Date(user.createdAt);
-        const userDateOnly = new Date(userDate.getFullYear(), userDate.getMonth(), userDate.getDate());
-
-        switch (filterDate) {
-          case "Today":
-            return userDateOnly.getTime() === today.getTime();
-          case "Last 7 Days":
-            const last7Days = new Date(today);
-            last7Days.setDate(last7Days.getDate() - 7);
-            return userDateOnly >= last7Days;
-          case "Last 30 Days":
-            const last30Days = new Date(today);
-            last30Days.setDate(last30Days.getDate() - 30);
-            return userDateOnly >= last30Days;
-          case "This Month":
-            return userDate.getMonth() === now.getMonth() && userDate.getFullYear() === now.getFullYear();
-          default:
-            return true;
-        }
-      });
-    }
-
-    setFilteredUsers(result);
-  };
 
   useEffect(() => {
-    const total = users.length;
+    const total = pagination?.totalUsers ?? 0; // Use 0 if pagination is not yet available
+    // Calculate basic, standard, premium from the currently loaded users
     const basic = users.filter(u => u.subscription?.plan === "Basic").length;
     const standard = users.filter(u => u.subscription?.plan === "Standard").length;
     const premium = users.filter(u => u.subscription?.plan === "Premium").length;
-    const active = users.filter(u => u.subscription?.status === "active").length;
+    const active = connectedBusinessUsers.length;
 
     setStats({ total, basic, standard, premium, active });
-  }, [users]);
+  }, [pagination, users, connectedBusinessUsers]);
 
 
   const fetchUsers = async () => {
     setLoading(true);
+    const params = new URLSearchParams({
+      page: currentPage,
+      limit: 70,
+      search: searchQuery,
+      status: filterStatus,
+      date: filterDate,
+    });
     try {
-      const res = await fetch("/api/users");
+      const res = await fetch(`/api/users?${params.toString()}`);
       const data = await res.json();
-      if (data.success) setUsers(data.users);
+      if (data.success) { setUsers(data.users); setPagination(data.pagination); }
       return data.success ? data.users : [];
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -118,6 +78,12 @@ export default function UserManagement() {
     }
   };
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchUsers();
+    }, 500); // Debounce search/filter requests
+    return () => clearTimeout(handler);
+  }, [currentPage, searchQuery, filterStatus, filterDate]);
   const mergeAllData = useCallback(async () => {
     setLoading(true);
     const initialUsers = await fetchUsers();
@@ -152,14 +118,8 @@ export default function UserManagement() {
   }, [mergeAllData]);
 
   useEffect(() => {
-    if (users.length > 0) {
-      fetchAllUserPostsCounts();
-    }
-  }, [users]);
-
-  useEffect(() => {
-    calculateFilteredUsers();
-  }, [searchQuery, filterStatus, filterDate, users, connectedBusinessUsers]);
+    fetchAllUserPostsCounts();
+  }, [users]); // Trigger when users (current page) change
 
   const fetchConnectedBusinessUsers = async () => {
     try {
@@ -206,6 +166,11 @@ export default function UserManagement() {
       console.error("Error fetching posts counts:", err);
     }
   };
+
+  // When filters change, reset to the first page
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterStatus, filterDate]);
 
 
 
@@ -423,6 +388,24 @@ export default function UserManagement() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterStatus("All");
+    setFilterDate("All");
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && pagination && newPage <= pagination.totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // Since we are doing server-side filtering, filteredUsers is just users.
+  useEffect(() => {
+    setFilteredUsers(users);
+  }, [users]);
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
@@ -433,13 +416,6 @@ export default function UserManagement() {
       </div>
     );
   }
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setFilterStatus("All");
-    setFilterDate("All");
-  };
-
 
   console.log("useruseruser", users);
 
@@ -629,17 +605,12 @@ export default function UserManagement() {
             )}
           </div>
 
-          {filteredUsers.length !== users.length && (
-            <div className="mt-4 text-sm text-gray-600">
-              Showing <span className="font-semibold text-indigo-600">{filteredUsers.length}</span> of {users.length} users
-            </div>
-          )}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col max-h-[70vh]">
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
+              <thead className="bg-gradient-to-r from-indigo-50 to-purple-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Business Name</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Name</th>
@@ -652,6 +623,10 @@ export default function UserManagement() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Login Button</th>
                 </tr>
               </thead>
+              </table>
+              </div>
+              <div className="overflow-y-auto flex-grow">
+              <table className="min-w-full">
               <tbody className="divide-y divide-gray-100">
                 {filteredUsers.map((user) => {
                   const postData = userPostsData[user.userId] || { total: 0, posted: 0, rejected: 0 };
@@ -884,7 +859,37 @@ export default function UserManagement() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
+          {/* Pagination Controls */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 bg-white rounded-b-2xl border-t border-gray-200">
+              <span className="text-sm text-gray-600">
+                Page <span className="font-semibold">{pagination.currentPage}</span> of <span className="font-semibold">{pagination.totalPages}</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === pagination.totalPages}
+                  className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+              <span className="text-sm text-gray-600">
+                Total Users: <span className="font-semibold">{pagination.totalUsers}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Wallet Update Modal */}
@@ -1377,7 +1382,6 @@ export default function UserManagement() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

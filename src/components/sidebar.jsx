@@ -382,14 +382,12 @@ const fetchNotifications = async () => {
 
       const locationDetails = JSON.parse(locationDetailsStr);
 
-            console.log("locationDetails-------",locationDetails);
             
             
             const bussinessLocation = locationDetails &&  locationDetails[0]?.title;
             setLocationCheck(bussinessLocation)
           }, []);
           
-          console.log("locationCheck",locationCheck);
   // ✅ Handle open/close
   const handleNotifOpen = (event) => setNotifAnchorEl(event.currentTarget);
   const handleNotifClose = () => setNotifAnchorEl(null);

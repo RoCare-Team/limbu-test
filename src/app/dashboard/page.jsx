@@ -715,11 +715,11 @@ const NavLinks = ({ isAuthenticated }) => {
   // Load from cache with status reporting
   const loadFromCache = useCallback((email) => {
     const cacheKey = getCacheKey(email);
-    const cached = dataCache.current[cacheKey];
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey));
     
     if (cached && cached.timestamp) {
       const age = Date.now() - cached.timestamp;
-      const ageMinutes = Math.floor(age / 60000);
+      const ageMinutes = Math.round(age / 60000);
       
       if (age < CACHE_EXPIRY_MS) {
         console.log(`✅ Loading from cache (${ageMinutes} min old):`, email);
@@ -746,18 +746,18 @@ const NavLinks = ({ isAuthenticated }) => {
   // Save to cache
   const saveToCache = useCallback((email, accountsData, noAccounts) => {
     const cacheKey = getCacheKey(email);
-    dataCache.current[cacheKey] = {
+    const cacheData = {
       accounts: accountsData,
       noAccountsFound: noAccounts,
       timestamp: Date.now()
     };
-    console.log("💾 Data cached for:", email);
+    sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
     setCacheStatus("Data refreshed and cached");
   }, []);
 
   // Clear cache function
   const clearCache = useCallback(() => {
-    dataCache.current = {};
+    sessionStorage.removeItem(getCacheKey(session?.user?.email));
     toast.success("Cache cleared successfully!");
     setCacheStatus("Cache cleared");
   }, []);
@@ -1180,19 +1180,19 @@ if (status === "unauthenticated") {
 
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10 backdrop-blur-sm bg-white/95">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           {/* Top Navigation Icons */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-4">
             <NavLinks isAuthenticated={true} />
           </div>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
             {/* Left side: Title and Welcome Message */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
+              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
                 AI GMB Auto Management
               </h1>
-              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base truncate">Welcome back, {session?.user?.name || "User"} 👋</p>
+              <p className="text-gray-600 mt-1 text-sm truncate">Welcome back, {session?.user?.name || "User"} 👋</p>
               {cacheStatus && (
                 <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>

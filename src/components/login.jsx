@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { sendOtpAction, verifyOtpAction, completeRegistrationAction } from "@/app/actions/authActions";
 import { useRouter } from "next/navigation";
 import { Moon, Sun, Phone, Mail, User, Lock, CheckCircle, AlertCircle, MapPin, Star, TrendingUp, BarChart3, Users, Globe } from "lucide-react";
 
@@ -41,21 +42,16 @@ export default function LoginPage() {
     setIsLoading(true);
     showMessage("Sending OTP...", "info");
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showMessage("OTP sent successfully ✓", "success");
-        setIsExisting(data.isExistingUser);
+      const { ok, data } = await sendOtpAction(phone);
+      if (ok) {
+        showMessage(data.message || "OTP sent successfully ✓", "success");
+        setIsExisting(data.isExistingUser || false);
         setTimeout(() => setStep("otp"), 500);
       } else {
         showMessage(data.error || "Failed to send OTP", "error");
       }
     } catch (error) {
-      showMessage("Network error. Please try again.", "error");
+      showMessage(error.message || "An unexpected error occurred.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -69,16 +65,11 @@ export default function LoginPage() {
     setIsLoading(true);
     showMessage("Verifying OTP...", "info");
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp }),
-      });
-      const data = await res.json();
+      const { ok, data } = await verifyOtpAction(phone, otp);
       if (data.step === "collect_details") {
         showMessage("OTP verified! Please complete your profile.", "success");
         setTimeout(() => setStep("details"), 500);
-      } else if (res.ok && data.token) {
+      } else if (ok && data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.user.userId);
         localStorage.setItem("fullName", data.user.fullName);
@@ -88,7 +79,7 @@ export default function LoginPage() {
         showMessage(data.error || "Invalid OTP", "error");
       }
     } catch (error) {
-      showMessage("Network error. Please try again.", "error");
+      showMessage(error.message || "An unexpected error occurred.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -106,13 +97,8 @@ export default function LoginPage() {
     setIsLoading(true);
     showMessage("Completing registration...", "info");
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp, name, email }),
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
+      const { ok, data } = await completeRegistrationAction(phone, otp, name, email);
+      if (ok && data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.user.userId);
         showMessage("Registration complete! Redirecting...", "success");
@@ -125,7 +111,7 @@ export default function LoginPage() {
         showMessage(data.error || "Registration failed", "error");
       }
     } catch (error) {
-      showMessage("Network error. Please try again.", "error");
+      showMessage(error.message || "An unexpected error occurred.", "error");
     } finally {
       setIsLoading(false);
     }

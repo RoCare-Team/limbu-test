@@ -60,10 +60,7 @@ export async function GET(req, { params }) {
         if (listingSlug === slug) {
           matchedListing = listing;
           matchedAccountName = business.accountName || "";
-          console.log("✅ MATCH FOUND!");
-          console.log("   Title:", title);
-          console.log("   Locality:", locality);
-          console.log("   Review URI:", listing.metadata?.newReviewUri);
+          
           break;
         }
       }

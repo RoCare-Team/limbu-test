@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { loadAssetsFromServerAction, saveAssetsToServerAction } from "@/app/actions/assetActions";
 import { Upload, Image, Palette, X, Check, Download, Copy, Loader, Server, AlertCircle } from "lucide-react";
 
 export default function AssetsManager() {
@@ -61,8 +62,7 @@ const sizeOptions = [
 
   const loadAssetsFromServer = async (currentUserId) => {
     try {
-      const res = await fetch(`/api/assets-manage?userId=${currentUserId}`);
-      const result = await res.json();
+      const result = await loadAssetsFromServerAction(currentUserId);
       
       if (result.success && result.data.length > 0) {
         const latestAssets = result.data[0];
@@ -126,28 +126,7 @@ const sizeOptions = [
         logoImage: updatedAssets.logoImage
       };
 
-      let response;
-      
-      if (assetId) {
-        // Update existing asset
-        response = await fetch('/api/assets-manage', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: assetId,
-            ...backendPayload
-          }),
-        });
-      } else {
-        // Create new asset
-        response = await fetch('/api/assets-manage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(backendPayload),
-        });
-      }
-
-      const result = await response.json();
+      const result = await saveAssetsToServerAction(backendPayload, assetId);
 
       if (result.success) {
         if (!assetId && result.data._id) {

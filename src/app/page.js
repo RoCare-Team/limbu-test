@@ -1,8 +1,9 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Sparkles, MessageSquare, Calendar, Send, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, X, LogIn, Link2, LayoutGrid, Menu, ChevronRight, ChevronLeft, Gift } from 'lucide-react';
 import LogoImage from "../../public/images/bg-logo.png"
 import Image from 'next/image';
+import Toast from '../components/Toast';
 
 
 export default function LimbuAILanding() {
@@ -13,6 +14,12 @@ export default function LimbuAILanding() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSignupPopup, setShowSignupPopup] = useState(false);
   const [slidingTextIndex, setSlidingTextIndex] = useState(0);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showBookDemoModal, setShowBookDemoModal] = useState(false);
+  const [demoDetails, setDemoDetails] = useState({ name: '', contact: '', time: 'today' });
+  const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [demoBooked, setDemoBooked] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -32,7 +39,11 @@ export default function LimbuAILanding() {
     
     // ESC key to close modal
     const handleEscape = (e) => {
-      if (e.key === 'Escape') setSelectedImage(null);
+      if (e.key === 'Escape') {
+        setSelectedImage(null);
+        setShowVideoModal(false);
+        setShowBookDemoModal(false);
+      }
     };
     window.addEventListener('keydown', handleEscape);
     
@@ -61,6 +72,48 @@ export default function LimbuAILanding() {
     localStorage.clear();
     setIsLoggedIn(false);
     window.location.href = "/login";
+  };
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleBookDemoSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!demoDetails.name || !demoDetails.contact) {
+      showToast("Please fill in all fields.", "error");
+      return;
+    }
+    setIsSubmittingDemo(true);
+
+    try {
+      const res = await fetch("/api/bookDemo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: demoDetails.name,
+          phone: demoDetails.contact,
+          seminarTime: `${demoDetails.time === 'today' ? 'Today' : 'Tomorrow'} 4:00 PM`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Something went wrong.");
+
+      setDemoBooked(true);
+      setTimeout(() => {
+        setShowBookDemoModal(false);
+        setDemoBooked(false); // Reset for next time
+      }, 2500);
+    } catch (error) {
+      showToast(`Error: ${error.message}`, "error");
+    } finally {
+      setIsSubmittingDemo(false);
+    }
+  }, [demoDetails]);
+  const handleDemoInputChange = (e) => {
+    setDemoDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const features = [
@@ -175,6 +228,9 @@ export default function LimbuAILanding() {
         />
       </div>
 
+      {/* Toast Notification */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
+
       {/* Signup Popup */}
       {showSignupPopup && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
@@ -196,6 +252,69 @@ export default function LimbuAILanding() {
               Signup Fast & Get Coins
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Video Demo Modal */}
+      {showVideoModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn" onClick={() => setShowVideoModal(false)}>
+          <div className="relative bg-black rounded-2xl shadow-2xl w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowVideoModal(false)} className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-slate-200 transition z-10">
+              <X className="w-6 h-6" />
+            </button>
+            <iframe
+              className="w-full h-full rounded-2xl"
+              src="https://www.youtube.com/embed/aSwXK9wuCNk?autoplay=1"
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+        </div>
+      )}
+
+      {/* Book Demo Modal */}
+      {showBookDemoModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+            <button onClick={() => setShowBookDemoModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-800">
+              <X className="w-6 h-6" />
+            </button>
+            {demoBooked ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4 animate-pulse" />
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Booked Successfully!</h2>
+                <p className="text-slate-600">We will contact you shortly. The window will close automatically.</p>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Book Your Free Demo</h2>
+                <form onSubmit={handleBookDemoSubmit} className="space-y-4">
+                  <input type="text" name="name" placeholder="Your Name" value={demoDetails.name} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="tel" name="contact" placeholder="Contact Number" value={demoDetails.contact} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-2">Select Seminar Time:</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className={`block p-3 border rounded-lg cursor-pointer text-center ${demoDetails.time === 'today' ? 'bg-blue-100 border-blue-500' : 'bg-slate-50 border-slate-300'}`}>
+                        <input type="radio" name="time" value="today" checked={demoDetails.time === 'today'} onChange={handleDemoInputChange} className="sr-only" />
+                        <span className="font-bold">Today</span>
+                        <span className="text-sm block text-slate-500">4:00 PM</span>
+                      </label>
+                      <label className={`block p-3 border rounded-lg cursor-pointer text-center ${demoDetails.time === 'tomorrow' ? 'bg-blue-100 border-blue-500' : 'bg-slate-50 border-slate-300'}`}>
+                        <input type="radio" name="time" value="tomorrow" checked={demoDetails.time === 'tomorrow'} onChange={handleDemoInputChange} className="sr-only" />
+                        <span className="font-bold">Tomorrow</span>
+                        <span className="text-sm block text-slate-500">4:00 PM</span>
+                      </label>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={isSubmittingDemo} className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:shadow-lg transition disabled:opacity-60">
+                    {isSubmittingDemo ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -226,6 +345,21 @@ export default function LimbuAILanding() {
             <a href="#features" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Features</a>
             <a href="#how-it-works" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">How It Works</a>
             <a href="#examples" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Examples</a>
+            <button
+              onClick={() => setShowBookDemoModal(true)}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
+            >
+              Book a Demo
+            </button>
+            <a
+              href="https://wa.me/919540384046"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-700 transition p-2 border border-green-500 rounded-lg animate-pulse-border"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-5 h-5 fill-current"><path d="M16 .667C7.64.667.667 7.64.667 16c0 2.77.72 5.47 2.08 7.87L.667 31.333 7.2 29.28c2.31 1.26 4.93 1.92 7.6 1.92 8.36 0 15.333-6.973 15.333-15.333S24.36.667 16 .667zm0 27.2c-2.42 0-4.78-.64-6.85-1.87l-.49-.29-4.07 1.07 1.09-3.97-.32-.51c-1.24-1.94-1.9-4.18-1.9-6.6 0-6.91 5.61-12.533 12.533-12.533 6.91 0 12.533 5.623 12.533 12.533S22.91 27.867 16 27.867zm7.15-9.63c-.39-.2-2.31-1.14-2.67-1.27-.36-.13-.62-.2-.88.2-.26.39-1 1.27-1.23 1.53-.23.26-.46.29-.85.1-.39-.2-1.64-.6-3.12-1.91-1.15-1.03-1.93-2.31-2.15-2.7-.23-.39-.02-.6.17-.79.17-.17.39-.46.59-.69.2-.23.26-.39.39-.65.13-.26.07-.49-.03-.69-.1-.2-.88-2.12-1.21-2.9-.32-.78-.65-.67-.88-.68h-.76c-.26 0-.69.1-1.05.49-.36.39-1.37 1.34-1.37 3.27 0 1.93 1.41 3.79 1.61 4.05.2.26 2.78 4.24 6.73 5.95 3.95 1.72 3.95 1.15 4.66 1.08.72-.07 2.31-.94 2.64-1.85.33-.92.33-1.71.23-1.85-.1-.13-.36-.23-.75-.39z"/></svg>
+              9540384046
+            </a>
             
             {isLoggedIn ? (
               <>
@@ -280,6 +414,9 @@ export default function LimbuAILanding() {
             <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">Features</a>
             <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">How It Works</a>
             <a href="#examples" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">Examples</a>
+            <button onClick={() => { setShowBookDemoModal(true); setIsMobileMenuOpen(false); }} className="text-lg font-medium text-blue-600 text-left">
+              Book a Demo
+            </button>
             {isLoggedIn ? (
               <>
                 <button onClick={() => handleNavigation('/dashboard')} className="mt-4 px-6 py-3 bg-white border-2 border-blue-500 text-blue-600 rounded-lg font-semibold">
@@ -333,15 +470,24 @@ export default function LimbuAILanding() {
           </p>
 
           {/* CTA Button */}
-          <button 
-            onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
-            className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2"
-          >
-            {isLoggedIn ? "Go to Dashboard" : "Start Free Trial"}
-            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-
-          <p className="text-xs sm:text-sm text-slate-500 mt-3 sm:mt-4 px-4">No credit card required • Free 7-day trial</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button 
+              onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
+              className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2"
+            >
+              {isLoggedIn ? "Go to Dashboard" : "Start Free Trial"}
+              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button 
+              onClick={() => setShowVideoModal(true)}
+              className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white border-2 border-slate-300 text-slate-800 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-xl hover:border-slate-400 transition-all inline-flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg>
+              View Demo
+            </button>
+          </div>
+          
+          {/* <p className="text-xs sm:text-sm text-slate-500 mt-3 sm:mt-4 px-4">No credit card required • Free 7-day trial</p> */}
         </div>
 
         {/* Stats */}
@@ -575,13 +721,21 @@ export default function LimbuAILanding() {
           <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-8 sm:mb-10 px-4">
             Join 1000+ businesses automating their Google My Business today
           </p>
-          <button 
-            onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
-            className="px-8 sm:px-10 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2"
-          >
-            {isLoggedIn ? "Go to Dashboard" : "Start Your Free Trial"}
-            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button 
+              onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
+              className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2"
+            >
+              {isLoggedIn ? "Go to Dashboard" : "Start Your Free Trial"}
+              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
+            </button>
+            <button 
+              onClick={() => setShowBookDemoModal(true)}
+              className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 bg-white border-2 border-slate-300 text-slate-800 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-xl hover:border-slate-400 transition-all"
+            >
+              Book a Demo
+            </button>
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-3 sm:mt-4 px-4">No credit card required • Cancel anytime</p>
         </div>
       </section>
@@ -699,7 +853,7 @@ export default function LimbuAILanding() {
           100% { transform: translateX(-50%); }
         }
         .animate-scroll {
-          animation: scroll 30s linear infinite;
+          animation: scroll 5s linear infinite;
         }
         .animate-scroll:hover {
           animation-play-state: paused;
@@ -714,6 +868,13 @@ export default function LimbuAILanding() {
         }
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes pulse-border {
+          0%, 100% { border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+          50% { border-color: rgba(34, 197, 94, 1); box-shadow: 0 0 10px 0 rgba(34, 197, 94, 0.6); }
+        }
+        .animate-pulse-border {
+          animation: pulse-border 2s ease-in-out infinite;
         }
       `}</style>
     </div>

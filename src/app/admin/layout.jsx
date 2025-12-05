@@ -14,6 +14,7 @@ export default function AdminLayout({ children }) {
     // { name: "Post management", icon: <Users size={18} />, href: "/admin/post-management" },
     // { name: "SAVE Bussiness", icon: <Users size={18} />, href: "/admin/store-bussiness" },
     { name: "Leads From Contact Form", icon: <LeaderboardSharp size={18} />, href: "/admin/contact-form" },
+    { name: "Demo", icon: <LeaderboardSharp size={18} />, href: "/admin/demoBook" },
     { name: "Settings", icon: <Settings size={18} />, href: "/admin/settings" },
     { name: "Visit Website", icon: <ArrowUpLeft  size={18} />, href: "/" },
   ];

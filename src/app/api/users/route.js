@@ -5,8 +5,10 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 // 🧩 Schema Definition
 const UserSchema = new mongoose.Schema({
-  userId: String,
-  email: String,
+  userId: { type: String, unique: true },
+  email: { type: String, unique: true },
+  fullName: String,
+  phone: String,
   passwordHash: String,
   subscription: {
     plan: String,
@@ -32,14 +34,76 @@ async function connectDB() {
 
 // ✅ GET: Fetch all users
 // ✅ GET: Fetch all users (Newest first)
-export async function GET() {
+// ✅ GET: Fetch users with pagination (Newest first)
+export async function GET(req) {
   try {
     await connectDB();
 
-    // Sort users by createdAt (descending) so newest users appear first
-    const users = await User.find({}).sort({ createdAt: -1 });
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page")) || 1; // default page = 1
+    const searchQuery = searchParams.get("search") || "";
+    const filterStatus = searchParams.get("status");
+    const filterDate = searchParams.get("date");
+    const limit = 70; // fixed limit = 70 users per request
 
-    return NextResponse.json({ success: true, users });
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const query = {};
+
+    if (searchQuery) {
+      query.$or = [
+        { email: { $regex: searchQuery, $options: "i" } },
+        { userId: { $regex: searchQuery, $options: "i" } },
+        { phone: { $regex: searchQuery, $options: "i" } },
+        { fullName: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    if (filterDate && filterDate !== "All") {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      let startDate;
+
+      switch (filterDate) {
+        case "Today":
+          startDate = today;
+          break;
+        case "Last 7 Days":
+          startDate = new Date(today);
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case "Last 30 Days":
+          startDate = new Date(today);
+          startDate.setDate(startDate.getDate() - 30);
+          break;
+        case "This Month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+      }
+      if (startDate) {
+        query.createdAt = { $gte: startDate };
+      }
+    }
+
+    const totalUsers = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    const users = await User.find(query)
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
+
+    return NextResponse.json({
+      success: true,
+      pagination: {
+        totalUsers,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+      users,
+    });
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
