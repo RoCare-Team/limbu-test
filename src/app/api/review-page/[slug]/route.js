@@ -64,10 +64,8 @@ export async function GET(req, { params }) {
           break;
         }
       }
-
       if (matchedListing) break;
     }
-
     // If no match found
     if (!matchedListing) {
       console.log("❌ No matching listing found for slug:", slug);

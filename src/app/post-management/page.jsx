@@ -29,6 +29,7 @@ import Link from "next/link";
 import Toast from "../../components/Toast";
 import LocationSelectionModal from "../../components/LocationSelectionModal";
 import InsufficientBalanceModal from "../../components/InsufficientBalanceModal";
+import PostSchedulerModal from "../../components/PostSchedulerModal";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import SuccessOverlay from "../../components/SuccessOverlay";
 import PostInput from "@/components/PostInput";
@@ -66,6 +67,7 @@ export default function PostManagementPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [postToAction, setPostToAction] = useState(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [showDeleteLocationModal, setShowDeleteLocationModal] = useState(false);
 
   const [assetId, setAssetId] = useState(null);
@@ -814,6 +816,7 @@ export default function PostManagementPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         {toast && <Toast message={toast.message} type={toast.type} />}
+        <PostSchedulerModal isOpen={isPostModalOpen} onClose={() => setIsPostModalOpen(false)} session={session} />
         {isGenerating && <LoadingOverlay countdown={countdown} />}
         {showLocationModal && (
           <LocationSelectionModal
@@ -896,6 +899,16 @@ export default function PostManagementPage() {
           selectedAssets={selectedAssets}
           setSelectedAssets={setSelectedAssets}
         />
+
+        {/* Auto Post Scheduling Button */}
+        <div className="text-center">
+            <button
+              onClick={() => setIsPostModalOpen(true)}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
+            >
+              Auto Post
+            </button>
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {tabs.map((tab) => (
