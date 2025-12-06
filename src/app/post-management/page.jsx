@@ -770,10 +770,7 @@ export default function PostManagementPage() {
       showToast("Failed to download image", "error");
     }
   };
-
-
-
-
+  
   const handleShare = async (post) => {
     if (navigator.share) {
       try {

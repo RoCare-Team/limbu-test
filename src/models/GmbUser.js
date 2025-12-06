@@ -7,9 +7,6 @@ const ProjectSchema = new mongoose.Schema({
   createdAt: Date,
   updatedAt: Date,
 });
-
-
-
 const GmbUserSchema = new mongoose.Schema({
   email: { type: String, required: true },
   name: String,

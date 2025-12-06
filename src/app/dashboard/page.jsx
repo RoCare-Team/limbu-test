@@ -1150,17 +1150,9 @@ if (status === "unauthenticated") {
     Fast • Secure • Full Control of Your Google Business Profile
   </p>
 </div>
-
-
     </div>
   );
 }
-
-
-
-
-
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">

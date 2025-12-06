@@ -6,8 +6,6 @@ import {
   MessageCircle,
   Send,
   Sparkles,
-  CheckCircle,
-  XCircle,
   ChevronLeft,
   ChevronRight,
   Lock,
@@ -15,6 +13,8 @@ import {
   RefreshCw,
   AlertCircle,
   Download,
+  ToggleLeft,
+  ToggleRight,
   Building2,
   MapPin,
   ArrowLeft,
@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [checkingPlan, setCheckingPlan] = useState(true);
   const [hasLoadedReviews, setHasLoadedReviews] = useState(false);
   const [error, setError] = useState(null);
+  const [replyMode, setReplyMode] = useState("manual"); // 'manual' or 'auto'
   const reviewsPerPage = 5;
 
   const { data: session, status } = useSession();
@@ -62,7 +63,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const fetchReviews = async () => {
+  const fetchReviews = async (isAutoMode = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -163,6 +164,24 @@ export default function DashboardPage() {
         return dateB - dateA;
       });
 
+      if (isAutoMode) {
+        console.log("Running in auto-reply mode. Checking for reviews without replies.");
+        const reviewsToAutoReply = sortedReviews.filter(
+          (review) => !review.reviewReply || !review.reviewReply.comment || review.reviewReply.comment.trim() === ""
+        );
+
+        if (reviewsToAutoReply.length > 0) {
+          toast.success(`${reviewsToAutoReply.length} new reviews found. Generating AI replies...`, { icon: '🤖' });
+          for (const review of reviewsToAutoReply) {
+            await handleAIReply(review, () => {}, () => {}, () => {}, true);
+          }
+          // After attempting all auto-replies, refresh the list to show the new replies
+          toast.success("Auto-reply process complete. Refreshing review list.", { icon: '🔄' });
+          // A short delay to allow backend processing before refetching
+          setTimeout(() => fetchReviews(), 2000);
+        }
+      }
+
       // Save reviews to localStorage
       localStorage.setItem("cachedReviews", JSON.stringify(sortedReviews));
       localStorage.setItem("reviewsFetchedAt", Date.now().toString());
@@ -170,13 +189,13 @@ export default function DashboardPage() {
 
       setReviews(sortedReviews);
       setHasLoadedReviews(true);
-      
-      if (sortedReviews.length === 0) {
+
+      if (sortedReviews.length === 0 && !isAutoMode) {
         toast.success("No reviews found for your locations", {
           duration: 3000,
           position: "top-center",
         });
-      } else {
+      } else if (!isAutoMode) {
         toast.success(`Successfully loaded ${sortedReviews.length} reviews`, {
           duration: 3000,
           position: "top-center",
@@ -201,6 +220,27 @@ export default function DashboardPage() {
     if (status === "authenticated" && session?.accessToken && !hasLoadedReviews) {
       fetchReviews();
     }
+
+    // Load reply mode from localStorage
+    const savedMode = localStorage.getItem("reviewReplyMode") || "manual";
+    setReplyMode(savedMode);
+
+    // Setup interval for auto-reply
+    let intervalId;
+    if (savedMode === "auto" && status === "authenticated") {
+      console.log("Setting up auto-reply interval (5 minutes for testing)");
+      // toast.success("Auto-reply mode is active. Checking for new reviews every 5 minutes for testing.", { icon: '🤖' });
+      intervalId = setInterval(() => {
+        console.log("Auto-reply interval triggered: fetching reviews.");
+        fetchReviews(true);
+      }, 5 * 60 * 1000); // 5 minutes for testing
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [status, session, hasLoadedReviews]);
 
   useEffect(() => {
@@ -211,6 +251,26 @@ export default function DashboardPage() {
     
     console.log("User plan detected:", normalizedPlan);
   }, []);
+
+const handleReplyModeToggle = async () => {  
+  const newMode = replyMode === "manual" ? "auto" : "manual";
+  setReplyMode(newMode);
+  localStorage.setItem("reviewReplyMode", newMode);
+
+  await fetch("/api/saveAutoReply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: session?.user?.id,
+      accessToken: session?.accessToken,
+      locations: JSON.parse(localStorage.getItem("locationDetails")),
+      autoReply: newMode === "auto"
+    })
+  });
+
+  toast.success(`Auto Reply is now ${newMode.toUpperCase()}`);
+};
+
 
   const totalPages = Math.ceil(reviews.length / reviewsPerPage);
   const startIdx = (currentPage - 1) * reviewsPerPage;
@@ -231,7 +291,7 @@ export default function DashboardPage() {
     );
   };
 
-  const handleAIReply = async (review, setLocalReply, setShowReplyInput, setGeneratingAI) => {
+  const handleAIReply = async (review, setLocalReply, setShowReplyInput, setGeneratingAI, isAuto = false) => {
     try {
       setGeneratingAI(true);
       
@@ -281,15 +341,16 @@ export default function DashboardPage() {
       console.log("AI Reply Response:", data);
       
       if (data.status === true) {
-        setLocalReply(data.reply);
-        setShowReplyInput(true);
-        toast.success("AI reply generated successfully!", {
-          duration: 3000,
-          position: "top-center",
-        });
+        if (!isAuto) {
+          setLocalReply(data.reply);
+          setShowReplyInput(true);
+          toast.success("AI reply generated successfully!", {
+            duration: 3000,
+            position: "top-center",
+          });
+        }
         
-        // Refresh reviews to show the new reply in real-time
-        await fetchReviews();
+        // The refresh is now handled in the fetchReviews function after the loop completes
       } else {
         toast.error("Failed to generate AI reply. Please try manual reply.", {
           duration: 3000,
@@ -528,7 +589,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 relative">
       {/* Back button for mobile view */}
-      <div className="sm:hidden fixed top-25 left-5 z-50">
+      <div className="sm:hidden fixed top-15 left-5 z-50">
         <Link href="/dashboard" passHref>
           <button
             aria-label="Go back to dashboard"
@@ -539,7 +600,7 @@ export default function DashboardPage() {
         </Link>
       </div>
       <Toaster />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-6">
         <div className="mb-6 sm:mb-10">
           <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2 text-center">Customer Reviews</h1>
           <p className="text-gray-600 text-sm sm:text-lg text-center px-2 sm:px-4">
@@ -606,14 +667,38 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-              <p className="text-gray-700 font-medium text-sm sm:text-base">
-                Showing {reviews.length} review{reviews.length !== 1 ? "s" : ""}
-              </p>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-8">
+              {/* Auto-Reply Toggle Switch */}
+              <div className="w-full sm:w-auto">
+                <button
+                  onClick={handleReplyModeToggle}
+                  className={`
+                    w-full flex items-center justify-between p-2 rounded-xl shadow-md transition-all duration-300 ease-in-out
+                    ${replyMode === 'auto' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-gray-200 text-gray-800'}
+                  `}
+                >
+                  <span className="font-bold text-base px-4">
+                    Auto-Reply
+                  </span>
+                  <span className={`
+                    flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold text-sm
+                    ${replyMode === 'auto' ? 'bg-white/20' : 'bg-white shadow-inner'}
+                  `}>
+                    {replyMode === 'auto' ? (
+                      <ToggleRight className="w-7 h-7 text-white" />
+                    ) : (
+                      <ToggleLeft className="w-7 h-7 text-gray-500" />
+                    )}
+                    {replyMode === 'auto' ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Refresh Button */}
               <button
                 onClick={fetchReviews}
                 disabled={loading}
-                className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all inline-flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base"
+                className="w-full sm:w-auto bg-white text-gray-700 px-5 py-3 rounded-xl border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all inline-flex items-center justify-center gap-2 disabled:opacity-50 text-base font-semibold shadow-sm"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -622,6 +707,18 @@ export default function DashboardPage() {
                 )}
                 Refresh
               </button>
+            </div>
+<p className="text-sm text-gray-700">
+  <span className="font-bold">Note:</span> Auto Reply <span className="font-semibold">ON</span> will auto-fetch reviews and send AI replies.
+  <br />
+  Auto Reply <span className="font-semibold">OFF</span> means you will reply manually.
+</p>
+
+
+            <div className="text-right mb-8">
+              <p className="text-gray-700 font-medium text-lg">
+                Showing {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+              </p>
             </div>
 
             <div className="grid gap-6">

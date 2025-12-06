@@ -13,7 +13,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
   const removeImage = () => setLogo(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState([]);
-  const [showAssets, setShowAssets] = useState(false);
+  const [showAssets, setShowAssets] = useState(true);
 
   const [updatingAsset, setUpdatingAsset] = useState(null);
   const sizeOptions = [
