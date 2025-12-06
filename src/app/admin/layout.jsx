@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, User, Settings, BarChart3, Users, ArrowUpLeft } from "lucide-react";
+import { Menu, X, User, Settings, BarChart3, Users, ArrowUpLeft, UserSquare } from "lucide-react";
 import { LeaderboardSharp } from "@mui/icons-material";
 
 export default function AdminLayout({ children }) {
@@ -10,6 +10,7 @@ export default function AdminLayout({ children }) {
   const navItems = [
     { name: "Dashboard", icon: <BarChart3 size={18} />, href: "/admin/dashboard" },
     { name: "Users", icon: <Users size={18} />, href: "/admin/user-management" },
+    { name: "User Recharge", icon: <UserSquare size={18} />, href: "/admin/user-recharge" },
     { name: "Notification", icon: <Users size={18} />, href: "/admin/notification" },
     // { name: "Post management", icon: <Users size={18} />, href: "/admin/post-management" },
     // { name: "SAVE Bussiness", icon: <Users size={18} />, href: "/admin/store-bussiness" },

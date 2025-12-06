@@ -158,6 +158,20 @@ export default function SmartWalletRecharge() {
               return;
             }
 
+            // ✅ Store transaction details in the new endpoint
+            await fetch("/api/razorpay/razorpay-transaction", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId,
+                payment: response,
+                amount: amount,
+                gstAmount: parseFloat(gstAmount),
+                totalAmount: parseFloat(totalAmount),
+                gstin: gstNumber,
+              }),
+            });
+
             const walletRes = await fetch(`/api/auth/signup?userId=${userId}`, {
   method: "PUT",
   headers: {
