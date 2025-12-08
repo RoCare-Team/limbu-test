@@ -58,24 +58,24 @@ export default function AdminDashboard() {
           <p className="text-3xl font-bold mt-2">{stats.totalUsers}</p>
         </div>
 
-        <div className="bg-green-500 text-white rounded-xl p-5 shadow-lg">
+        {/* <div className="bg-green-500 text-white rounded-xl p-5 shadow-lg">
           <h2 className="text-sm opacity-80">Active Subscriptions</h2>
           <p className="text-3xl font-bold mt-2">{stats.activeUsers}</p>
-        </div>
+        </div> */}
 
-        <div className="bg-red-500 text-white rounded-xl p-5 shadow-lg">
+        {/* <div className="bg-red-500 text-white rounded-xl p-5 shadow-lg">
           <h2 className="text-sm opacity-80">Inactive Users</h2>
           <p className="text-3xl font-bold mt-2">{stats.inactiveUsers}</p>
-        </div>
+        </div> */}
 
-        <div className="bg-purple-500 text-white rounded-xl p-5 shadow-lg">
+        {/* <div className="bg-purple-500 text-white rounded-xl p-5 shadow-lg">
           <h2 className="text-sm opacity-80">Latest Signup</h2>
           <p className="text-lg font-semibold mt-2">
             {stats.latestSignup
               ? new Date(stats.latestSignup).toLocaleDateString()
               : "N/A"}
           </p>
-        </div>
+        </div> */}
       </div>
 
       {/* Revenue & Plans Section */}
