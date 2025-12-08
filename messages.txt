@@ -4,3 +4,9 @@
 [2025-12-08T11:49:01.329Z] FROM: 919999999999 | TYPE: text | MESSAGE: Hello from Postman test!
 
 [2025-12-08T11:52:14.100Z] FROM: 919999999999 | TYPE: text | MESSAGE: Hello from Postman test!
+
+
+[2025-12-08T12:03:14.452Z] DATA: {
+  "name": "Robin",
+  "msg": "Hello server"
+}
