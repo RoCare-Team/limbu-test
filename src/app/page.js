@@ -13,13 +13,17 @@ export default function LimbuAILanding() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSignupPopup, setShowSignupPopup] = useState(false);
-  const [slidingTextIndex, setSlidingTextIndex] = useState(0);
+  const [slidingTextIndex, setSlidingTextIndex] = useState(0); 
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showBookDemoModal, setShowBookDemoModal] = useState(false);
   const [demoDetails, setDemoDetails] = useState({ name: '', contact: '', time: 'today' });
   const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
   const [toast, setToast] = useState(null);
   const [demoBooked, setDemoBooked] = useState(false);
+
+  const now = new Date();
+  const isAfter4PM = now.getHours() >= 16; // 4 PM
+  const isSunday = now.getDay() === 0;
 
   useEffect(() => {
     setIsVisible(true);
@@ -29,6 +33,11 @@ export default function LimbuAILanding() {
     // Check login status
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
+
+    // Set default demo time based on current time
+    if (isAfter4PM) {
+      setDemoDetails(prev => ({ ...prev, time: 'tomorrow' }));
+    }
 
     // Show signup popup after a delay if not logged in
     if (!token) {
@@ -51,7 +60,7 @@ export default function LimbuAILanding() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('keydown', handleEscape);
     };
-  }, []);
+  }, [isAfter4PM]);
 
   useEffect(() => {
     const sliderInterval = setInterval(() => {
@@ -288,28 +297,36 @@ export default function LimbuAILanding() {
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Booked Successfully!</h2>
                 <p className="text-slate-600">We will contact you shortly. The window will close automatically.</p>
               </div>
+            ) : isSunday ? (
+              <div className="text-center py-8">
+                <Calendar className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Seminars Unavailable</h2>
+                <p className="text-slate-600">We are closed on Sundays. Please book a demo for another day.</p>
+              </div>
             ) : (
               <>
                 <h2 className="text-2xl font-bold text-slate-800 mb-4">Book Your Free Demo</h2>
                 <form onSubmit={handleBookDemoSubmit} className="space-y-4">
-                  <input type="text" name="name" placeholder="Your Name" value={demoDetails.name} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                  <input type="tel" name="contact" placeholder="Contact Number" value={demoDetails.contact} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="text" name="name" placeholder="Your Name" value={demoDetails.name} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                  <input type="tel" name="contact" placeholder="Contact Number" value={demoDetails.contact} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" />
                   <div>
                     <p className="text-sm font-medium text-slate-600 mb-2">Select Seminar Time:</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className={`block p-3 border rounded-lg cursor-pointer text-center ${demoDetails.time === 'today' ? 'bg-blue-100 border-blue-500' : 'bg-slate-50 border-slate-300'}`}>
-                        <input type="radio" name="time" value="today" checked={demoDetails.time === 'today'} onChange={handleDemoInputChange} className="sr-only" />
-                        <span className="font-bold">Today</span>
-                        <span className="text-sm block text-slate-500">4:00 PM</span>
-                      </label>
-                      <label className={`block p-3 border rounded-lg cursor-pointer text-center ${demoDetails.time === 'tomorrow' ? 'bg-blue-100 border-blue-500' : 'bg-slate-50 border-slate-300'}`}>
+                    <div className={`grid ${isAfter4PM ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                      {!isAfter4PM && (
+                        <label className={`block p-3 border rounded-lg cursor-pointer text-center transition-all ${demoDetails.time === 'today' ? 'bg-blue-100 border-blue-500 shadow-md' : 'bg-slate-50 border-slate-300 hover:border-slate-400'}`}>
+                          <input type="radio" name="time" value="today" checked={demoDetails.time === 'today'} onChange={handleDemoInputChange} className="sr-only" />
+                          <span className="font-bold">Today</span>
+                          <span className="text-sm block text-slate-500">4:00 PM</span>
+                        </label>
+                      )}
+                      <label className={`block p-3 border rounded-lg cursor-pointer text-center transition-all ${demoDetails.time === 'tomorrow' ? 'bg-blue-100 border-blue-500 shadow-md' : 'bg-slate-50 border-slate-300 hover:border-slate-400'}`}>
                         <input type="radio" name="time" value="tomorrow" checked={demoDetails.time === 'tomorrow'} onChange={handleDemoInputChange} className="sr-only" />
                         <span className="font-bold">Tomorrow</span>
                         <span className="text-sm block text-slate-500">4:00 PM</span>
                       </label>
                     </div>
                   </div>
-                  <button type="submit" disabled={isSubmittingDemo} className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:shadow-lg transition disabled:opacity-60">
+                  <button type="submit" disabled={isSubmittingDemo} className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:shadow-lg transition-all disabled:opacity-60 disabled:saturate-50">
                     {isSubmittingDemo ? 'Submitting...' : 'Submit Request'}
                   </button>
                 </form>

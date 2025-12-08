@@ -39,10 +39,6 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
   ];
 
 
-  const [selectedCheckbox, setSelectedCheckbox] = useState(false);
-
-  const [pendingUpdates, setPendingUpdates] = useState({});
-
 
 
   const handleCheckBoxChange = async () => {
@@ -68,7 +64,6 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
       }
     }
     setShowAssets(!showAssets);
-    setSelectedCheckbox(!selectedCheckbox)
   };
 
   const fileToBase64 = (file) => {
@@ -112,6 +107,12 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
       const result = await updateAssetAction(assetId, fieldName, base64Image);
       if (result.success) {
         showToast(`${asset.name} updated successfully!`, "success");
+        // Automatically select the newly uploaded asset
+        if (result.data?.asset) {
+          const newAsset = { name: asset.name, url: result.data.asset[fieldName] };
+          // Add to selected assets, avoiding duplicates
+          setSelectedAssets(prev => [...prev.filter(a => a.name !== newAsset.name), newAsset]);
+        }
         await fetchUserAssets();
       } else {
         throw new Error(result.error || `Failed to upload ${asset.name}`);
@@ -192,6 +193,24 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     }
   };
 
+  useEffect(() => {
+    if (assets && assets.length > 0) {
+      const assetsToSelect = assets.filter(asset => {
+        const assetTypesToAutoSelect = ['Character', 'Product', 'Uniform', 'Background', 'Logo'];
+        // Check if the asset type is in our list and has a URL
+        return assetTypesToAutoSelect.includes(asset.name) && asset.url;
+      });
+
+      // Update selectedAssets, preserving any existing selections that are still valid
+      // and adding the newly auto-selected ones.
+      setSelectedAssets(prevSelected => {
+        const newSelections = [...assetsToSelect];
+        // This simple override ensures that on load, uploaded assets are selected.
+        // User can still manually uncheck them.
+        return newSelections;
+      });
+    }
+  }, [assets]); // This effect runs when the assets are loaded
 
 
     useEffect(() => {
@@ -235,11 +254,26 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
               className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-xl text-sm sm:text-base text-gray-800 focus:ring-4 focus:ring-blue-300 focus:border-blue-500 outline-none transition-all min-h-[100px] sm:min-h-[120px] resize-none placeholder:text-gray-400 bg-gray-50"
               disabled={loading}
             />
-
+            {suggestedKeywords.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs text-gray-600 mb-2">Suggestions:</p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedKeywords.map((keyword, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setPrompt(prev => `${prev} ${keyword}`.trim())}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors"
+                    >
+                      {keyword}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Logo Upload */}
-          {!selectedCheckbox ? (
+          {!showAssets && (
             <div className="space-y-2 mb-4">
               <label className="text-base font-bold text-gray-800 flex items-center gap-2">
                 <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
@@ -277,7 +311,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                 </div>
               )}
             </div>
-          ) : ""}
+          )}
           {assets && (
             <div className="pt-2 pb-4">
               {/* MAIN TOGGLE */}
