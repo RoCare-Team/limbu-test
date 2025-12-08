@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export async function proxy(req) {
+export async function middleware(req) {
   // ✅ Allow everything, no validation
   return NextResponse.next();
 }
