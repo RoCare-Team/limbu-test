@@ -1,18 +1,13 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "../app/client-layout";
 import AuthGuard from "@/components/AuthGuard";
 import SessionProviderWrapper from "./providers/SessionProviderWrapper";
 import Script from "next/script";
+import { Inter } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata = {
@@ -25,9 +20,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
-        {/* Meta Pixel Script */}
         <Script id="fb-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
@@ -42,8 +36,6 @@ export default function RootLayout({ children }) {
             fbq('track', 'PageView');
           `}
         </Script>
-
-        {/* NoScript Fallback */}
         <noscript>
           <img
             height="1"
@@ -54,7 +46,7 @@ export default function RootLayout({ children }) {
         </noscript>
       </head>
 
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         <SessionProviderWrapper>
           <ClientLayout>
             <AuthGuard>{children}</AuthGuard>
