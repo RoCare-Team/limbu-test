@@ -1,6 +1,7 @@
   export default function  handlePost = async (post) => {
     setIsPosting(true);
     
+    
     try {
       const fullAccount = localStorage.getItem("accountId");
       const accountId = fullAccount.split("/").pop();
