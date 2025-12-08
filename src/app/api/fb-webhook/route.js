@@ -1,100 +1,128 @@
 // app/api/webhook/route.js
-import { writeFile, appendFile } from "fs/promises";
-import path from "path";
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
-// Save file in the root of your project so it is easy to find
-const LOG_FILE = path.join(process.cwd(), "webhook_logs.txt");
+// =============================
+// 🔗 MONGODB CONNECT
+// =============================
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!global._mongooseConnection) {
+  global._mongooseConnection = mongoose.connect(MONGODB_URI, {
+    dbName: "test" // your DB name from screenshot
+  });
+}
+
+// =============================
+// 📌 SCHEMA + MODEL (Same File)
+// =============================
+const fbLeadsSchema = new mongoose.Schema(
+  {
+    type: String, // leadgen | whatsapp
+    leadId: String,
+    formId: String,
+    messageFrom: String,
+    messageText: String,
+    payload: Object,
+  },
+  { timestamps: true }
+);
+
+const FbLeadsData =
+  mongoose.models.fbLeadsData ||
+  mongoose.model("fbLeadsData", fbLeadsSchema);
+
+// =============================
+// 🔐 VERIFY TOKEN
+// =============================
 const VERIFY_TOKEN = "limbu123";
 
-// ----------------------------------------------------------------------
-// GET: Used by Facebook/Meta to verify your webhook URL
-// ----------------------------------------------------------------------
+// =============================
+// GET → Facebook Webhook Verification
+// =============================
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
-    console.log("✅ Webhook verified successfully.");
-    return new Response(challenge, {
-      status: 200,
-      headers: { "Content-Type": "text/plain" },
-    });
+    console.log("Webhook verified");
+    return new Response(challenge, { status: 200 });
   }
 
   return new Response("Invalid verify token", { status: 403 });
 }
 
-// ----------------------------------------------------------------------
-// POST: Receives the actual data (Leads, Messages, etc.)
-// ----------------------------------------------------------------------
+// =============================
+// POST → Save Leads / WhatsApp
+// =============================
 export async function POST(req) {
   try {
+    await global._mongooseConnection; // ensure DB connected
     const body = await req.json();
 
-    console.log("🔹 WEBHOOK EVENT RECEIVED");
+    console.log("WEBHOOK EVENT:", JSON.stringify(body, null, 2));
 
-    let logText = "";
-    const timestamp = new Date().toISOString();
-
-    // Check if the standard Meta 'entry' structure exists
-    if (body.entry && body.entry.length > 0) {
+    if (body.entry?.length > 0) {
       const entry = body.entry[0];
-      const changes = entry.changes && entry.changes.length > 0 ? entry.changes[0] : null;
+      const change = entry.changes?.[0];
 
-      // ---------------------------------------------------------
-      // CASE 1: HANDLE LEAD GEN (Facebook/Insta Lead Forms)
-      // ---------------------------------------------------------
-      if (changes && changes.field === "leadgen") {
-        const leadData = changes.value;
-        const leadId = leadData.leadgen_id;
-        const formId = leadData.form_id;
-        const pageId = leadData.page_id;
+      // ------------------------------
+      // CASE 1 → Facebook LeadGen
+      // ------------------------------
+      if (change?.field === "leadgen") {
+        const data = change.value;
 
-        logText = `\n[${timestamp}] TYPE: LEAD_GEN | Lead ID: ${leadId} | Form ID: ${formId} | Page ID: ${pageId}\n`;
-      } 
+        await FbLeadsData.create({
+          type: "leadgen",
+          leadId: data.leadgen_id,
+          formId: data.form_id,
+          payload: data,
+        });
 
-      // ---------------------------------------------------------
-      // CASE 2: HANDLE WHATSAPP MESSAGES
-      // ---------------------------------------------------------
-      else if (changes && changes.field === "messages") {
-         const messages = changes.value.messages;
-         if (messages && messages.length > 0) {
-            const msg = messages[0];
-            logText = `\n[${timestamp}] FROM: ${msg.from} | TYPE: ${msg.type} | MESSAGE: ${msg.text?.body || "[Media]"}\n`;
-         }
+        console.log("✔ Lead saved:", data.leadgen_id);
       }
-      // Alternate WhatsApp structure check
+
+      // ------------------------------
+      // CASE 2 → WhatsApp Messages
+      // ------------------------------
+      else if (change?.field === "messages") {
+        const msg = change.value.messages?.[0];
+
+        await FbLeadsData.create({
+          type: "whatsapp",
+          messageFrom: msg?.from,
+          messageText: msg?.text?.body || "[Media]",
+          payload: msg,
+        });
+
+        console.log("✔ WhatsApp saved:", msg?.from);
+      }
+
+      // ------------------------------
+      // ALT WhatsApp Structure
+      // ------------------------------
       else if (body.object === "whatsapp_business_account") {
-          const messages = entry.changes?.[0]?.value?.messages;
-          if (messages && messages.length > 0) {
-            const msg = messages[0];
-            logText = `\n[${timestamp}] FROM: ${msg.from} | TYPE: ${msg.type} | MESSAGE: ${msg.text?.body || "[Media]"}\n`;
-          }
+        const msg = entry.chchanges?.[0]?.value?.messages?.[0];
+
+        await FbLeadsData.create({
+          type: "whatsapp",
+          messageFrom: msg?.from,
+          messageText: msg?.text?.body || "[Media]",
+          payload: msg,
+        });
+
+        console.log("✔ WhatsApp ALT saved:", msg?.from);
       }
     }
 
-    // ---------------------------------------------------------
-    // WRITE LOG TO FILE
-    // ---------------------------------------------------------
-    if (logText) {
-      try {
-        await appendFile(LOG_FILE, logText);
-      } catch (err) {
-        // If file doesn't exist yet, create it
-        await writeFile(LOG_FILE, logText);
-      }
-      console.log(`✅ Log saved to: ${LOG_FILE}`);
-    } else {
-      console.log("⚠️ Event received but no relevant data found to log.");
-    }
-
-    return new Response("EVENT_RECEIVED", { status: 200 });
-
+    return NextResponse.json({ success: true, message: "EVENT_RECEIVED" });
   } catch (err) {
-    console.error("❌ Webhook Error:", err);
-    return new Response("Invalid JSON", { status: 400 });
+    console.log("Webhook Error:", err);
+    return NextResponse.json(
+      { error: err.message },
+      { status: 500 }
+    );
   }
 }
