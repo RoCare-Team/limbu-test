@@ -1,29 +1,20 @@
-// app/api/webhook/route.js
-import { writeFile, appendFile } from "fs/promises";
-import path from "path";
-
-const LOG_FILE = path.join(process.cwd(), "messages.txt");
-
-// ---------------------------------------
-// RECEIVE WEBHOOK EVENTS (POST)
-// ---------------------------------------
 export async function POST(req) {
   try {
-    let body;
+    // Step 1: Read raw body (buffer/text)
+    const raw = await req.text();
 
-    // Try to parse JSON
+    // Step 2: Try to parse JSON safely
+    let data;
     try {
-      body = await req.json();
+      data = JSON.parse(raw);
     } catch {
-      // If not JSON, read raw text
-      body = await req.text();
+      data = raw; // Not JSON → save as plain text
     }
 
     const timestamp = new Date().toISOString();
+    const logText = `\n[${timestamp}] DATA: ${JSON.stringify(data, null, 2)}\n`;
 
-    const logText = `\n[${timestamp}] DATA: ${JSON.stringify(body, null, 2)}\n`;
-
-    // Write to file (create if missing)
+    // Write to file
     try {
       await appendFile(LOG_FILE, logText);
     } catch {
