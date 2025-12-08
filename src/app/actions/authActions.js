@@ -2,6 +2,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://limbu.ai";
 
+
 export async function sendOtpAction(phone) {
   try {
     const res = await fetch(`${API_URL}/api/auth/login`, {
