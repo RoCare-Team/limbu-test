@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const AutoReplySchema = new mongoose.Schema({
   userId: { type: String, required: true },
   accessToken: { type: String, required: true }, // store Google token
