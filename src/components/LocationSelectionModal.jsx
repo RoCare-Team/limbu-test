@@ -32,6 +32,14 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
       );
     };
   
+    const handleSelectAll = () => {
+      if (selectedLocations.length === locations.length) {
+        setSelectedLocations([]); // Deselect all
+      } else {
+        setSelectedLocations(locations.map(loc => loc.id)); // Select all
+      }
+    };
+
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl 
@@ -72,6 +80,18 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
                   />
                   <label htmlFor="photo-checkbox" className="ml-2 text-gray-700 font-medium cursor-pointer">Photo</label>
                 </div>
+              </div>
+              <div className="mt-4 flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  id="select-all-checkbox"
+                  checked={locations.length > 0 && selectedLocations.length === locations.length}
+                  onChange={handleSelectAll}
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="select-all-checkbox" className="ml-2 text-gray-700 font-medium cursor-pointer">
+                  {selectedLocations.length === locations.length ? 'Deselect All' : 'Select All'}
+                </label>
               </div>
             </div>
   
