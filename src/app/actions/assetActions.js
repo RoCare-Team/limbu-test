@@ -2,6 +2,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://limbu.ai";
 
+
 export async function loadAssetsFromServerAction(userId) {
   try {
     const res = await fetch(`${API_URL}/api/assets-manage?userId=${userId}`);
