@@ -2,7 +2,7 @@
 import { writeFile, appendFile } from "fs/promises";
 import path from "path";
 
-const LOG_FILE = "/tmp/messages.txt"; // File to store messages
+const LOG_FILE = path.join(process.cwd(), "messages.txt");  // ✔ Project root me file save hogi
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -39,25 +39,24 @@ export async function POST(req) {
       if (messages && messages.length > 0) {
         const msg = messages[0];
 
-        const from = msg.from; // phone number
+        const from = msg.from;
         const type = msg.type;
         const text = msg.text?.body || "";
         const timestamp = new Date().toISOString();
 
-        logText = `\n[${timestamp}] FROM: ${from} | TYPE: ${type} | MESSAGE: ${text}\n`;
+        logText =
+          `\n[${timestamp}] FROM: ${from} | TYPE: ${type} | MESSAGE: ${text}\n`;
 
-        // Save to text file
+        // ✔ Save log to file (create if not exists)
         await appendFile(LOG_FILE, logText).catch(async () => {
-          // If file doesn't exist, create it
           await writeFile(LOG_FILE, logText);
         });
 
-        console.log("Saved to file:", LOG_FILE);
+        console.log("Saved to:", LOG_FILE);
       }
     }
 
     return new Response("EVENT_RECEIVED", { status: 200 });
-
   } catch (err) {
     console.error("Webhook Error:", err);
     return new Response("Invalid JSON", { status: 400 });

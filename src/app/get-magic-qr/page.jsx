@@ -130,68 +130,148 @@ export default function BusinessQR() {
   };
 
   // Download QR with branding
-  const downloadQR = () => {
-    if (!qrImage) return;
+const downloadQR = () => {
+  if (!qrImage) return;
 
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.src = qrImage;
+  const qrImg = new Image();
+  qrImg.crossOrigin = "Anonymous";
+  qrImg.src = qrImage;
 
-    img.onload = () => {
+  qrImg.onload = () => {
+    const logo = new Image();
+    logo.crossOrigin = "Anonymous";
+    logo.src = "/images/bg-logo.png"; // PUBLIC FOLDER
+
+    logo.onload = () => {
       const canvas = document.createElement("canvas");
       const padding = 80;
       const qrSize = 600;
-      const totalWidth = qrSize + (padding * 2);
-      const titleHeight = 100;
+
+      const titleHeight = 140;
       const urlHeight = 60;
-      const poweredByHeight = 50;
+      const poweredByHeight = 100; // Increased for clean spacing
       const spacing = 40;
-      
-      canvas.width = totalWidth;
-      canvas.height = titleHeight + qrSize + urlHeight + poweredByHeight + (spacing * 3) + (padding * 2);
+
+      canvas.width = qrSize + padding * 2;
+      canvas.height =
+        padding +
+        titleHeight +
+        qrSize +
+        urlHeight +
+        poweredByHeight +
+        spacing * 3 +
+        padding;
 
       const ctx = canvas.getContext("2d");
-      
+
+      // Background
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       let currentY = padding;
 
-      ctx.fillStyle = "#1f2937";
-      ctx.font = "bold 48px Arial, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(business, canvas.width / 2, currentY + 60);
-      
-      currentY += titleHeight + spacing;
+      // -------------------------------------------
+      //  BUSINESS NAME (AUTO 2–3 LINES)
+      // -------------------------------------------
 
-      ctx.drawImage(img, padding, currentY, qrSize, qrSize);
-      
+      const maxWidth = canvas.width - padding * 2;
+      let fontSize = 48;
+      ctx.font = `bold ${fontSize}px Arial`;
+
+      while (ctx.measureText(business).width > maxWidth && fontSize > 20) {
+        fontSize--;
+        ctx.font = `bold ${fontSize}px Arial`;
+      }
+
+      const words = business.split(" ");
+      let lines = [];
+      let line = "";
+
+      words.forEach((word) => {
+        const test = line + word + " ";
+        if (ctx.measureText(test).width > maxWidth) {
+          lines.push(line.trim());
+          line = word + " ";
+        } else {
+          line = test;
+        }
+      });
+
+      lines.push(line.trim());
+
+      if (lines.length > 3) {
+        lines = [lines[0], lines[1], lines.slice(2).join(" ")];
+      }
+
+      ctx.fillStyle = "#1f2937";
+      ctx.textAlign = "center";
+      const lineHeight = fontSize + 12;
+
+      lines.forEach((text, i) => {
+        ctx.fillText(text, canvas.width / 2, currentY + lineHeight * (i + 1));
+      });
+
+      currentY += lineHeight * lines.length + spacing;
+
+      // -------------------------------------------
+      //  QR CODE
+      // -------------------------------------------
+      ctx.drawImage(qrImg, padding, currentY, qrSize, qrSize);
       currentY += qrSize + spacing;
 
+      // -------------------------------------------
+      //  URL TEXT
+      // -------------------------------------------
       ctx.fillStyle = "#4b5563";
-      ctx.font = "28px Arial, sans-serif";
+      ctx.font = "28px Arial";
       ctx.textAlign = "center";
-      const urlText = reviewUrl.length > 50 ? reviewUrl.substring(0, 47) + "..." : reviewUrl;
+
+      const urlText =
+        reviewUrl.length > 50 ? reviewUrl.substring(0, 47) + "..." : reviewUrl;
+
       ctx.fillText(urlText, canvas.width / 2, currentY + 20);
-      
       currentY += urlHeight + spacing;
 
-      ctx.fillStyle = "#1f2937";
-      ctx.font = "bold 32px Arial, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("Powered by LimbuAI", canvas.width / 2, currentY + 15);
+      // -------------------------------------------
+      //  LOGO + "Powered by LimbuAI"
+      // -------------------------------------------
 
+      const text = "Powered by LimbuAI";
+      ctx.font = "bold 32px Arial";
+
+      const textWidth = ctx.measureText(text).width;
+      const logoSize = 55;
+      const gap = 15;
+
+      const totalContentWidth = logoSize + gap + textWidth;
+
+      const startX = (canvas.width - totalContentWidth) / 2;
+      const centerY = currentY + 40;
+
+      // Draw logo
+      ctx.drawImage(logo, startX, centerY - logoSize / 2, logoSize, logoSize);
+
+      // Draw text
+      ctx.fillStyle = "#1f2937";
+      ctx.textAlign = "left";
+      ctx.fillText(text, startX + logoSize + gap, centerY + 10);
+
+      // -------------------------------------------
+      //  BORDER & DOWNLOAD
+      // -------------------------------------------
       ctx.strokeStyle = "#e5e7eb";
       ctx.lineWidth = 2;
       ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
 
-      const url = canvas.toDataURL("image/png");
+      const pngUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
-      a.href = url;
+      a.href = pngUrl;
       a.download = `${business}-qr-review.png`;
       a.click();
     };
   };
+};
+
 
   const printQR = () => {
     if (!qrImage) return;
