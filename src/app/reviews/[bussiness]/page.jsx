@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { Star, ExternalLink, CheckCircle, Sparkles } from "lucide-react";
 
-export default function CustomerReviewPage() {
+export default function CustomerReviewPage({slug}) {
+  console.log("slugslug",slug);
+  
   const [business, setBusiness] = useState("");
   const [locality, setLocality] = useState("");
   const [locationId, setLocationId] = useState("");

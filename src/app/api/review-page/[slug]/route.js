@@ -5,7 +5,10 @@ const client = new MongoClient(uri);
 
 export async function GET(req, { params }) {
   try {
-    const { slug } = params;
+    // More robust way to get the slug, especially with special characters
+    const urlParts = req.url.split('/');
+    const slug = decodeURIComponent(urlParts[urlParts.length - 1]);
+
 
     if (!slug) {
       return new Response(
