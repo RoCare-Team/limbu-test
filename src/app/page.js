@@ -487,13 +487,13 @@ export default function LimbuAILanding() {
               Book a Demo
             </button>
             <a
-              href="https://wa.me/919540384046"
+              href="https://wa.me/919289344726"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-700 transition p-2 border border-green-500 rounded-lg animate-pulse-border"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-5 h-5 fill-current"><path d="M16 .667C7.64.667.667 7.64.667 16c0 2.77.72 5.47 2.08 7.87L.667 31.333 7.2 29.28c2.31 1.26 4.93 1.92 7.6 1.92 8.36 0 15.333-6.973 15.333-15.333S24.36.667 16 .667zm0 27.2c-2.42 0-4.78-.64-6.85-1.87l-.49-.29-4.07 1.07 1.09-3.97-.32-.51c-1.24-1.94-1.9-4.18-1.9-6.6 0-6.91 5.61-12.533 12.533-12.533 6.91 0 12.533 5.623 12.533 12.533S22.91 27.867 16 27.867zm7.15-9.63c-.39-.2-2.31-1.14-2.67-1.27-.36-.13-.62-.2-.88.2-.26.39-1 1.27-1.23 1.53-.23.26-.46.29-.85.1-.39-.2-1.64-.6-3.12-1.91-1.15-1.03-1.93-2.31-2.15-2.7-.23-.39-.02-.6.17-.79.17-.17.39-.46.59-.69.2-.23.26-.39.39-.65.13-.26.07-.49-.03-.69-.1-.2-.88-2.12-1.21-2.9-.32-.78-.65-.67-.88-.68h-.76c-.26 0-.69.1-1.05.49-.36.39-1.37 1.34-1.37 3.27 0 1.93 1.41 3.79 1.61 4.05.2.26 2.78 4.24 6.73 5.95 3.95 1.72 3.95 1.15 4.66 1.08.72-.07 2.31-.94 2.64-1.85.33-.92.33-1.71.23-1.85-.1-.13-.36-.23-.75-.39z"/></svg>
-              9540384046
+              9289344726
             </a>
             
             {isLoggedIn ? (
@@ -521,13 +521,13 @@ export default function LimbuAILanding() {
           {/* Mobile: Call Now + Menu Button */}
           <div className="md:hidden flex items-center gap-3">
             <a 
-              href="tel:9540384046" 
+              href="tel:9289344726" 
               className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              9540384046
+              9289344726
             </a>
             <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-800">
               <Menu className="w-6 h-6" />
@@ -947,7 +947,7 @@ export default function LimbuAILanding() {
               <h3 className="font-bold mb-3 sm:mb-4 text-sm sm:text-base">Support</h3>
               <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
                 <li><a href="/contact" className="hover:text-white transition">Help Center</a></li>
-                <li><a href="tel:9540384046" className="hover:text-white transition">Call: 9540384046</a></li>
+                <li><a href="tel:9289344726" className="hover:text-white transition">Call: 9289344726</a></li>
               </ul>
             </div>
           </div>
@@ -996,7 +996,7 @@ export default function LimbuAILanding() {
 
       {/* Floating WhatsApp Button */}
 <a
-  href="https://wa.me/919540384046"
+  href="https://wa.me/919289344726"
   target="_blank"
   rel="noopener noreferrer"
   className="fixed bottom-5 right-5 z-50 w-16 h-16 bg-[#25D366] rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform"

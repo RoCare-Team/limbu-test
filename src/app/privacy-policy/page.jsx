@@ -168,7 +168,7 @@ export default function PolicyPage() {
               📧 <strong>Email:</strong>  info@limbu.ai
             </p>
             <p>
-              📞 <strong>Phone:</strong> +91 9540384046
+              📞 <strong>Phone:</strong> +91 9289344726
             </p>
             <p>
               🏢 <strong>Address:</strong> Unit No. 831, 8th Floor, JMD MEGAPOLIS, Sector 48, Gurugram, Haryana 122018

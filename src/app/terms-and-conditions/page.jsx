@@ -173,7 +173,7 @@ export default function TermsPage() {
               </a>
             </p>
             <p>
-              📞 <strong>Phone:</strong> +91 9540384046
+              📞 <strong>Phone:</strong> +91 9289344726
             </p>
             <p>
               🌐 <strong>Website:</strong>{" "}

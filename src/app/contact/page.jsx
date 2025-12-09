@@ -188,7 +188,7 @@ export default function ContactUs() {
                 </div>
                 <div>
                   <h2 className="text-sm sm:text-lg font-semibold text-gray-800">Phone</h2>
-                  <p className="text-gray-700 font-medium text-xs sm:text-base">+91 9540384046</p>
+                  <p className="text-gray-700 font-medium text-xs sm:text-base">+91 9289344726</p>
                 </div>
               </div>
             </div>
