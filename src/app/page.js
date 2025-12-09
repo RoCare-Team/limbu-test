@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sparkles, MessageSquare, Calendar, Send, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, X, LogIn, Link2, LayoutGrid, Menu, ChevronRight, ChevronLeft, Gift } from 'lucide-react';
+import { Sparkles, MessageSquare, Calendar, Send, ArrowRight, Star, TrendingUp, Shield, CheckCircle, PenTool, Clock, X, LogIn, Link2, LayoutGrid, Menu, ChevronRight, ChevronLeft, Gift, Video } from 'lucide-react';
 import LogoImage from "../../public/images/bg-logo.png"
 import Image from 'next/image';
 import Toast from '../components/Toast';
@@ -10,13 +10,38 @@ export default function LimbuAILanding() {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showSignupPopup, setShowSignupPopup] = useState(false);
+  const [showSignupPopup, setShowSignupPopup] = useState(false); // State for signup popup
   const [slidingTextIndex, setSlidingTextIndex] = useState(0); 
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showBookDemoModal, setShowBookDemoModal] = useState(false);
-  const [demoDetails, setDemoDetails] = useState({ name: '', contact: '', time: 'today' });
+  const [demoDetails, setDemoDetails] = useState(() => {
+    const today = new Date();
+    let initialDate = new Date(today);
+    initialDate.setHours(16, 0, 0, 0); // Set time to 4 PM
+  
+    const dayOfWeek = initialDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  
+    // If today is Sunday, set to next Monday
+    if (dayOfWeek === 0) {
+      initialDate.setDate(initialDate.getDate() + 1);
+    }
+    // If today is Saturday, set to next Monday
+    else if (dayOfWeek === 6) {
+      initialDate.setDate(initialDate.getDate() + 2);
+    }
+    // If today is a weekday and it's already past 4 PM, set to next weekday 4 PM
+    else if (today.getHours() >= 16) {
+      initialDate.setDate(initialDate.getDate() + 1);
+      // If next day is Saturday, move to Monday
+      if (initialDate.getDay() === 6) {
+        initialDate.setDate(initialDate.getDate() + 2);
+      }
+    }
+    return { name: '', contact: '', selectedDate: initialDate };
+  });
   const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
   const [toast, setToast] = useState(null);
   const [demoBooked, setDemoBooked] = useState(false);
@@ -34,11 +59,6 @@ export default function LimbuAILanding() {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
 
-    // Set default demo time based on current time
-    if (isAfter4PM) {
-      setDemoDetails(prev => ({ ...prev, time: 'tomorrow' }));
-    }
-
     // Show signup popup after a delay if not logged in
     if (!token) {
       const popupTimer = setTimeout(() => {
@@ -51,6 +71,7 @@ export default function LimbuAILanding() {
       if (e.key === 'Escape') {
         setSelectedImage(null);
         setShowVideoModal(false);
+        setSelectedVideo(null);
         setShowBookDemoModal(false);
       }
     };
@@ -88,39 +109,57 @@ export default function LimbuAILanding() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const handleBookDemoSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    if (!demoDetails.name || !demoDetails.contact) {
-      showToast("Please fill in all fields.", "error");
-      return;
-    }
-    setIsSubmittingDemo(true);
+ const handleBookDemoSubmit = useCallback(async (e) => {
+  e.preventDefault();
 
-    try {
-      const res = await fetch("/api/bookDemo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: demoDetails.name,
-          phone: demoDetails.contact,
-          seminarTime: `${demoDetails.time === 'today' ? 'Today' : 'Tomorrow'} 4:00 PM`,
-        }),
-      });
+  // Validate name & phone
+  if (!demoDetails.name || !demoDetails.contact || !demoDetails.selectedDate) {
+    showToast("Please fill in all fields.", "error");
+    return;
+  }
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Something went wrong.");
+  // Validate weekday
+  const selectedDay = demoDetails.selectedDate.getDay();
+  if (selectedDay === 0 || selectedDay === 6) {
+    showToast("Seminars are available Monday to Saturday only.", "error");
+    return;
+  }
 
-      setDemoBooked(true);
-      setTimeout(() => {
-        setShowBookDemoModal(false);
-        setDemoBooked(false); // Reset for next time
-      }, 2500);
-    } catch (error) {
-      showToast(`Error: ${error.message}`, "error");
-    } finally {
-      setIsSubmittingDemo(false);
-    }
-  }, [demoDetails]);
+  setIsSubmittingDemo(true);
+
+  try {
+    const formattedDate = demoDetails.selectedDate.toISOString().split("T")[0];
+
+    const res = await fetch("/api/bookDemo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: demoDetails.name,
+        phone: demoDetails.contact,
+        selectedDate: formattedDate, // send proper date
+        seminarTime: "4:00 PM", // fixed time
+        status: "Not Attended" // for admin panel
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Something went wrong.");
+
+    // Success
+    setDemoBooked(true);
+
+    setTimeout(() => {
+      setShowBookDemoModal(false);
+      setDemoBooked(false);
+    }, 2500);
+
+  } catch (error) {
+    showToast(`Error: ${error.message}`, "error");
+  } finally {
+    setIsSubmittingDemo(false);
+  }
+}, [demoDetails]);
+
   const handleDemoInputChange = (e) => {
     setDemoDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -170,6 +209,18 @@ export default function LimbuAILanding() {
     "https://res.cloudinary.com/dsnuzit6o/image/upload/v1763959750/tmph8ajqrjv_hpteeq.jpg",
     "https://res.cloudinary.com/dsnuzit6o/image/upload/v1764303591/tmpaqv882lt_tre9wm.jpg",
     "https://res.cloudinary.com/dsnuzit6o/image/upload/v1764306448/tmpklqlkafr_b3ebuf.jpg"
+  ];
+
+  const videoExamples = [
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257405/qb8jp2kssnrme0ctzjw97e1csr_oyza6u.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257402/replicate-prediction-9j6r4a32qdrm80ctxt3rjfh3wg_sop6cz.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765258645/WhatsApp_Video_2025-12-01_at_14.55.50_431700b7_zxrdl4.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257394/5hjbkb9v59rm80ctzkebveppv8_uf43yf.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257394/replicate-prediction-mptsge8p1nrma0ctxstbv7gw3w_hpexdq.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257375/ayb6dhfrd1rme0ctzqqamzb3r8_mfrlhi.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257376/replicate-prediction-m32c0jcsp1rme0ctxszvvth534_moiv4y.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257391/replicate-prediction-8j95jage5xrma0ctxsjrkra9e4_nrk6iq.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257391/replicate-prediction-24kcwzem45rme0ctxsnbrwaf48_grjpdv.mp4"
   ];
 
   const steps = [
@@ -307,34 +358,82 @@ export default function LimbuAILanding() {
               <>
                 <h2 className="text-2xl font-bold text-slate-800 mb-4">Book Your Free Demo</h2>
                 <form onSubmit={handleBookDemoSubmit} className="space-y-4">
-                  <input type="text" name="name" placeholder="Your Name" value={demoDetails.name} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" />
-                  <input type="tel" name="contact" placeholder="Contact Number" value={demoDetails.contact} onChange={handleDemoInputChange} required className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 mb-2">Select Seminar Time:</p>
-                    <div className={`grid ${isAfter4PM ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-                      {!isAfter4PM && (
-                        <label className={`block p-3 border rounded-lg cursor-pointer text-center transition-all ${demoDetails.time === 'today' ? 'bg-blue-100 border-blue-500 shadow-md' : 'bg-slate-50 border-slate-300 hover:border-slate-400'}`}>
-                          <input type="radio" name="time" value="today" checked={demoDetails.time === 'today'} onChange={handleDemoInputChange} className="sr-only" />
-                          <span className="font-bold">Today</span>
-                          <span className="text-sm block text-slate-500">4:00 PM</span>
-                        </label>
-                      )}
-                      <label className={`block p-3 border rounded-lg cursor-pointer text-center transition-all ${demoDetails.time === 'tomorrow' ? 'bg-blue-100 border-blue-500 shadow-md' : 'bg-slate-50 border-slate-300 hover:border-slate-400'}`}>
-                        <input type="radio" name="time" value="tomorrow" checked={demoDetails.time === 'tomorrow'} onChange={handleDemoInputChange} className="sr-only" />
-                        <span className="font-bold">Tomorrow</span>
-                        <span className="text-sm block text-slate-500">4:00 PM</span>
-                      </label>
-                    </div>
-                  </div>
-                  <button type="submit" disabled={isSubmittingDemo} className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:shadow-lg transition-all disabled:opacity-60 disabled:saturate-50">
-                    {isSubmittingDemo ? 'Submitting...' : 'Submit Request'}
-                  </button>
-                </form>
+  <input
+    type="text"
+    name="name"
+    placeholder="Your Name"
+    value={demoDetails.name}
+    onChange={handleDemoInputChange}
+    required
+    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+  />
+
+  <input
+    type="tel"
+    name="contact"
+    placeholder="Contact Number"
+    value={demoDetails.contact}
+    onChange={handleDemoInputChange}
+    required
+    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+  />
+
+  {/* Date Selection */}
+  <div>
+    <label className="block text-sm font-medium text-slate-600 mb-2">
+      Select Seminar Date (Monday - Saturday):
+    </label>
+
+    <input
+      type="date"
+      name="selectedDate"
+      value={demoDetails.selectedDate.toISOString().split("T")[0]}
+      min={new Date().toISOString().split("T")[0]}
+      onChange={(e) =>
+        setDemoDetails((prev) => ({
+          ...prev,
+          selectedDate: new Date(e.target.value),
+        }))
+      }
+      required
+      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+    />
+
+    <p className="text-sm font-medium text-slate-600 mt-2">Time: 4:00 PM</p>
+  </div>
+
+  <button
+    type="submit"
+    disabled={isSubmittingDemo}
+    className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:shadow-lg transition-all disabled:opacity-60"
+  >
+    {isSubmittingDemo ? "Submitting..." : "Submit Request"}
+  </button>
+</form>
+
               </>
             )}
           </div>
         </div>
       )}
+
+      {/* Video Modal */}
+      {selectedVideo && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div className="relative bg-black rounded-2xl shadow-2xl w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSelectedVideo(null)} className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-slate-200 transition z-10" aria-label="Close video modal">
+              <X className="w-6 h-6" />
+            </button>
+            <video src={selectedVideo} controls autoPlay preload="auto" className="w-full h-full object-contain rounded-2xl" />
+          </div>
+        </div>
+      )}
+
+
+
 
 
 
@@ -543,6 +642,34 @@ export default function LimbuAILanding() {
                     className="w-full h-full object-cover rounded-xl shadow-lg"
                   />
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Video Examples Section */}
+      <section id="video-examples" className="relative bg-slate-50 py-16 sm:py-20 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-3 sm:mb-4 px-4">
+              Stunning <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Video Creations</span>
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4">Watch our AI bring ideas to life with video.</p>
+          </div>
+          <div className="relative h-80 overflow-hidden rounded-2xl">
+            <div className="flex gap-4 animate-scroll-videos">
+              {[...videoExamples, ...videoExamples].map((videoSrc, idx) => (
+                <button
+                  key={idx}
+                  className="flex-shrink-0 w-56 h-80 cursor-pointer hover:scale-105 transition-transform group relative focus:outline-none focus:ring-4 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-slate-50 rounded-xl"
+                  onClick={() => setSelectedVideo(videoSrc)}
+                >
+                  <video src={videoSrc} loop muted autoPlay playsInline preload="auto" className="w-full h-full object-cover rounded-xl shadow-lg" />
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                    <Video className="w-12 h-12 text-white" />
+                  </div>
+                </button>
               ))}
             </div>
           </div>
@@ -766,7 +893,10 @@ export default function LimbuAILanding() {
               <div className="flex items-center gap-2 mb-3 sm:mb-4 cursor-pointer" onClick={() => handleNavigation('/dashboard')}>
                 <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-yellow-300/50 to-transparent"></div>
-                  <span className="text-lg sm:text-xl relative z-10">🍋</span>
+                  <span className="text-lg sm:text-xl relative z-10">
+                                                    <Image src={LogoImage} alt="Limbu.ai Logo" className="w-6 h-6 sm:w-8 sm:h-8" />
+
+                  </span>
                 </div>
                 <span className="font-bold text-base sm:text-lg">limbu.ai</span>
               </div>
@@ -872,6 +1002,11 @@ export default function LimbuAILanding() {
         .animate-scroll {
           animation: scroll 5s linear infinite;
         }
+        @keyframes scroll-videos {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-${videoExamples.length * (14 + 1)}rem); } /* (width + gap) * number of videos */
+        }
+        .animate-scroll-videos { animation: scroll-videos 40s linear infinite; }
         .animate-scroll:hover {
           animation-play-state: paused;
         }

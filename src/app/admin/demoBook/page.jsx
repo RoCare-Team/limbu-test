@@ -1,93 +1,123 @@
 "use client";
+
 import { useEffect, useState } from "react";
 
-export default function DemoBookings() {
+export default function DemoPage() {
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // Fetch API Data
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch("/api/bookDemo");
-      const data = await res.json();
-
-      if (data.success) {
-        // Default status for UI
-        const withStatus = data.data.map((item) => ({
-          ...item,
-          status: "Not Attend", // Default
-        }));
-
-        setBookings(withStatus);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-
-    setLoading(false);
+  // ---------------------------
+  // FETCH ALL BOOKINGS
+  // ---------------------------
+  const loadBookings = async () => {
+    const res = await fetch("/api/bookDemo");
+    const data = await res.json();
+    setBookings(data.data);
   };
 
   useEffect(() => {
-    fetchBookings();
+    loadBookings();
   }, []);
 
-  // Toggle Status: Not Attend → Attend → Not Attend
-  const toggleStatus = (id) => {
-    setBookings((prev) =>
-      prev.map((item) =>
-        item._id === id
-          ? {
-              ...item,
-              status: item.status === "Attend" ? "Not Attend" : "Attend",
-            }
-          : item
-      )
-    );
+  // ---------------------------
+  // UPDATE STATUS
+  // ---------------------------
+  const updateStatus = async (id, status) => {
+    await fetch("/api/bookDemo", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+
+    loadBookings();
   };
 
-  if (loading) return <p className="text-center p-4">Loading...</p>;
+  // ---------------------------
+  // DELETE BOOKING
+  // ---------------------------
+  const deleteBooking = async (id) => {
+    await fetch("/api/bookDemo", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
 
+    loadBookings();
+  };
+
+  // ---------------------------
+  // TABLE UI
+  // ---------------------------
   return (
-    <div className="max-w-5xl mx-auto mt-10 p-4">
-      <h2 className="text-2xl font-bold mb-4 text-center">
-        Demo Booking List
-      </h2>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Demo Bookings</h1>
 
-      <div className="overflow-x-auto shadow-xl rounded-lg">
-        <table className="w-full border border-gray-300">
-          <thead className="bg-gray-900 text-white">
+      <div className="overflow-x-auto border rounded-lg shadow">
+        <table className="w-full table-auto text-left">
+          <thead className="bg-gray-200">
             <tr>
-              <th className="p-3 border">#</th>
-              <th className="p-3 border">Name</th>
-              <th className="p-3 border">Phone</th>
-              <th className="p-3 border">Seminar Time</th>
-              <th className="p-3 border">Booked On</th>
-              <th className="p-3 border">Status</th>
+              <th className="p-3">#</th>
+              <th className="p-3">Name</th>
+              <th className="p-3">Phone</th>
+              <th className="p-3">Seminar Time</th>
+              <th className="p-3">Date</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {bookings.map((item, index) => (
-              <tr key={item._id} className="text-center">
-                <td className="p-3 border">{index + 1}</td>
-                <td className="p-3 border">{item.name}</td>
-                <td className="p-3 border">{item.phone}</td>
-                <td className="p-3 border">{item.seminarTime}</td>
-                <td className="p-3 border">
-                  {new Date(item.createdAt).toLocaleString()}
-                </td>
+            {bookings.map((b, i) => (
+              <tr key={b._id} className="border-b hover:bg-gray-50">
+                <td className="p-3">{i + 1}</td>
+                <td className="p-3">{b.name}</td>
+                <td className="p-3">{b.phone}</td>
+                <td className="p-3">{b.seminarTime}</td>
+                <td className="p-3">{b.selectedDate}</td>
 
-                <td className="p-3 border">
-                  <button
-                    onClick={() => toggleStatus(item._id)}
-                    className={`px-4 py-1 rounded-md text-white font-semibold ${
-                      item.status === "Attend"
+                {/* Status Badge */}
+                <td className="p-3">
+                  <span
+                    className={`px-3 py-1 rounded-lg text-white text-sm ${
+                      b.status === "Attended"
                         ? "bg-green-600"
                         : "bg-red-600"
                     }`}
                   >
-                    {item.status}
-                  </button>
+                    {b.status}
+                  </span>
+                </td>
+
+                {/* Action Buttons */}
+                <td className="p-3">
+                  <div className="flex gap-2">
+
+                    {/* Show only when NOT ATTENDED */}
+                    {b.status === "Not Attended" && (
+                      <>
+                        <button
+                          onClick={() => updateStatus(b._id, "Attended")}
+                          className="bg-green-600 text-white px-3 py-1 rounded"
+                        >
+                          Mark Attended
+                        </button>
+
+                        <button
+                          onClick={() => updateStatus(b._id, "Not Attended")}
+                          className="bg-yellow-600 text-white px-3 py-1 rounded"
+                        >
+                          Not Attended
+                        </button>
+                      </>
+                    )}
+
+                    {/* Delete Button (Always Show) */}
+                    <button
+                      onClick={() => deleteBooking(b._id)}
+                      className="bg-red-700 text-white px-3 py-1 rounded"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
