@@ -1249,7 +1249,7 @@ const NavLinks = ({ isAuthenticated }) => {
             <NavLinks isAuthenticated={true} />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 border">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
             {/* Left side: Title and Welcome Message */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
