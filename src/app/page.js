@@ -418,19 +418,34 @@ export default function LimbuAILanding() {
       )}
 
       {/* Video Modal */}
-      {selectedVideo && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn"
-          onClick={() => setSelectedVideo(null)}
-        >
-          <div className="relative bg-black rounded-2xl shadow-2xl w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setSelectedVideo(null)} className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-slate-200 transition z-10" aria-label="Close video modal">
-              <X className="w-6 h-6" />
-            </button>
-            <video src={selectedVideo} controls autoPlay preload="auto" className="w-full h-full object-contain rounded-2xl" />
-          </div>
-        </div>
-      )}
+   {selectedVideo && (
+  <div
+    className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+    onClick={() => setSelectedVideo(null)}
+  >
+    <div
+      className="relative bg-black rounded-2xl shadow-2xl w-full max-w-4xl aspect-video mt-10 mb-10 max-h-[95vh]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={() => setSelectedVideo(null)}
+        className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-slate-200 transition z-10"
+        aria-label="Close video modal"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      <video
+        src={selectedVideo}
+        controls
+        autoPlay
+        preload="auto"
+        className="w-full h-full object-contain rounded-2xl"
+      />
+    </div>
+  </div>
+)}
+
 
 
 
