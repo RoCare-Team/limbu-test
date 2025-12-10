@@ -543,6 +543,19 @@ export default function LimbuAILanding() {
         </div>
       </header>
 
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold overflow-hidden whitespace-nowrap shadow-lg">
+        <div className="flex gap-14 animate-scroll py-3">
+          <span className="text-sm sm:text-base">🎄 Merry Christmas & Happy New Year — Flat 50% Off! 🎁</span>
+          <span className="text-sm sm:text-base">🤖 AI Post Creation: only 80 coins!</span>
+          <span className="text-sm sm:text-base">🚀 GMB Posting: only 20 coins!</span>
+
+          {/* Duplicate for seamless scroll */}
+          <span className="text-sm sm:text-base">🎄 Merry Christmas & Happy New Year — Flat 50% Off! 🎁</span>
+          <span className="text-sm sm:text-base">🤖 AI Post Creation: only 80 coins!</span>
+          <span className="text-sm sm:text-base">🚀 GMB Posting: only 20 coins!</span>
+        </div>
+      </div>
+
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-white z-50 p-6 md:hidden">
@@ -1027,7 +1040,7 @@ export default function LimbuAILanding() {
           100% { transform: translateX(-50%); }
         }
         .animate-scroll {
-          animation: scroll 5s linear infinite;
+          animation: scroll 20s linear infinite;
         }
         @keyframes scroll-videos {
           0% { transform: translateX(0); }
