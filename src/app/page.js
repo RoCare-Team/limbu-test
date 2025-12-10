@@ -303,6 +303,7 @@ export default function LimbuAILanding() {
             <button onClick={() => setShowSignupPopup(false)} className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-slate-200 transition">
               <X className="w-6 h-6" />
             </button>
+            
             <div className="text-yellow-300 mb-4">
               <Gift className="w-16 h-16 mx-auto animate-bounce" />
             </div>
