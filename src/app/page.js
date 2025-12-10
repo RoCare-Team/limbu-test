@@ -45,6 +45,7 @@ export default function LimbuAILanding() {
   const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
   const [toast, setToast] = useState(null);
   const [demoBooked, setDemoBooked] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
   const now = new Date();
   const isAfter4PM = now.getHours() >= 16; // 4 PM
@@ -89,6 +90,10 @@ export default function LimbuAILanding() {
     }, 3000); // Change text every 3 seconds
     return () => clearInterval(sliderInterval);
   }, []);
+
+  const handleVideoEnd = () => {
+    setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videoExamples.length);
+  };
 
   const handleNavigation = (path) => {
     if (isLoggedIn) {
@@ -212,12 +217,12 @@ export default function LimbuAILanding() {
   ];
 
   const videoExamples = [
-    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257405/qb8jp2kssnrme0ctzjw97e1csr_oyza6u.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257402/replicate-prediction-9j6r4a32qdrm80ctxt3rjfh3wg_sop6cz.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765258645/WhatsApp_Video_2025-12-01_at_14.55.50_431700b7_zxrdl4.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257394/5hjbkb9v59rm80ctzkebveppv8_uf43yf.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257394/replicate-prediction-mptsge8p1nrma0ctxstbv7gw3w_hpexdq.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257375/ayb6dhfrd1rme0ctzqqamzb3r8_mfrlhi.mp4",
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257405/qb8jp2kssnrme0ctzjw97e1csr_oyza6u.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257376/replicate-prediction-m32c0jcsp1rme0ctxszvvth534_moiv4y.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257391/replicate-prediction-8j95jage5xrma0ctxsjrkra9e4_nrk6iq.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257391/replicate-prediction-24kcwzem45rme0ctxsnbrwaf48_grjpdv.mp4"
@@ -303,7 +308,7 @@ export default function LimbuAILanding() {
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">Hurry Up!</h2>
             <p className="text-white/90 text-lg mb-6">
-              Sign up now to get <strong className="text-yellow-300">1000 bonus coins</strong> and create amazing posts instantly!
+              Sign up now to get <strong className="text-yellow-300">500 bonus coins</strong> and create amazing posts instantly!
             </p>
             <button 
               onClick={() => window.location.href = '/login'}
@@ -325,7 +330,7 @@ export default function LimbuAILanding() {
             </button>
             <iframe
               className="w-full h-full rounded-2xl"
-              src="https://www.youtube.com/embed/gtgtJ0A9cYs?si=-FWvuKaSMpuZOdhQ"
+              src="https://www.youtube.com/embed/aSwXK9wuCNk?autoplay=1"
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -536,24 +541,6 @@ export default function LimbuAILanding() {
         </div>
       </header>
 
-      {/* Price Drop Banner */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold overflow-hidden whitespace-nowrap shadow-lg">
-  <div className="flex gap-14 animate-marquee py-3">
-    
-    <span className="text-sm sm:text-base">🎄 Merry Christmas & Happy New Year — Flat 50% Off! 🎁</span>
-    <span className="text-sm sm:text-base">🤖 AI Post Creation: only 80 coins!</span>
-    <span className="text-sm sm:text-base">🚀 GMB Posting: only 20 coins!</span>
-
-     <span className="text-sm sm:text-base">🎄 Merry Christmas & Happy New Year — Flat 50% Off! 🎁</span>
-    <span className="text-sm sm:text-base">🤖 AI Post Creation: only 80 coins!</span>
-    <span className="text-sm sm:text-base">🚀 GMB Posting: only 20 coins!</span>
-    
-  </div>
-</div>
-
-
-
-
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-white z-50 p-6 md:hidden">
@@ -589,8 +576,22 @@ export default function LimbuAILanding() {
       )}
 
       {/* Hero Section */}
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 md:pt-20 pb-16 sm:pb-24 md:pb-32">
-        <div className="text-center max-w-4xl mx-auto">
+      <section className="relative h-[80vh] md:h-screen w-full flex items-center justify-center overflow-hidden">
+        <video
+          autoPlay
+          muted
+          playsInline
+          onEnded={handleVideoEnd}
+          key={currentVideoIndex}
+          className="absolute z-0 w-auto min-w-full min-h-full max-w-none transition-opacity duration-1000 ease-in-out"
+          style={{ opacity: 1 }}
+        >
+          <source src={videoExamples[currentVideoIndex]} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        {/* This second video element is for preloading and smooth transition, but a simple opacity transition on one element is cleaner. */}
+        <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
+        <div className="relative z-20 text-center max-w-4xl mx-auto px-4 sm:px-6">
           {/* Sliding Text Badge */}
           <div className="relative h-10 mb-6 sm:mb-8 flex items-center justify-center">
             {slidingTexts.map((item, index) => (
@@ -608,16 +609,16 @@ export default function LimbuAILanding() {
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
-            <span className="text-slate-900">Google Business Profile</span>
+            <span className="text-white">Google Business Profile</span>
             <br />
-            <span className="text-slate-900">Management </span>
+            <span className="text-white">Management </span>
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               On Autopilot
             </span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
+          <p className="text-base sm:text-lg md:text-xl text-slate-200 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
             Create AI-powered posts, schedule automatically, and manage reviews. 
             <strong> Save 10+ hours every week</strong> with smart automation.
           </p>
@@ -640,19 +641,6 @@ export default function LimbuAILanding() {
             </button>
           </div>
           
-          {/* <p className="text-xs sm:text-sm text-slate-500 mt-3 sm:mt-4 px-4">No credit card required • Free 7-day trial</p> */}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mt-16 sm:mt-20 md:mt-24">
-          {stats.map((stat, idx) => (
-            <div key={idx} className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center shadow-lg border border-slate-100">
-              <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1 sm:mb-2">
-                {stat.value}
-              </div>
-              <div className="text-xs sm:text-sm text-slate-600 font-medium">{stat.label}</div>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -1036,10 +1024,6 @@ export default function LimbuAILanding() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        @keyframes marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
         .animate-scroll {
           animation: scroll 5s linear infinite;
         }
@@ -1050,9 +1034,6 @@ export default function LimbuAILanding() {
         .animate-scroll-videos { animation: scroll-videos 40s linear infinite; }
         .animate-scroll:hover {
           animation-play-state: paused;
-        }
-        .animate-marquee {
-          animation: marquee 25s linear infinite;
         }
         @keyframes fadeIn {
           from {

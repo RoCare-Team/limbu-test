@@ -134,3 +134,22 @@ export async function deletePostFromGmbAction(payload) {
 export const downloadImageAction = async (imageUrl) => {
   return await fetch(`/api/downloadImage?url=${encodeURIComponent(imageUrl)}`);
 };
+
+export async function generateVideoAction(payload) {
+  try {
+    const res = await fetch("/api/video-generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    return data; // contains { success, data, error }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
