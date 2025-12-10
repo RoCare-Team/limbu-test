@@ -315,6 +315,26 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
               </button>
             </div>
           )}
+
+          {post.status === "posted" && (
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3">
+              <button
+                onClick={() => handlePost(post)}
+                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
+              >
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                Repost Now
+              </button>
+              <button
+                onClick={() => onUpdateStatus(post)}
+                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
+              >
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                Schedule Again
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -1086,10 +1106,6 @@ export default function PostManagementPage() {
       showToast("Failed to download image", "error");
     }
   };
-
-
-
-
   const handleShare = async (post) => {
     if (navigator.share) {
       try {
@@ -1130,7 +1146,7 @@ export default function PostManagementPage() {
         </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 space-y-8">
         {toast && <Toast message={toast.message} type={toast.type} />}
         {isGenerating && <LoadingOverlay countdown={countdown} />}
         {showLocationModal && (
@@ -1197,7 +1213,6 @@ export default function PostManagementPage() {
         )}
         {showSuccess && <SuccessOverlay onComplete={() => setShowSuccess(false)} postsCount={postsGeneratedCount} />}
 
-
 {/* <div className="marquee-container w-full max-w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 text-black font-bold overflow-hidden overflow-x-hidden whitespace-nowrap rounded-lg shadow-lg py-3">
 
   <div className="marquee-content flex gap-16 whitespace-nowrap animate-marquee">
@@ -1214,10 +1229,6 @@ export default function PostManagementPage() {
   </div>
 
 </div> */}
-
-
-
-
 
         <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl border-4 border-white">
           <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
