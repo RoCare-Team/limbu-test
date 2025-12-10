@@ -217,6 +217,7 @@ export default function LimbuAILanding() {
   ];
 
   const videoExamples = [
+    "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765348863/x7xb3hqikxbqerd09rqu.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257402/replicate-prediction-9j6r4a32qdrm80ctxt3rjfh3wg_sop6cz.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765258645/WhatsApp_Video_2025-12-01_at_14.55.50_431700b7_zxrdl4.mp4",
     "https://res.cloudinary.com/dmjnssvi4/video/upload/v1765257394/5hjbkb9v59rm80ctzkebveppv8_uf43yf.mp4",
@@ -303,7 +304,7 @@ export default function LimbuAILanding() {
             <button onClick={() => setShowSignupPopup(false)} className="absolute -top-4 -right-4 w-10 h-10 bg-white text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-slate-200 transition">
               <X className="w-6 h-6" />
             </button>
-            
+
             <div className="text-yellow-300 mb-4">
               <Gift className="w-16 h-16 mx-auto animate-bounce" />
             </div>
