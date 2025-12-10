@@ -964,6 +964,7 @@ export default function PostManagementPage() {
     }
     setPostToAction(null); // Clear postToAction after handling
   };
+  
 
   const handlePost = async (post) => {
     // First check if user has approved the post
