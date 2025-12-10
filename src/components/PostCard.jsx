@@ -185,6 +185,12 @@ const PostCard = ({
               >
                 <LabelImportantIcon className="w-4 h-4" /> Post to GMB
               </button>
+               <button
+                onClick={() => handlePost(post)}
+                className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LabelImportantIcon className="w-4 h-4" /> Schedule to GMB
+              </button>
             </div>
           )}
 

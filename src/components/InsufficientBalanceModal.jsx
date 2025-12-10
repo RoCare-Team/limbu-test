@@ -8,7 +8,7 @@ const InsufficientBalanceModal = ({ onClose, onRecharge, walletBalance, required
           <h3 className="text-2xl sm:text-3xl font-black text-gray-900">Insufficient Balance!</h3>
           <div className="bg-red-50 border-2 border-red-300 rounded-xl p-3 sm:p-4">
             <p className="text-red-800 font-semibold text-sm sm:text-base">Current Balance: {walletBalance} coins</p>
-            <p className="text-red-600 text-xs sm:text-sm mt-1">Required: {required} coins</p>
+            <p className="text-red-600 text-xs sm:text-sm mt-1">Required: {required || 80} coins</p>
           </div>
           <p className="text-gray-600 text-sm sm:text-base">Please recharge your wallet to continue</p>
           <div className="flex flex-col sm:flex-row gap-3">

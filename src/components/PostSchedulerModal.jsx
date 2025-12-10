@@ -23,7 +23,7 @@ export default function PostSchedulerModal({ isOpen, onClose, session }) {
 
   if (!isOpen) return null;
 
-  const COST_PER_POST = 150;
+  const COST_PER_POST = 80;
 
   const totalCost = numPosts * COST_PER_POST;
 

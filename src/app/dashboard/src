@@ -1025,24 +1025,27 @@ const NavLinks = ({ isAuthenticated }) => {
       const allListings = accounts.flatMap((acc) => acc.listings);
       
       
-  const locationDetails = allListings.map(item => {
-    const locationId = item.name.split("/")[1];
-    const accountId = item.accountId || "";
-    const locality = item.storefrontAddress?.locality || "";
-    const address = item.storefrontAddress?.addressLines?.[0] || "";
-    const title = item.title || "";
-    const isVerified = item.hasVoiceOfMerchant === true;
-    const websiteUrl = item.websiteUri || "";
-    const reviewUri = item.metadata?.newReviewUri || "";
+      const locationDetails = allListings.map(item => {
+        const locationId = item.name.split("/")[1];
+        const accountId = item.accountId || "";
+        const locality = item.storefrontAddress?.locality || "";
+        const address = item.storefrontAddress?.addressLines?.[0] || "";
+        const title = item.title || "";
+        const isVerified = item.hasVoiceOfMerchant === true;
+        const websiteUrl = item.websiteUri || "";
+        const reviewUri = item.metadata?.newReviewUri || "";
 
-    return { locationId, accountId, locality, address, title, websiteUrl, reviewUri, isVerified };
-  });
 
-  if (allListings.length > 0) {
-    localStorage.setItem("reviewUrl", allListings[0].metadata?.newReviewUri || "");
-  }
+        return { locationId, accountId, locality, address, title, websiteUrl, reviewUri, isVerified };
+      });
 
-  localStorage.setItem("locationDetails", JSON.stringify(locationDetails));
+      
+   localStorage.setItem("reviewUrl",allListings[0].metadata.newReviewUri)
+      
+
+      
+
+      localStorage.setItem("locationDetails", JSON.stringify(locationDetails));
 
       const total = allListings.length;
       const verified = allListings.filter((l) => l.hasVoiceOfMerchant === true).length;

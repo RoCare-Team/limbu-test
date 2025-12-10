@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, MapPin } from 'lucide-react';
+import { CheckCircle, MapPin, XCircle } from 'lucide-react';
 
 const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select Locations", confirmText = "Confirm" }) => {
     const [selectedLocations, setSelectedLocations] = useState([]);
@@ -33,12 +33,15 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
     };
   
     const handleSelectAll = () => {
-      if (selectedLocations.length === locations.length) {
+      const verifiedLocations = locations.filter(loc => loc.isVerified);
+      if (selectedLocations.length === verifiedLocations.length) {
         setSelectedLocations([]); // Deselect all
       } else {
-        setSelectedLocations(locations.map(loc => loc.id)); // Select all
+        setSelectedLocations(verifiedLocations.map(loc => loc.id)); // Select all verified
       }
     };
+    const verifiedLocations = locations.filter(loc => loc.isVerified);
+    const unverifiedLocations = locations.filter(loc => !loc.isVerified);
 
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -48,16 +51,28 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
        mt-10                   /* 🔥 top margin */
        overflow-y-auto         /* scroll inside */
        p-6 sm:p-8 
-       border-4 border-blue-200 
+       border-4 border-blue-200
        animate-scale-in">
   
-  
-          <div className="space-y-4 sm:space-y-6">
-            <div className="text-center">
-              <h3 className="text-2xl sm:text-3xl font-black text-gray-900">{title}</h3>
+        {/* Modal Header */}
+        <div className="relative text-center mb-6 sm:mb-8 flex-shrink-0">
+          <h3 className="text-2xl sm:text-3xl font-black text-gray-900">{title}</h3>
+          <button
+            onClick={onClose}
+            className="absolute top-1/2 -translate-y-1/2 right-0 p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+            aria-label="Close modal"
+          >
+            <XCircle className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="space-y-4 sm:space-y-6 flex-grow overflow-y-auto">
+          <div className="text-center">
               {title.includes("Post") && (
-                <p className="text-gray-600 text-sm sm:text-base mt-2">Choose locations to post (50 coins per location)</p>
+                <p className="text-gray-600 text-sm sm:text-base mt-2">Choose locations to post (20 coins per location)</p>
               )}
+              {/* Checkmark options for Post and Photo */}
               <div className="flex justify-center gap-4 sm:gap-6 mt-4">
                 <div className="flex items-center">
                   <input
@@ -81,20 +96,22 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
                   <label htmlFor="photo-checkbox" className="ml-2 text-gray-700 font-medium cursor-pointer">Photo</label>
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-center">
+              {/* Select All checkbox */}
+              <div className="mt-4 flex items-center justify-end">
                 <input
                   type="checkbox"
                   id="select-all-checkbox"
-                  checked={locations.length > 0 && selectedLocations.length === locations.length}
+                  checked={verifiedLocations.length > 0 && selectedLocations.length === verifiedLocations.length}
                   onChange={handleSelectAll}
                   className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
                 <label htmlFor="select-all-checkbox" className="ml-2 text-gray-700 font-medium cursor-pointer">
-                  {selectedLocations.length === locations.length ? 'Deselect All' : 'Select All'}
+                  {selectedLocations.length === verifiedLocations.length ? 'Deselect All' : 'Select All'}
                 </label>
               </div>
             </div>
-  
+            
+            {/* Summary Card */}
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -103,13 +120,13 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 text-right">Cost per Location</p>
-                  <p className="text-2xl font-black text-green-600">50 coins</p>
+                  <p className="text-2xl font-black text-green-600">20 coins</p>
                 </div>
               </div>
             </div>
-  
+            
             <div className="max-h-[300px] sm:max-h-[400px] overflow-y-auto space-y-3">
-              {locations.map((location) => (
+              {verifiedLocations.map((location) => (
                 <div
                   key={location.id}
                   onClick={() => toggleLocation(location.id)}
@@ -136,10 +153,37 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
                         </p>
                       </div>
                     </div>
-                    <span className="text-blue-600 font-bold text-sm">50 coins</span>
+                    <span className="text-blue-600 font-bold text-sm">20 coins</span>
                   </div>
                 </div>
               ))}
+              {unverifiedLocations.length > 0 && (
+                <div className="pt-4">
+                  <p className="text-sm font-bold text-gray-500 mb-2 border-t pt-3">Unverified Locations (Cannot be selected)</p>
+                  {unverifiedLocations.map((location) => (
+                    <div
+                      key={location.id}
+                      className="p-4 rounded-xl border-2 border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed mt-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-gray-400">
+                            <XCircle className="w-4 h-4 text-gray-400" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-600 text-sm sm:text-base">{location.name}</p>
+                            <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {location.address}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-gray-500 font-bold text-sm">20 coins</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
   
             {selectedLocations.length > 0 && (
@@ -148,12 +192,12 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
                   <span className="text-lg sm:text-xl">💡</span>
                   <span>
                     <strong>Selected:</strong> {selectedLocations.length} location{selectedLocations.length > 1 ? 's' : ''}
-                    {' '}• Total posting cost: {selectedLocations.length * 50} coins
+                    {' '}• Total posting cost: {selectedLocations.length * 20} coins
                   </span>
                 </p>
               </div>
             )}
-  
+            
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => onConfirm(selectedLocations, getPayload())}
@@ -163,7 +207,7 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
                 {confirmText} to {selectedLocations.length} Location{selectedLocations.length !== 1 ? 's' : ''}
               </button>
               <button
-                onClick={onClose}
+                onClick={onClose} // Close button
                 className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 sm:py-4 rounded-xl font-bold hover:bg-gray-300 transition-all text-sm sm:text-base"
               >
                 Cancel

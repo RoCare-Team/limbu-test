@@ -22,6 +22,13 @@ import {
   ArrowLeft,
   Send,
   XCircle,
+  Download,
+  Share2,
+  Edit3,
+  Save,
+  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -30,15 +37,290 @@ import Toast from "../../components/Toast";
 import LocationSelectionModal from "../../components/LocationSelectionModal";
 import InsufficientBalanceModal from "../../components/InsufficientBalanceModal";
 import LoadingOverlay from "../../components/LoadingOverlay";
-import SuccessOverlay from "../../components/SuccessOverlay";
+import SuccessOverlay from "../../components/SuccessOverlay"; // Corrected import path
 import PostInput from "@/components/PostInput";
 import TabButton from "@/components/TabButton";
-import PostCard from "../../components/PostCard";
 import RejectReasonModal from "../../components/RejectReasonModal";
 import "./PostManagement.module.css";
 
 
+// Scheduling Modal Component
+const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Date only
+
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    onConfirm(post._id, "scheduled", selectedDate);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Schedule Post</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <p className="text-gray-600 mb-4">Select a date to schedule this post.</p>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          min={new Date().toISOString().split("T")[0]} // Disables past dates
+          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-300">
+            Cancel
+          </button>
+          <button onClick={handleConfirm} className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700">
+            Confirm & Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main Component
+// Post Card Component (Moved here from PostCard.jsx to be local as per user's request)
+const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject, handleDownload, handleShare, handlePost, onEditDescription, handleDeleteFromGMB }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [showFull, setShowFull] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(post?.description || "");
+
+  const handleSave = () => {
+    onEditDescription(post._id, editedDescription);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditedDescription(post?.description || "");
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-gray-200 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all">
+      <a href={post.aiOutput} target="_blank" rel="noopener noreferrer">
+        <div className="relative group">
+          <img
+            src={post?.aiOutput || "https://via.placeholder.com/400"}
+            alt="Post"
+            className="w-full h-48 sm:h-64 object-cover group-hover:opacity-90 transition-opacity"
+          />
+
+          <div
+            className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black shadow-xl backdrop-blur-sm ${
+              post.status === "pending"
+                ? "bg-yellow-500/90 text-white"
+                : post.status === "approved"
+                ? "bg-green-500/90 text-white"
+                : post.status === "posted"
+                ? "bg-purple-600/90 text-white"
+                : "bg-blue-500/90 text-white"
+            }`}
+          >
+            {post.status.toUpperCase()}
+          </div>
+
+          <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex gap-2 sm:gap-3 transition-opacity">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                handleDownload(post);
+              }}
+              className="p-1.5 sm:p-2 bg-white/80 hover:bg-white rounded-full shadow-md backdrop-blur-sm transition"
+              title="Download"
+            >
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                handleShare(post);
+              }}
+              className="p-1.5 sm:p-2 bg-white/80 hover:bg-white rounded-full shadow-md backdrop-blur-sm transition"
+              title="Share"
+            >
+              <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+            </button>
+          </div>
+        </div>
+      </a>
+
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+        <div>
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <strong className="text-gray-900 text-sm sm:text-base font-bold flex items-center gap-2">
+              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+              Description
+            </strong>
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200 transition"
+              >
+                <Edit3 className="w-3 h-3" />
+                Edit
+              </button>
+            )}
+          </div>
+
+          {isEditing ? (
+            <div className="space-y-2 sm:space-y-3">
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full p-2.5 sm:p-3 border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none text-gray-800 text-xs sm:text-sm min-h-[100px] sm:min-h-[120px]"
+                rows={5}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSave}
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-xs sm:text-sm font-bold hover:shadow-lg transition"
+                >
+                  <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-bold hover:bg-gray-300 transition"
+                >
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className={`text-xs sm:text-sm text-gray-700 leading-relaxed ${showFull ? "" : "line-clamp-3"}`}>
+                {post?.description || "No description available"}
+              </p>
+              {post?.description?.length > 150 && (
+                <button
+                  onClick={() => setShowFull(!showFull)}
+                  className="flex items-center gap-1 text-blue-600 text-xs sm:text-sm font-semibold mt-2 hover:text-blue-700"
+                >
+                  {showFull ? <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                  {showFull ? "Show Less" : "Show More"}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        <p className="text-xs text-gray-500 flex items-center gap-1 pt-2 border-t border-gray-100">
+          <Calendar className="w-3 h-3" />
+          Created: {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : "N/A"}
+        </p>
+
+        <div className="pt-2 sm:pt-3 space-y-2 sm:space-y-3">
+          {post.status === "pending" && (
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <button
+                onClick={() => onUpdateStatus(post._id, "approved")}
+                className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold hover:shadow-xl transition-all"
+              >
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                Approve
+              </button>
+              <button
+                onClick={() => onReject(post._id)}
+                className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-red-500 to-rose-600 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold hover:shadow-xl transition-all"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                Reject
+              </button>
+            </div>
+          )}
+
+          {post.status === "approved" && (
+            <div className="space-y-2 sm:space-y-3">
+              {/* Checkbox for Post/Photo selection */}
+              <div className="flex justify-center gap-4 sm:gap-6 pt-2 pb-2">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`post-checkbox-${post._id}`}
+                    checked={post.checkmark?.includes('post') ?? true}
+                    onChange={() => onEditDescription(post._id, post.description, 'post')}
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor={`post-checkbox-${post._id}`} className="ml-2 text-gray-700 font-medium cursor-pointer">Post</label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`photo-checkbox-${post._id}`}
+                    checked={post.checkmark?.includes('photo') ?? true}
+                    onChange={() => onEditDescription(post._id, post.description, 'photo')}
+                    className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                  />
+                  <label htmlFor={`photo-checkbox-${post._id}`} className="ml-2 text-gray-700 font-medium cursor-pointer">Photo</label>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <button
+                  onClick={() => handlePost(post)}
+                  className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all cursor-pointer"
+                >
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Post to GMB
+                </button>
+                <div className="flex flex-col gap-2 mt-3">
+  <button
+    onClick={() => onUpdateStatus(post)}
+    className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl 
+    text-xs sm:text-sm font-black hover:shadow-xl transition-all cursor-pointer whitespace-nowrap"
+  >
+    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+    Schedule Post...
+  </button>
+</div>
+
+              </div>
+            </div>
+          )}
+
+          {post.status === "scheduled" && (
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3 sm:space-y-4">
+              <div className="bg-white rounded-lg p-2.5 sm:p-3 border border-blue-200">
+                <p className="text-xs sm:text-sm text-gray-700 font-semibold flex items-center gap-2 mb-1">
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+                  Scheduled for:
+                </p>
+                <p className="text-blue-700 font-black text-base sm:text-lg">
+                  {post.scheduledDate
+                    ? new Date(post.scheduledDate).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Not set"}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handlePost(post)}
+                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
+              >
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                Post Now
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function PostManagementPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiResponse, setAiResponse] = useState(null);
@@ -58,7 +340,6 @@ export default function PostManagementPage() {
   const [logo, setLogo] = useState(null);
   const [toast, setToast] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
   const [postsGeneratedCount, setPostsGeneratedCount] = useState(0);
 
   const [userAssets, setUserAssets] = useState([]);
@@ -67,6 +348,10 @@ export default function PostManagementPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [postToAction, setPostToAction] = useState(null);
   const [showDeleteLocationModal, setShowDeleteLocationModal] = useState(false);
+  const [isPosting, setIsPosting] = useState(false); // Moved here from PostCard
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [postToSchedule, setPostToSchedule] = useState(null);
+  const [scheduledDateForLocations, setScheduledDateForLocations] = useState(null); // New state for selected date
 
   const [assetId, setAssetId] = useState(null);
   const [selectedAssets, setSelectedAssets] = useState([]);
@@ -147,7 +432,6 @@ export default function PostManagementPage() {
   useEffect(() => { fetchUserAssets(); }, [fetchUserAssets]);
 
 
-
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -165,7 +449,7 @@ export default function PostManagementPage() {
   const tabs = [
     { id: "total", label: "Total Posts", shortLabel: "Total", icon: ImageIcon, count: allCounts.total },
     { id: "pending", label: "Pending", shortLabel: "Pending", icon: Clock, count: allCounts.pending },
-    { id: "approved", label: "Approved", shortLabel: "Approved", icon: CheckCircle, count: allCounts.approved },
+    { id: "approved", label: "Approved", shortLabel: "Approved", icon: CheckCircle, count: allCounts.approved }, // Corrected icon
     { id: "rejected", label: "Rejected", shortLabel: "Rejected", icon: XCircle, count: allCounts.rejected },
     { id: "scheduled", label: "Scheduled", shortLabel: "Scheduled", icon: Calendar, count: allCounts.scheduled },
     { id: "posted", label: "Posted", shortLabel: "Posted", icon: Send, count: allCounts.posted },
@@ -226,9 +510,9 @@ export default function PostManagementPage() {
       const walletBalance = userData.wallet || 0;
       setUserWallet(walletBalance);
 
-      // Check if user has sufficient balance for AI generation (150 coins)
-      if (walletBalance < 150) {
-        setRequiredCoins(150);
+      // Check if user has sufficient balance for AI generation (80 coins)
+      if (walletBalance < 80) {
+        setRequiredCoins(80);
         setShowInsufficientBalance(true);
         return;
       }
@@ -282,9 +566,9 @@ export default function PostManagementPage() {
         throw new Error(postData.error || "Failed to save post in database.");
       }
 
-      // Deduct 150 coins for AI generation
+      // Deduct 80 coins for AI generation
       const walletData = await deductFromWalletAction(userId, {
-        amount: 150,
+        amount: 80,
         type: "deduct",
         reason: "image_generated",
         metadata: {
@@ -297,8 +581,8 @@ export default function PostManagementPage() {
         console.warn("Wallet deduction failed:", walletData.error);
         showToast(walletData.error, "error");
       } else {
-        showToast("150 coins deducted for AI generation ✅", "success");
-        setUserWallet((prev) => Math.max(0, prev - 150));
+        showToast("80 coins deducted for AI generation ✅", "success");
+        setUserWallet((prev) => Math.max(0, prev - 80));
       }
 
       // Update frontend state
@@ -340,9 +624,9 @@ export default function PostManagementPage() {
       const walletBalance = userData.wallet || 0;
       setUserWallet(walletBalance);
 
-      // Check if user has sufficient balance for AI generation (150 coins)
-      if (walletBalance < 150) {
-        setRequiredCoins(150);
+      // Check if user has sufficient balance for AI generation (80 coins)
+      if (walletBalance < 80) {
+        setRequiredCoins(80);
         setShowInsufficientBalance(true);
         return;
       }
@@ -406,9 +690,9 @@ export default function PostManagementPage() {
         throw new Error(postData.error || "Failed to save post in database.");
       }
 
-      // Deduct 150 coins for AI generation
+      // Deduct 80 coins for AI generation
       const walletData = await deductFromWalletAction(userId, {
-        amount: 150,
+        amount: 80,
         type: "deduct",
         reason: "image_generated",
         metadata: {
@@ -421,8 +705,8 @@ export default function PostManagementPage() {
         console.warn("Wallet deduction failed:", walletData.error);
         showToast(walletData.error, "error");
       } else {
-        showToast("150 coins deducted for AI generation ✅", "success");
-        setUserWallet((prev) => Math.max(0, prev - 150));
+        showToast("80 coins deducted for AI generation ✅", "success");
+        setUserWallet((prev) => Math.max(0, prev - 80));
       }
 
       // Update frontend state
@@ -451,22 +735,35 @@ export default function PostManagementPage() {
     setScheduleDates((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleUpdateStatus = async (id, newStatus) => {
-    const scheduleDate = scheduleDates[id];
-    const userId = localStorage.getItem("userId");
+  // Handler for when a date is confirmed in the ScheduleModal
+  const handleScheduleDateConfirmed = (postId, status, selectedDate) => {
+    setScheduledDateForLocations(selectedDate); // Store the selected date
+    setPostToAction(posts.find(p => p._id === postId)); // Set the post to be scheduled
+    setShowLocationModal(true); // Open the location selection modal
+    setIsScheduleModalOpen(false); // Close the date picker modal
+  };
 
-    if (newStatus === "scheduled" && !scheduleDate) {
-      showToast("Please select a schedule date!", "error");
+
+  const handleUpdateStatus = async (postOrId, newStatus, scheduleDate) => {
+    const postId = typeof postOrId === 'string' ? postOrId : postOrId._id;
+
+    // If the action is to open the schedule modal
+    if (typeof postOrId === 'object' && !newStatus) {
+      setPostToSchedule(postOrId);
+      setIsScheduleModalOpen(true);
       return;
     }
 
+    const userId = localStorage.getItem("userId");
+
     try {
       const data = await updatePostStatusAction({
-        id,
+        id: postId,
         status: newStatus,
         scheduledDate: scheduleDate,
         userId: userId,
       });
+
       if (!data.success) {
         showToast(data.error || "Failed to update post", "error");
         return;
@@ -475,7 +772,7 @@ export default function PostManagementPage() {
       showToast("Post Updated Successfully! ✅");
       setPosts((prev) =>
         prev.map((p) =>
-          p._id === id ? { ...p, status: newStatus, scheduledDate: data.data.scheduledDate } : p
+          p._id === postId ? { ...p, status: newStatus, scheduledDate: data.data.scheduledDate, locations: data.data.locations } : p
         )
       );
       await fetchPosts(activeTab);
@@ -508,17 +805,7 @@ export default function PostManagementPage() {
     }
   };
 
-  const handlePost = async (post) => {
-    // First check if user has approved the post
-    if (post.status !== "approved" && post.status !== "scheduled" && post.status !== "posted") {
-      showToast("Please approve the post first!", "error");
-      return;
-    }
 
-    // Set the post to be actioned and open the location modal
-    setPostToAction(post);
-    setShowLocationModal(true);
-  };
 
   const handleDeleteFromGMB = async (post) => {
     // First, check if the post has been published anywhere.
@@ -531,8 +818,8 @@ export default function PostManagementPage() {
     setPostToAction(post);
     setShowDeleteLocationModal(true);
   };
-  const handleLocationConfirm = async (selectedLocationIds, checkmark) => {
 
+  const handleLocationConfirm = async (selectedLocationIds, checkmark) => {
     setShowLocationModal(false);
 
     if (selectedLocationIds.length === 0) {
@@ -540,7 +827,6 @@ export default function PostManagementPage() {
       return;
     }
 
-    // Use the post from state instead of a global variable
     if (!postToAction) {
       showToast("Post data not found", "error");
       return;
@@ -551,94 +837,124 @@ export default function PostManagementPage() {
       selectedLocationIds.includes(loc.id)
     );
 
-    // Calculate cost: 50 coins per location for posting
-    const totalPostCost = selectedLocationIds.length * 50;
+    // Determine if this is a "Post Now" or "Schedule Post" action
+    if (scheduledDateForLocations && postToSchedule) {
+      // This is a "Schedule Post" action
+      // No direct cost deduction here for scheduling, as actual posting cost is handled by cron
 
-    try {
-      // Re-check wallet balance
-      const userData = await getUserWalletAction(userId);
-      const walletBalance = userData.wallet || 0;
-      setUserWallet(walletBalance);
+      await handleUpdateStatus(
+        postToSchedule._id,
+        "scheduled",
+        scheduledDateForLocations,
+        selectedLocations
+      );
+      showToast(`Post scheduled for ${selectedLocationIds.length} locations on ${new Date(scheduledDateForLocations).toLocaleDateString()}!`, "success");
 
-      // Check if user has sufficient balance
-      if (walletBalance < totalPostCost) {
-        showToast(`Insufficient wallet balance. Required: ${totalPostCost} coins`, "error");
-        setRequiredCoins(totalPostCost);
-        setShowInsufficientBalance(true);
-        return;
-      }
-
-      setIsPosting(true);
-      setPostsGeneratedCount(selectedLocationIds.length);
-
-      // Prepare location data for webhook
-      const locationData = selectedLocations.map(loc => ({
-        city: loc.locationId,
-        cityName: loc.locality,
-        bookUrl: loc.websiteUrl || "",
-      }));
-
-      // Send post to webhook
-      const { ok: responseOk, data } = await postToGmbAction({
-        account: selectedLocations[0]?.accountId || "",
-        locationData: locationData,
-        output: postToAction?.aiOutput || "",
-        description: postToAction?.description || "",
-        accessToken: session?.accessToken || "",
-        checkmark: checkmark,
-      });
-
-      console.log("datata",data);
+      // Reset scheduling specific states
+      setScheduledDateForLocations(null);
+      setPostToSchedule(null);
       
+    } else {
+      // This is a "Post Now" action (existing logic)
+      // Calculate cost: 20 coins per location for posting
+      const totalPostCost = selectedLocationIds.length * 20;
 
-      // If post success → Deduct coins
-      if (responseOk) {
-        showToast("Post successfully sent to all locations!", "success");
-        setShowSuccess(true);
+      try {
+        // Re-check wallet balance
+        const userData = await getUserWalletAction(userId);
+        const walletBalance = userData.wallet || 0;
+        setUserWallet(walletBalance);
 
-        // Deduct coins from wallet (100 per location)
-        const walletRes = await deductFromWalletAction(userId, {
-          amount: totalPostCost,
-          type: "deduct",
-          reason: "Post-on-GMB",
-          metadata: {
-            aiPrompt: prompt,
-            logoUsed: !!logo,
-          }
-        });
-
-        if (walletRes.success) {
-          const newBalance = walletBalance - totalPostCost;
-          setUserWallet(newBalance);
-          localStorage.setItem("walletBalance", newBalance);
-          showToast(`${totalPostCost} coins deducted (${selectedLocationIds.length} locations × 50 coins)`, "info");
-        } else {
-          showToast("Post sent, but wallet deduction failed", "warning");
+        // Check if user has sufficient balance
+        if (walletBalance < totalPostCost) {
+          showToast(`Insufficient wallet balance. Required: ${totalPostCost} coins`, "error");
+          setRequiredCoins(totalPostCost);
+          setShowInsufficientBalance(true);
+          return;
         }
 
-        // Update post with selected locations
-        await updatePostStatusAction({
-          id: postToAction._id,
-          locations: selectedLocations,
-          status: "posted",
-          userId: userId,
+        setIsPosting(true);
+        setPostsGeneratedCount(selectedLocationIds.length);
+
+        // Prepare location data for webhook
+        const locationData = selectedLocations.map(loc => ({
+          city: loc.locationId,
+          cityName: loc.locality,
+          bookUrl: loc.websiteUrl || "",
+        }));
+
+        // Send post to webhook
+        const { ok: responseOk, data } = await postToGmbAction({
+          account: selectedLocations[0]?.accountId || "",
+          locationData: locationData,
+          output: postToAction?.aiOutput || "",
+          description: postToAction?.description || "",
+          accessToken: session?.accessToken || "",
+          checkmark: checkmark,
         });
 
-        // Refresh posts
-        await fetchPosts(activeTab);
+        // If post success → Deduct coins
+        if (responseOk) {
+          showToast("Post successfully sent to all locations!", "success");
+          setShowSuccess(true);
 
-      } else {
-        console.error("Webhook failed:", data);
-        showToast(`Failed to send post`, "error");
+          // Deduct coins from wallet (20 per location)
+          const walletRes = await deductFromWalletAction(userId, {
+            amount: totalPostCost,
+            type: "deduct",
+            reason: "Post-on-GMB",
+            metadata: {
+              aiPrompt: prompt,
+              logoUsed: !!logo,
+            }
+          });
+
+          if (walletRes.success) {
+            const newBalance = walletBalance - totalPostCost;
+            setUserWallet(newBalance);
+            localStorage.setItem("walletBalance", newBalance);
+            showToast(`${totalPostCost} coins deducted (${selectedLocationIds.length} locations × 20 coins)`, "info");
+          } else {
+            showToast("Post sent, but wallet deduction failed", "warning");
+          }
+
+          // Update post with selected locations
+          await updatePostStatusAction({
+            id: postToAction._id,
+            locations: selectedLocations,
+            status: "posted",
+            userId: userId,
+          });
+
+          // Refresh posts
+          await fetchPosts(activeTab);
+
+        } else {
+          console.error("Webhook failed:", data);
+          showToast(`Failed to send post`, "error");
+        }
+
+      } catch (error) {
+        console.error("Post error:", error);
+        showToast("Network error: Failed to send post", "error");
+      } finally {
+        // Reset states related to posting
+        setIsPosting(false);
       }
-
-    } catch (error) {
-      console.error("Post error:", error);
-      showToast("Network error: Failed to send post", "error");
-    } finally {
-      setIsPosting(false);
-      setPostToAction(null);
     }
+    setPostToAction(null); // Clear postToAction after handling
+  };
+
+  const handlePost = async (post) => {
+    // First check if user has approved the post
+    if (post.status !== "approved" && post.status !== "scheduled" && post.status !== "posted") {
+      showToast("Please approve the post first!", "error");
+      return;
+    }
+
+    // Set the post to be actioned and open the location modal
+    setPostToAction(post);
+    setShowLocationModal(true);
   };
 
   const handleDeleteLocationConfirm = async (selectedLocationIds) => {
@@ -846,6 +1162,14 @@ export default function PostManagementPage() {
             }}
           />
         )}
+        {isScheduleModalOpen && (
+          <ScheduleModal
+            isOpen={isScheduleModalOpen}
+            onClose={() => setIsScheduleModalOpen(false)}
+            post={postToSchedule} // Pass the post to the modal
+            onConfirm={handleScheduleDateConfirmed} // New handler for date confirmation
+            />
+        )}
         {showRejectModal && (
           <RejectReasonModal
             onClose={() => setShowRejectModal(false)}
@@ -872,6 +1196,28 @@ export default function PostManagementPage() {
           </div>
         )}
         {showSuccess && <SuccessOverlay onComplete={() => setShowSuccess(false)} postsCount={postsGeneratedCount} />}
+
+
+{/* <div className="marquee-container w-full max-w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 text-black font-bold overflow-hidden overflow-x-hidden whitespace-nowrap rounded-lg shadow-lg py-3">
+
+  <div className="marquee-content flex gap-16 whitespace-nowrap animate-marquee">
+    <span>Create post charges are now 80 — previously it was 200.</span>
+    <span>Posting on GMB now costs only 20 coins — earlier it was 50.</span>
+
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+
+    <span>Create post charges are now 80 — previously it was 200.</span>
+    <span>Posting on GMB now costs only 20 coins — earlier it was 50.</span>
+  </div>
+
+</div> */}
+
+
+
+
 
         <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl border-4 border-white">
           <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
