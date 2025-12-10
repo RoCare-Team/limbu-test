@@ -536,6 +536,24 @@ export default function LimbuAILanding() {
         </div>
       </header>
 
+      {/* Price Drop Banner */}
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold overflow-hidden whitespace-nowrap shadow-lg">
+  <div className="flex gap-14 animate-marquee py-3">
+    
+    <span className="text-sm sm:text-base">🎄 Merry Christmas & Happy New Year — Flat 50% Off! 🎁</span>
+    <span className="text-sm sm:text-base">🤖 AI Post Creation: only 80 coins!</span>
+    <span className="text-sm sm:text-base">🚀 GMB Posting: only 20 coins!</span>
+
+     <span className="text-sm sm:text-base">🎄 Merry Christmas & Happy New Year — Flat 50% Off! 🎁</span>
+    <span className="text-sm sm:text-base">🤖 AI Post Creation: only 80 coins!</span>
+    <span className="text-sm sm:text-base">🚀 GMB Posting: only 20 coins!</span>
+    
+  </div>
+</div>
+
+
+
+
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-white z-50 p-6 md:hidden">
@@ -1018,6 +1036,10 @@ export default function LimbuAILanding() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
         .animate-scroll {
           animation: scroll 5s linear infinite;
         }
@@ -1028,6 +1050,9 @@ export default function LimbuAILanding() {
         .animate-scroll-videos { animation: scroll-videos 40s linear infinite; }
         .animate-scroll:hover {
           animation-play-state: paused;
+        }
+        .animate-marquee {
+          animation: marquee 25s linear infinite;
         }
         @keyframes fadeIn {
           from {
