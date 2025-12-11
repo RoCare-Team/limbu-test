@@ -642,14 +642,14 @@ export default function LimbuAILanding() {
           <div className="flex flex-row items-center justify-center gap-3 sm:gap-4">
             <button 
               onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
-              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent border border-white/30 sm:border-0 sm:bg-gradient-to-r sm:from-blue-500 sm:to-purple-600 backdrop-blur-sm text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2"
+              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent border border-white/30 backdrop-blur-sm text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2 hover:shadow-xl hover:border-slate-400"
             >
               {isLoggedIn ? "Go to Dashboard" : "Start Free Trial"}
               <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
               onClick={() => setShowVideoModal(true)}
-              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent sm:bg-white backdrop-blur-sm border-2 border-white/30 sm:border-slate-300 text-white sm:text-slate-800 rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-xl hover:border-slate-400 transition-all inline-flex items-center justify-center gap-2"
+              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent backdrop-blur-sm border-2 border-white/30 text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-xl hover:border-slate-400 transition-all inline-flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg>
               Watch Demo
