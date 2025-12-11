@@ -162,7 +162,7 @@ export default function FranchisePage() {
                         required
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder="+91 98765 43210"
+                        placeholder="+91 9289344726"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
                       />
                     </div>
@@ -1206,7 +1206,7 @@ export default function FranchisePage() {
             <p className="text-sm opacity-75 mb-4">Have questions? We're here to help!</p>
             <div className="flex flex-wrap justify-center gap-6 text-sm">
               <a href="tel:+919876543210" className="flex items-center gap-2 hover:text-yellow-300 transition">
-                <PhoneCall size={16} /> +91 98765 43210
+                <PhoneCall size={16} /> +91 9289344726
               </a>
               <a href="mailto:franchise@limbu.ai" className="flex items-center gap-2 hover:text-yellow-300 transition">
                 📧 franchise@limbu.ai
@@ -1253,7 +1253,7 @@ export default function FranchisePage() {
             <div>
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>📞 +91 98765 43210</li>
+                <li>📞 +91 9289344726</li>
                 <li>📧 franchise@limbu.ai</li>
                 <li>📍 Gurugram, India</li>
               </ul>

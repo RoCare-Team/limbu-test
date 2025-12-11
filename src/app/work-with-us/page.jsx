@@ -352,7 +352,7 @@ export default function WorkWithUsPage() {
             <div>
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>📞 +91 98765 43210</li>
+                <li>📞 +91 9289344726</li>
                 <li>📧 careers@limbu.ai</li>
                 <li>📍 Gurugram, India</li>
               </ul>
@@ -399,7 +399,7 @@ export default function WorkWithUsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <input type="tel" required className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="+91 98765 43210" />
+                  <input type="tel" required className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="+91 9289344726" />
                 </div>
 
                 <div>
