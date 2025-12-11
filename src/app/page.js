@@ -642,7 +642,7 @@ export default function LimbuAILanding() {
           <div className="flex flex-row items-center justify-center gap-3 sm:gap-4">
             <button 
               onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
-              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent border border-white/30 backdrop-blur-sm text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2 hover:shadow-xl hover:border-slate-400"
+              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent border border-2 backdrop-blur-sm text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2 hover:shadow-xl hover:border-slate-400"
             >
               {isLoggedIn ? "Go to Dashboard" : "Start Free Trial"}
               <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
