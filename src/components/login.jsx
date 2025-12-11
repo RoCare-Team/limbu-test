@@ -34,6 +34,29 @@ export default function LoginPage() {
     setMessageType(type);
   };
 
+
+  const sendToWhastappMessage = async (destination, templateParams) => {
+    try {
+      const response = await fetch("/api/whatsapp-message", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          destination,
+          templateParams,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("WhatsApp message sent:", data);
+      }
+    } catch (error) {
+      
+    }
+  }
+
   const sendOtp = async () => {
     if (!phone || phone.length < 10) {
       showMessage("Please enter a valid phone number", "error");
@@ -102,6 +125,10 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.user.userId);
         showMessage("Registration complete! Redirecting...", "success");
+
+        const formattedPhone = phone.length === 10 ? `91${phone}` : phone;
+        await sendToWhastappMessage(formattedPhone, [name, "https://limbu.ai"]);
+
         if (data.token) {
           router.push("/dashboard");
         } else {
