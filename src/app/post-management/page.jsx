@@ -46,7 +46,7 @@ import "./PostManagement.module.css";
 
 // Scheduling Modal Component
 const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Date only
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA')); // Date only
 
   if (!isOpen) return null;
 
@@ -69,7 +69,7 @@ const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          min={new Date().toISOString().split("T")[0]} // Disables past dates
+          min={new Date().toLocaleDateString('en-CA')} // Disables past dates
           className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         />
         <div className="flex gap-3 mt-6">
@@ -568,9 +568,6 @@ export default function PostManagementPage() {
       }
 
       const data = apiResponse.data || {};
-
-
-
       // Save post to database
       const postData = await savePostAction({
         userId,
@@ -773,9 +770,9 @@ export default function PostManagementPage() {
       setIsScheduleModalOpen(true);
       return;
     }
+    
 
     const userId = localStorage.getItem("userId");
-
     try {
       const data = await updatePostStatusAction({
         id: postId,
@@ -855,7 +852,7 @@ export default function PostManagementPage() {
     const userId = localStorage.getItem("userId");
     const selectedLocations = availableLocations.filter(loc =>
       selectedLocationIds.includes(loc.id)
-    );
+    ).map(loc => ({ ...loc, isPosted: false }));
 
     // Determine if this is a "Post Now" or "Schedule Post" action
     if (scheduledDateForLocations && postToSchedule) {
@@ -1231,15 +1228,21 @@ export default function PostManagementPage() {
 
 </div> */}
 
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl border-4 border-white">
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
-            <Sparkles className="w-8 h-8" />
-            Post Management
-          </h1>
-          <p className="text-blue-100 text-sm sm:text-base font-medium">
-            Create stunning GMB posts with AI in seconds ✨
-          </p>
-        </div>
+        <div className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 
+rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl border-4 border-white text-center">
+
+  <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 sm:mb-3 
+  flex items-center justify-center gap-2 sm:gap-3">
+    <Sparkles className="w-8 h-8" />
+    Post Management
+  </h1>
+
+  <p className="text-white/90 text-sm sm:text-base font-medium">
+    Create stunning GMB posts with AI in seconds ✨
+  </p>
+
+</div>
+
 
         <PostInput
           prompt={prompt}

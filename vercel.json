@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/autoreply",
       "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/publish-scheduled",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

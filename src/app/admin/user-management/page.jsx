@@ -405,6 +405,8 @@ export default function UserManagement() {
     setFilteredUsers(users);
   }, [users]);
 
+  
+
 
   if (loading) {
     return (
@@ -417,7 +419,6 @@ export default function UserManagement() {
     );
   }
 
-  console.log("useruseruser", users);
 
 
   return (

@@ -395,7 +395,7 @@ const fetchNotifications = async () => {
  const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Post Management', icon: <AccountIcon />, path: '/post-management' },
-      // { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
+  // { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
   { text: 'Review Management', icon: <PostIcon />, path: '/review-management' },
 
 
@@ -646,89 +646,25 @@ React.useEffect(() => {
   />
   Limbu.AI
 </Typography>
+              <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    display: { xs: "flex", sm: "none" },
+                    alignItems: "center",
+                    cursor: "pointer"
+                  }}
+                >
+                  Limbu.AI
+                </Typography>
+              </Link>
 
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
               {/* Notifications Icon */}
-              <IconButton
-                color="inherit"
-                sx={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  '&:hover': {
-                    background: 'rgba(255, 255, 255, 0.2)',
-                  },
-                }}
-              >
-                <div>
-                  <Badge badgeContent={notificationCount} color="error">
-        <NotificationsIcon
-          style={{ fontSize: 28, cursor: "pointer" }}
-          onClick={handleNotifOpen}
-        />
-      </Badge>
-
-      <Menu
-        anchorEl={notifAnchorEl}
-        open={Boolean(notifAnchorEl)}
-        onClose={handleNotifClose}
-        PaperProps={{
-          style: {
-            maxHeight: 400,
-            width: "320px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-          },
-        }}
-      >
-        <Box px={2} py={1}>
-          <Typography variant="subtitle1" fontWeight="bold">
-            Notifications
-          </Typography>
-        </Box>
-        <Divider />
-
-        {notifications.length === 0 ? (
-          <MenuItem>
-            <ListItemText
-              primary="No notifications yet"
-              primaryTypographyProps={{ color: "text.secondary" }}
-            />
-          </MenuItem>
-        ) : (
-          notifications.map((notif) => (
-            <MenuItem key={notif._id} onClick={handleNotifClose}>
-              <ListItemText
-                primary={
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={notif.isRead ? "normal" : "bold"}
-                  >
-                    {notif.title}
-                  </Typography>
-                }
-                secondary={
-                  <>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      noWrap
-                      sx={{ maxWidth: "240px" }}
-                    >
-                      {notif.message}
-                    </Typography>
-                    <Typography variant="caption" color="text.disabled">
-                      {new Date(notif.createdAt).toLocaleString()}
-                    </Typography>
-                  </>
-                }
-              />
-            </MenuItem>
-          ))
-        )}
-      </Menu>
-                </div>
-              </IconButton>
+      
 
               {/* Wallet Chip */}
               <Chip

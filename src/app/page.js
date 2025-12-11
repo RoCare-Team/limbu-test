@@ -591,7 +591,7 @@ export default function LimbuAILanding() {
       )}
 
       {/* Hero Section */}
-      <section className="relative h-[80vh] md:h-screen w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[80vh] md:h-screen w-full flex items-end md:items-center justify-center overflow-hidden">
         <video
           autoPlay
           muted
@@ -605,10 +605,10 @@ export default function LimbuAILanding() {
           Your browser does not support the video tag.
         </video>
         {/* This second video element is for preloading and smooth transition, but a simple opacity transition on one element is cleaner. */}
-        <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
-        <div className="relative z-20 text-center max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10"></div>
+        <div className="relative z-20 text-center max-w-4xl mx-auto px-4 sm:px-6 pb-20 md:pb-0">
           {/* Sliding Text Badge */}
-          <div className="relative h-10 mb-6 sm:mb-8 flex items-center justify-center">
+          <div className="relative h-10 mb-4 sm:mb-8 flex items-center justify-center">
             {slidingTexts.map((item, index) => (
               <div
                 key={index}
@@ -623,7 +623,7 @@ export default function LimbuAILanding() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 ml-[10px]">
             <span className="text-white">Google Business Profile</span>
             <br />
             <span className="text-white">Management </span>
@@ -633,23 +633,23 @@ export default function LimbuAILanding() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base sm:text-lg md:text-xl text-slate-200 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
+          <p className="text-sm sm:text-lg md:text-xl text-slate-200 mb-6 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
             Create AI-powered posts, schedule automatically, and manage reviews. 
             <strong> Save 10+ hours every week</strong> with smart automation.
           </p>
 
           {/* CTA Button */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-row items-center justify-center gap-3 sm:gap-4">
             <button 
               onClick={() => handleNavigation(isLoggedIn ? '/dashboard' : '/login')}
-              className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2"
+              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent border border-white/30 sm:border-0 sm:bg-gradient-to-r sm:from-blue-500 sm:to-purple-600 backdrop-blur-sm text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-2xl transition-all hover:scale-105 inline-flex items-center justify-center gap-2"
             >
               {isLoggedIn ? "Go to Dashboard" : "Start Free Trial"}
               <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
               onClick={() => setShowVideoModal(true)}
-              className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white border-2 border-slate-300 text-slate-800 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:shadow-xl hover:border-slate-400 transition-all inline-flex items-center justify-center gap-2"
+              className="group w-auto px-4 sm:px-8 py-3 sm:py-4 bg-transparent sm:bg-white backdrop-blur-sm border-2 border-white/30 sm:border-slate-300 text-white sm:text-slate-800 rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg hover:shadow-xl hover:border-slate-400 transition-all inline-flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg>
               Watch Demo

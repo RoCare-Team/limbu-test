@@ -228,63 +228,85 @@ export default function VideoManagementPage() {
   /* ---------------------------
       GENERATE VIDEO HANDLER
   --------------------------- */
-  const handleGenerateClick = async () => {
-    if (!prompt.trim() || !productName.trim())
-      return showToast("Please fill in product name & prompt", "error");
+ /* ---------------------------
+      GENERATE VIDEO HANDLER
+--------------------------- */
+const handleGenerateClick = async () => {
+  if (!prompt.trim() || !productName.trim())
+    return showToast("Please fill in product name & prompt", "error");
 
-    if (!productImage)
-      return showToast("Please upload a product image", "error");
+  if (!productImage)
+    return showToast("Please upload a product image", "error");
 
-    setIsGenerating(true);
-    setCountdown(120);
+  setIsGenerating(true);
+  setCountdown(120);
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  const timer = setInterval(() => {
+    setCountdown((prev) => {
+      if (prev <= 1) {
+        clearInterval(timer);
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
 
-    try {
-      const imageBase64 = await fileToBase64(productImage);
+  try {
+    // Convert image to Base64
+    const base64Image = await fileToBase64(productImage);
 
-      const payload = {
-        product_name: productName,
-        product_image: imageBase64, // small p → backend correct
-        user_insturction: prompt,
-        size,
-        duration: "8",
+    const payload = {
+      product_name: productName,
+      product_image: base64Image,
+      // user_insturction: prompt,
+      size,
+      // duration: "8",
+    };
+
+    console.log("Sending Payload:", payload);
+
+    // ⭐ DIRECT API CALL HERE (NO generateVideoAction FUNCTION)
+    const res = await fetch("/api/video-generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+
+    console.log("API Response:", result);
+
+    clearInterval(timer);
+
+    if (result.success && result.data?.output) {
+      const newVideo = {
+        url: result.data.output,
+        prompt,
+        id: Date.now(),
       };
 
-      const result = await generateVideoAction(payload);
-      clearInterval(timer);
+      setVideos((prev) => [newVideo, ...prev]);
+      showToast("Video generated successfully! 🎉");
 
-      if (result.success && result.data.output) {
-        const newVideo = {
-          url: result.data.output,
-          prompt,
-          id: Date.now(),
-        };
-
-        setVideos((prev) => [newVideo, ...prev]);
-        showToast("Video generated successfully! 🎉");
-
-        setPrompt("");
-        setProductName("");
-        setProductImage(null);
-      } else {
-        throw new Error(result.error || "Video generation failed");
-      }
-    } catch (error) {
-      showToast(error.message, "error");
-    } finally {
-      setIsGenerating(false);
-      setCountdown(0);
+      // Reset fields
+      setPrompt("");
+      setProductName("");
+      setProductImage(null);
+    } else {
+      throw new Error(result.error || "Video generation failed");
     }
-  };
+  } catch (error) {
+    console.error("GENERATION ERROR:", error);
+    showToast(error.message, "error");
+  } finally {
+    setIsGenerating(false);
+    setCountdown(0);
+  }
+};
+
+
 
   /* ---------------------------
       DOWNLOAD VIDEO
@@ -329,14 +351,20 @@ export default function VideoManagementPage() {
       {isGenerating && <LoadingOverlay countdown={countdown} />}
 
       <div className="max-w-7xl mx-auto py-8 px-4 lg:px-8 space-y-8">
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl p-8 text-white shadow-2xl border-4 border-white">
-          <h1 className="text-4xl font-black flex items-center gap-3">
-            <Video className="w-8 h-8" /> Video Management
-          </h1>
-          <p className="text-blue-100">
-            Create stunning AI-powered videos from text in seconds 🎬
-          </p>
-        </div>
+       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 
+rounded-3xl p-8 text-white shadow-2xl border-4 border-white 
+flex flex-col items-center justify-center text-center">
+
+  <h1 className="text-4xl font-black flex items-center gap-3 justify-center">
+    <Video className="w-8 h-8" /> Video Management
+  </h1>
+
+  <p className="text-blue-100">
+    Create stunning AI-powered videos from text in seconds 🎬
+  </p>
+
+</div>
+
 
         <VideoInput
           prompt={prompt}

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import connectToDatabase from "@/lib/mongodb";
+import dbConnect from "@/lib/dbConnect";
 import Post from "@/models/PostStatus"; // your Mongoose Post model
 import User from "@/models/User"; // Import the User model
-import { postToGmbAction } from "@/app/actions/postActions"; // Assuming this action can be called server-side
+import { postToGmbAction } from "@/lib/gmb/postToGmb"; // Assuming this action can be called server-side
 
 /**
  * Uses the user's refresh token to get a new, valid access token from Google.
@@ -43,13 +43,16 @@ export async function GET(req) {
     const now = new Date();
     const futureLimit = new Date(now.getTime() + 60 * 1000); // 60 seconds from now
 
-    await connectToDatabase();
+    await dbConnect();
+
+    let successCount = 0;
+    let failureCount = 0;
 
     // Find scheduled posts whose time has arrived and have locations not yet posted
     const posts = await Post.find({
       status: "scheduled",
       scheduledDate: { $lte: futureLimit },
-      "locations.isPosted": false,
+      "locations.isPosted": { $ne: true },
     });
 
     if (posts.length === 0) {
@@ -60,6 +63,7 @@ export async function GET(req) {
     for (const post of posts) {
       console.log(`Processing scheduled post: ${post._id} for date ${post.scheduledDate}`);
       let postFailed = false;
+      let processingError = null;
 
       try {
         // Find the user who created the post to get their refresh token
@@ -128,10 +132,12 @@ export async function GET(req) {
         if (allDone) {
           post.status = 'posted';
           post.error = null; // Clear any previous error
+          successCount++;
           console.log(`✅ Post ${post._id} fully posted to all locations.`);
         } else if (!postFailed) {
           console.log(`📝 Post ${post._id} partially posted. Will retry remaining locations later.`);
         } else {
+          failureCount++;
           console.log(`🔻 Post ${post._id} marked as failed.`);
         }
 
@@ -142,11 +148,31 @@ export async function GET(req) {
         // The error is already saved to the post inside the try block for specific errors
         // This catch handles more generic errors during user/token fetching.
         // The post status is set to 'failed' inside the conditions above.
+        
+        // FIX: Save the failure status to DB so it doesn't loop forever
+        try {
+          post.status = 'failed';
+          post.error = postProcessingError.message || "Unknown system error";
+          await post.save();
+          failureCount++;
+        } catch (saveError) {
+          console.error("Failed to save error status for post:", post._id, saveError);
+        }
+
         continue; // Move to the next post
       }
     }
 
     return NextResponse.json({ message: `Processed ${posts.length} posts.` }, { status: 200 });
+    return NextResponse.json({ 
+      success: true,
+      message: `Processed ${posts.length} posts.`,
+      stats: {
+        total: posts.length,
+        successful: successCount,
+        failed: failureCount
+      }
+    }, { status: 200 });
   } catch (error) {
     console.error("Cron job error:", error);
     return NextResponse.json({ message: "Scheduler error", error: error.message }, { status: 500 });
