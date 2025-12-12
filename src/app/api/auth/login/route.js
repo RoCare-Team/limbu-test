@@ -23,7 +23,7 @@ export async function POST(req) {
 
       const msg = `Dear Customer, Your OTP for Mannu Bhai profile verification is ${generatedOtp}. Regards, Mannubhai Service Expert`;
       const tmpid = "1007963727820356167";
-      const key = "dVHOFwEe";
+      const key = "kD4WSoAW";
       const from = "MANNBH";
       const entityid = "1001762193665245675";
       const encodedMsg = encodeURIComponent(msg);
