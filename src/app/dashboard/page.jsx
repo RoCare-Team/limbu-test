@@ -848,6 +848,8 @@ const NavLinks = ({ isAuthenticated }) => {
       const accountsData = await fetchGMBAccounts(token);
 
       
+
+      
       
       
 
@@ -863,39 +865,52 @@ const NavLinks = ({ isAuthenticated }) => {
         return;
       }
 
-      const accountId = accountsData[0].name.replace("accounts/", "");
-      
-      console.log("🔄 Fetching locations for account:", accountId);
-      const allLocations = await fetchAllLocationsByAccount(token, accountId);
+      console.log(`🔄 Fetching locations for ${accountsData.length} accounts...`);
 
-      if (allLocations.length > 0) {
-        console.log("🔄 Checking verification status for all locations...");
-        const locationsWithVoM = await Promise.all(
-          allLocations.map(async (loc) => {
-            const vomStatus = await checkVoiceOfMerchant(token, loc.name);
-            return {
-              ...loc,
-              accountId,
-              accountName: accountsData[0].accountName || accountsData[0].name,
-              hasVoiceOfMerchant: vomStatus.hasVoiceOfMerchant,
-              hasBusinessAuthority: vomStatus.hasBusinessAuthority,
-            };
-          })
-        );
+      const listingsPromises = accountsData.map(async (account) => {
+        const accountId = account.name.replace("accounts/", "");
+        const accountName = account.accountName;
 
-        const newAccounts = [{ email: userEmail, listings: locationsWithVoM }];
+        try {
+          const locations = await fetchAllLocationsByAccount(token, accountId);
+
+          if (locations && locations.length > 0) {
+            const locationsWithVoM = await Promise.all(
+              locations.map(async (loc) => {
+                const vomStatus = await checkVoiceOfMerchant(token, loc.name);
+                return {
+                  ...loc,
+                  accountId,
+                  accountName: accountName || account.name,
+                  hasVoiceOfMerchant: vomStatus.hasVoiceOfMerchant,
+                  hasBusinessAuthority: vomStatus.hasBusinessAuthority,
+                };
+              })
+            );
+            return locationsWithVoM;
+          }
+        } catch (err) {
+          console.error(`Error fetching locations for account ${accountName} (${accountId}):`, err);
+        }
+        return [];
+      });
+
+      const results = await Promise.all(listingsPromises);
+      const allListings = results.flat();
+
+      if (allListings.length > 0) {
+        const newAccounts = [{ email: userEmail, listings: allListings }];
         setAccounts(newAccounts);
         setNoAccountsFound(false);
         saveToCache(userEmail, newAccounts, false);
         
         // Store for admin
         console.log("📤 Storing listings for admin dashboard...");
-        await storeUserListingsForAdmin(userEmail, locationsWithVoM);
+        await storeUserListingsForAdmin(userEmail, allListings);
         
-        // toast.success(`✅ Loaded ${locationsWithVoM.length} listings successfully!`);
-        setCacheStatus(`${locationsWithVoM.length} listings loaded and cached`);
+        setCacheStatus(`${allListings.length} listings loaded and cached`);
       } else {
-        console.log("❌ No locations found for this account");
+        console.log("❌ No locations found in any account");
         setAccounts([]);
         setNoAccountsFound(true);
         saveToCache(userEmail, [], true);
@@ -912,6 +927,12 @@ const NavLinks = ({ isAuthenticated }) => {
     setLoading(false);
     fetchInProgress.current = false;
   }, [session?.accessToken, session?.user?.email, loadFromCache, saveToCache]);
+
+
+
+  useEffect(()=>{
+    fetchInitialData()
+  },[])
 
   // Initial fetch on session load
   useEffect(() => {
