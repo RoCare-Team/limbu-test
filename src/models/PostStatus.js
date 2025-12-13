@@ -12,6 +12,7 @@ const PostSchema = new mongoose.Schema(
       enum: ["pending", "approved", "scheduled","posted","rejected"],
       default: "pending",
     },
+    
     scheduledDate: { type: Date },
     rejectReason: { type: String, default: "" },
 
