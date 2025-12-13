@@ -21,11 +21,11 @@ export async function POST(req) {
       const existingUser = await User.findOne({ phone });
       const generatedOtp = Math.floor(1000 + Math.random() * 9000);
 
-      const msg = `Dear Customer, Your OTP for Mannu Bhai profile verification is ${generatedOtp}. Regards, Mannubhai Service Expert`;
-      const tmpid = "1007963727820356167";
+      const msg = `Dear Customer, Your OTP for Limbu AI profile verification is ${generatedOtp}. Regards, Limbu AI`;
+      const tmpid = "1007299270481342940";
       const key = "kD4WSoAW";
-      const from = "MANNBH";
-      const entityid = "1001762193665245675";
+      const from = "TLGCRO";
+      const entityid = "1401519300000012435";
       const encodedMsg = encodeURIComponent(msg);
 
       const url = `https://api.savshka.co.in/api/sms?key=${key}&from=${from}&to=${phone}&body=${encodedMsg}&entityid=${entityid}&templateid=${tmpid}`;
@@ -122,7 +122,7 @@ export async function POST(req) {
         userId: user.userId,
         fullName: user.fullName,
         phone: user.phone,
-        subscription: user.subscription,
+        subscription: user.subscription || {},
       },
       JWT_SECRET,
       { expiresIn: "7d" }
@@ -133,7 +133,7 @@ export async function POST(req) {
       message: "Login successful",
       token,
       user,
-      redirectTo: user.subscription.status === "active" ? "/dashboard" : "/subscription",
+      redirectTo: user.subscription?.status === "active" ? "/dashboard" : "/subscription",
     });
   } catch (err) {
     console.error("OTP API Error:", err);
