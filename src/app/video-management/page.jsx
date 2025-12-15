@@ -258,9 +258,9 @@ const handleGenerateClick = async () => {
     const payload = {
       product_name: productName,
       product_image: base64Image,
-      // user_insturction: prompt,
+      user_insturction: prompt,
       size,
-      // duration: "8",
+      duration: "8",
     };
 
     console.log("Sending Payload:", payload);
