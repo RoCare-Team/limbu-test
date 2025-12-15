@@ -1,21 +1,40 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
-import Post from "@/models/PostStatus"; // your Mongoose Post model
-import User from "@/models/User"; // Import the User model
-import { postToGmbAction } from "@/lib/gmb/postToGmb"; // Assuming this action can be called server-side
+import Post from "@/models/PostStatus";
+import User from "@/models/User";
+import { postToGmbAction } from "@/lib/gmb/postToGmb";
 
-/**
- * Uses the user's refresh token to get a new, valid access token from Google.
- * @param {string} refreshToken - The user's Google refresh token.
- * @returns {Promise<string>} A new access token.
- */
+/* ==================================================
+   DEBUG LOGGER (STRUCTURED)
+================================================== */
+let debugLogs = [];
+
+const log = (level, message, data = null) => {
+  const time = new Date().toISOString();
+  let entry = `[${time}] [${level}] ${message}`;
+
+  if (data) {
+    try {
+      entry += " | " + JSON.stringify(data, null, 2);
+    } catch {
+      entry += " | [Unserializable Data]";
+    }
+  }
+
+  console.log(entry);
+  debugLogs.push(entry);
+};
+
+/* ==================================================
+   REFRESH ACCESS TOKEN
+================================================== */
 async function getFreshAccessToken(refreshToken) {
-  console.log("🔄 Attempting to refresh access token...");
-  const response = await fetch("https://oauth2.googleapis.com/token", {
+  log("INFO", "Refreshing access token");
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
@@ -24,157 +43,252 @@ async function getFreshAccessToken(refreshToken) {
     }),
   });
 
-  const data = await response.json();
-  if (!response.ok) {
-    console.error("❌ Failed to refresh access token:", data);
-    throw new Error("Failed to refresh access token. " + (data.error_description || ""));
+  const data = await res.json();
+  log("DEBUG", "Google token API response", data);
+
+  if (!res.ok) {
+    log("ERROR", "Token refresh failed", data);
+    throw new Error(data.error_description || "Token refresh failed");
   }
 
-  console.log("✅ Access token refreshed successfully.");
+  log("SUCCESS", "Access token refreshed");
   return data.access_token;
 }
 
-export async function GET(req) {
-  console.log("✅ Cron job for scheduled posts started...");
+/* ==================================================
+   GET REFRESH TOKEN FROM gmb_dashboard.users
+================================================== */
+async function getRefreshTokenByEmail(email) {
+  if (!email) return null;
+
+  const gmbDb = mongoose.connection.useDb("gmb_dashboard");
+  const gmbUsers = gmbDb.collection("users");
+
+  const user = await gmbUsers.findOne(
+    { email },
+    { projection: { projects: 1 } }
+  );
+
+  if (!user || !Array.isArray(user.projects) || !user.projects.length) {
+    log("WARN", "No GMB project found for user", { email });
+    return null;
+  }
+
+  const latestProject = user.projects[user.projects.length - 1];
+  log("INFO", "Refresh token found", { email });
+
+  return latestProject.refreshToken || null;
+}
+
+/* ==================================================
+   MAIN CRON FUNCTION
+================================================== */
+export async function GET() {
+  debugLogs = [];
+  log("INFO", "🚀 Cron started");
 
   try {
-    // Look for posts scheduled up to 60 seconds in the future
-    // to account for cron job timing variations.
-    const now = new Date();
-    const futureLimit = new Date(now.getTime() + 60 * 1000); // 60 seconds from now
-
     await dbConnect();
+    log("SUCCESS", "MongoDB connected");
 
-    let successCount = 0;
-    let failureCount = 0;
+    const now = new Date();
 
-    // Find scheduled posts whose time has arrived and have locations not yet posted
+    // ✅ FIXED QUERY (duplicate scheduledDate removed)
     const posts = await Post.find({
       status: "scheduled",
-      scheduledDate: { $lte: futureLimit },
-      "locations.isPosted": { $ne: true },
-    });
+      scheduledDate: { $lte: now },
+    }).lean();
 
-    if (posts.length === 0) {
-      console.log("No posts to process at this time.");
-      return NextResponse.json({ message: "No posts to process." }, { status: 200 });
+    log("INFO", "Scheduled posts fetched", { count: posts.length });
+
+    if (!posts.length) {
+      return NextResponse.json({ success: true, logs: debugLogs });
     }
 
-    for (const post of posts) {
-      console.log(`Processing scheduled post: ${post._id} for date ${post.scheduledDate}`);
-      let postFailed = false;
-      let processingError = null;
+    const stats = {
+      total: posts.length,
+      processed: 0,
+      failed: 0,
+      posted: 0,
+      skipped: 0,
+    };
 
-      try {
-        // Find the user who created the post to get their refresh token
-        const user = await User.findById(post.userId);
-        if (!user) {
-          const errorMessage = `User ${post.userId} not found for post ${post._id}.`;
-          post.status = 'failed';
-          post.error = errorMessage;
-          await post.save();
-          throw new Error(errorMessage);
-        }
-        if (!user.refreshToken) {
-          const errorMessage = `User ${user.email} has no refresh token for post ${post._id}.`;
-          post.status = 'failed';
-          post.error = errorMessage;
-          await post.save();
-          throw new Error(errorMessage);
-        }
+    const tokenCache = new Map(); // email → accessToken
 
-        // Get a fresh access token once per user for this cron run
-        const accessToken = await getFreshAccessToken(user.refreshToken);
+    /* ==================================================
+       LOOP POSTS
+    ================================================== */
+    for (const rawPost of posts) {
+      const postId = rawPost._id.toString();
 
-        for (let i = 0; i < post.locations.length; i++) {
-          const locationRef = post.locations[i];
+      log("INFO", "Processing post", {
+        postId,
+        userId: rawPost.userId,
+        scheduledDate: rawPost.scheduledDate,
+      });
 
-          if (!locationRef.isPosted) {
-            console.log(`Attempting to post to location: ${locationRef.name} (${locationRef.id})`);
+      /* ---------- VALIDATIONS ---------- */
+      if (!rawPost.userId) {
+        log("ERROR", "Missing userId", { postId });
+        await Post.updateOne(
+          { _id: postId },
+          { $set: { status: "failed", error: "Missing userId" } }
+        );
+        stats.failed++;
+        continue;
+      }
 
-            // 1. Find the user who created the post to get their refresh token
-            // const user = await User.findById(post.userId);
-            // if (!user || !user.refreshToken) {
-            //   throw new Error(`User ${post.userId} not found or has no refresh token.`);
-            // }
-            
-            // 3. Call the posting action with the new token
-            const { ok: responseOk, data } = await postToGmbAction({
-              account: locationRef.accountId,
-              locationData: [{ city: locationRef.id, cityName: locationRef.city, bookUrl: "" }],
-              output: post.aiOutput,
-              description: post.description,
-              accessToken: accessToken, // Use the freshly obtained token
-              checkmark: post.checkmark, // Assuming checkmark is stored with the post
-            });
+      if (!Array.isArray(rawPost.locations) || !rawPost.locations.length) {
+        log("ERROR", "Invalid raw locations (empty or not array)", { postId, locations: rawPost.locations });
+        await Post.updateOne(
+          { _id: postId },
+          { $set: { status: "failed", error: "Invalid locations" } }
+        );
+        stats.failed++;
+        continue;
+      }
 
-            if (responseOk) {
-              locationRef.isPosted = true; // Mark this specific location as posted
-              console.log(`✅ Successfully posted to ${locationRef.name}`);
+      const user = await User.findOne({ userId: rawPost.userId });
+      if (!user?.email) {
+        log("ERROR", "User not found", { userId: rawPost.userId });
+        stats.failed++;
+        continue;
+      }
 
-              // Deduct coins for successful post
-              user.wallet = (user.wallet || 0) - 20; // Deduct 20 coins
-              await user.save();
-              console.log(`🪙 20 coins deducted from user ${user.email}. New balance: ${user.wallet}`);
-            } else {
-              console.error(`❌ Failed to post to ${locationRef.name}:`, data);
-              postFailed = true;
-              post.status = 'failed';
-              post.error = `Failed at location '${locationRef.name}': ${data?.error?.message || data.error || 'Unknown GMB API error'}`;
-              // Break the inner loop for this post as it has already failed.
-              break; 
-            }
-          }
-        }
+      /* ---------- TOKEN ---------- */
+      const refreshToken = await getRefreshTokenByEmail(user.email);
+      if (!refreshToken) {
+        log("ERROR", "Refresh token missing", { email: user.email });
+        stats.failed++;
+        continue;
+      }
 
-        // Check if all locations for this post have been processed
-        const allDone = post.locations.every(loc => loc.isPosted);
-        if (allDone) {
-          post.status = 'posted';
-          post.error = null; // Clear any previous error
-          successCount++;
-          console.log(`✅ Post ${post._id} fully posted to all locations.`);
-        } else if (!postFailed) {
-          console.log(`📝 Post ${post._id} partially posted. Will retry remaining locations later.`);
-        } else {
-          failureCount++;
-          console.log(`🔻 Post ${post._id} marked as failed.`);
-        }
+      let accessToken = tokenCache.get(user.email);
+      if (!accessToken) {
+        accessToken = await getFreshAccessToken(refreshToken);
+        tokenCache.set(user.email, accessToken);
+      }
 
+      const post = await Post.findById(postId);
+      if (!post) {
+        log("WARN", "Post vanished", { postId });
+        stats.skipped++;
+        continue;
+      }
+
+      /* ---------- LOCATION SANITIZE ---------- */
+      const originalLocationCount = post.locations.length;
+      post.locations = post.locations.filter(
+        (l) => l && typeof l === "object" && l.locationId
+      );
+
+      if (!post.locations.llid eocations after sanntize", { postIg,toriginahL)c tionCount });{
+        log("status = "failEd";
+        post.eRROR", "No valid locations after sanitize", { postId, originalLocationCount });
+        post.status = "fa;
+        stats.failed++iled";
+        post.error = "No valid locations (missing locationId)";
         await post.save();
-
-      } catch (postProcessingError) {
-        console.error(`[CRON] Critical error processing post ${post._id}:`, postProcessingError.message);
-        // The error is already saved to the post inside the try block for specific errors
-        // This catch handles more generic errors during user/token fetching.
-        // The post status is set to 'failed' inside the conditions above.
-        
-        // FIX: Save the failure status to DB so it doesn't loop forever
-        try {
-          post.status = 'failed';
-          post.error = postProcessingError.message || "Unknown system error";
-          await post.save();
-          failureCount++;
-        } catch (saveError) {
-          console.error("Failed to save error status for post:", post._id, saveError);
-        }
-
-        continue; // Move to the next post
+        stats.failed++;
+        continue;
       }
+
+      let failed = false;
+
+      /* ==================================================
+         GROUP BY ACCOUNT
+      ================================================== */
+      const pending = post.locations.filter((l) => !l.isPosted);
+      const grouped = {};
+
+      for (const loc of pending) {
+        const acc = loc.accountId || "default";
+        grouped[acc] ||= [];
+        grouped[acc].push(loc);
+      }
+
+      for (const [accountId, locs] of Object.entries(grouped)) {
+        const locationData = locs.map((l) => ({
+          city: l.locationId,
+          cityName: l.locality || l.city || "",
+          bookUrl: l.websiteUrl || "",
+        }));
+
+        const payload = {
+          account: accountId === "default" ? "" : accountId,
+          locationData,
+          output: post.aiOutput,
+          description: post.description || "",
+          accessToken: "PRESENT", // 🔒 masked
+          checkmark: post.checkmark || false,
+        };
+
+        log("INFO", "Posting to GMB", {
+          postId,
+          accountId,
+          locations: locs.length,
+          payload,
+        });
+
+        try {
+          const result = await postToGmbAction({
+            ...payload,
+            accessToken,
+          });
+
+          log("DEBUG", "GMB response", result);
+
+          if (!result?.ok) {
+            throw new Error(result?.data?.message || "GMB failed");
+          }
+
+          locs.forEach((l) => (l.isPosted = true));
+
+          const cost = locs.length * 20;
+          user.wallet = Math.max((user.wallet || 0) - cost, 0);
+          await user.save();
+
+          log("SUCCESS", "GMB posted & wallet updated", {
+            cost,
+            wallet: user.wallet,
+          });
+        } catch (err) {
+          log("ERROR", "GMB post failed", {
+            postId,
+            accountId,
+            error: err.message,
+          });
+          post.status = "failed";
+          post.error = err.message;
+          failed = true;
+          break;
+        }
+      }
+
+      /* ---------- FINAL STATUS ---------- */
+      if (!failed) {
+        post.status = post.locations.every((l) => l.isPosted)
+          ? "posted"
+          : "scheduled";
+        post.error = null;
+        if (post.status === "posted") stats.posted++;
+        log("SUCCESS", "Post finalized", { postId, status: post.status });
+      } else {
+        stats.failed++;
+      }
+
+      await post.save();
+      stats.processed++;
     }
 
-    return NextResponse.json({ message: `Processed ${posts.length} posts.` }, { status: 200 });
-    return NextResponse.json({ 
-      success: true,
-      message: `Processed ${posts.length} posts.`,
-      stats: {
-        total: posts.length,
-        successful: successCount,
-        failed: failureCount
-      }
-    }, { status: 200 });
-  } catch (error) {
-    console.error("Cron job error:", error);
-    return NextResponse.json({ message: "Scheduler error", error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, stats, logs: debugLogs });
+
+  } catch (err) {
+    log("CRASH", "Cron crashed", err.stack);
+    return NextResponse.json({
+      success: false,
+      error: err.message,
+      logs: debugLogs,
+    });
   }
 }

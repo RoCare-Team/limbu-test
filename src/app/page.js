@@ -488,7 +488,7 @@ export default function LimbuAILanding() {
             <a href="#how-it-works" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">How It Works</a>
             <a href="#examples" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Examples</a>
             {/* <a href="/work-with-us" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Work with Us</a> */}
-            {/* <a href="/Join-our-Franchises" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Become Franchise Partners</a> */}
+            <a href="/franchise-opportunities" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Become Franchise Partners</a>
             <button
               onClick={() => setShowBookDemoModal(true)}
               className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"

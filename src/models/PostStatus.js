@@ -9,12 +9,28 @@ const PostSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "approved", "scheduled","posted","rejected"],
+      enum: ["pending", "approved", "scheduled","posted","rejected", "failed"],
       default: "pending",
     },
     
     scheduledDate: { type: Date },
     rejectReason: { type: String, default: "" },
+    accessToken: { type: String }, // Store token at schedule time
+    checkmark: { type: Boolean, default: false }, // ✅ Added checkmark field
+    
+    locations: [
+      {
+        locationId: String,
+        accountId: String,
+        name: String,
+        address: String,
+        city: String,
+        locality: String,
+        websiteUrl: String,
+        isPosted: { type: Boolean, default: false },
+        error: String
+      }
+    ],
 
   },
   { timestamps: true }

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  fetchPostsAction,
   fetchAllPostsAction,
   getUserWalletAction,
   generateWithAiAgentAction,
@@ -46,14 +45,28 @@ import "./PostManagement.module.css";
 
 // Scheduling Modal Component
 const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA')); // Date only
+  const [selectedDate, setSelectedDate] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      const now = new Date();
+      // Adjust to local time for the input
+      const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      setSelectedDate(localIso);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onConfirm(post._id, "scheduled", selectedDate);
+    if (!selectedDate) return;
+    const dateObj = new Date(selectedDate);
+    onConfirm(post._id, "scheduled", dateObj.toISOString());
     onClose();
   };
+
+  const now = new Date();
+  const minDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -64,12 +77,12 @@ const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
-        <p className="text-gray-600 mb-4">Select a date to schedule this post.</p>
+        <p className="text-gray-600 mb-4">Select a date and time to schedule this post.</p>
         <input
-          type="date"
+          type="datetime-local"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          min={new Date().toLocaleDateString('en-CA')} // Disables past dates
+          min={minDate} // Disables past dates/times
           className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         />
         <div className="flex gap-3 mt-6">
@@ -91,6 +104,29 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
   const [isEditing, setIsEditing] = useState(false);
   const [showFull, setShowFull] = useState(false);
   const [editedDescription, setEditedDescription] = useState(post?.description || "");
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    if (post.status === "scheduled" && post.scheduledDate) {
+      const calculateTime = () => {
+        const now = new Date();
+        const scheduled = new Date(post.scheduledDate);
+        const diff = scheduled - now;
+
+        if (diff <= 0) {
+          setTimeLeft("Processing...");
+        } else {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        }
+      };
+      calculateTime();
+      const interval = setInterval(calculateTime, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [post.status, post.scheduledDate]);
 
   const handleSave = () => {
     onEditDescription(post._id, editedDescription);
@@ -113,15 +149,14 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
           />
 
           <div
-            className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black shadow-xl backdrop-blur-sm ${
-              post.status === "pending"
+            className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black shadow-xl backdrop-blur-sm ${post.status === "pending"
                 ? "bg-yellow-500/90 text-white"
                 : post.status === "approved"
-                ? "bg-green-500/90 text-white"
-                : post.status === "posted"
-                ? "bg-purple-600/90 text-white"
-                : "bg-blue-500/90 text-white"
-            }`}
+                  ? "bg-green-500/90 text-white"
+                  : post.status === "posted"
+                    ? "bg-purple-600/90 text-white"
+                    : "bg-blue-500/90 text-white"
+              }`}
           >
             {post.status.toUpperCase()}
           </div>
@@ -246,7 +281,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                   <input
                     type="checkbox"
                     id={`post-checkbox-${post._id}`}
-                    checked={post.checkmark?.includes('post') ?? true}
+                    checked={Array.isArray(post.checkmark) ? post.checkmark.includes('post') : true}
                     onChange={() => onEditDescription(post._id, post.description, 'post')}
                     className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
@@ -256,7 +291,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                   <input
                     type="checkbox"
                     id={`photo-checkbox-${post._id}`}
-                    checked={post.checkmark?.includes('photo') ?? true}
+                    checked={Array.isArray(post.checkmark) ? post.checkmark.includes('photo') : true}
                     onChange={() => onEditDescription(post._id, post.description, 'photo')}
                     className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
                   />
@@ -272,49 +307,63 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                   Post to GMB
                 </button>
                 <div className="flex flex-col gap-2 mt-3">
-  <button
-    onClick={() => onUpdateStatus(post)}
-    className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl 
+                  <button
+                    onClick={() => onUpdateStatus(post)}
+                    className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl 
     text-xs sm:text-sm font-black hover:shadow-xl transition-all cursor-pointer whitespace-nowrap"
-  >
-    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-    Schedule Post...
-  </button>
-</div>
+                  >
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Schedule Post...
+                  </button>
+                </div>
 
               </div>
             </div>
           )}
 
-          {post.status === "scheduled" && (
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3 sm:space-y-4">
-              <div className="bg-white rounded-lg p-2.5 sm:p-3 border border-blue-200">
-                <p className="text-xs sm:text-sm text-gray-700 font-semibold flex items-center gap-2 mb-1">
-                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
-                  Scheduled for:
-                </p>
-                <p className="text-blue-700 font-black text-base sm:text-lg">
-                  {post.scheduledDate
-                    ? new Date(post.scheduledDate).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Not set"}
-                </p>
-              </div>
+         {post.status === "scheduled" && (
+  <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-3 space-y-2">
 
-              <button
-                onClick={() => handlePost(post)}
-                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
-              >
-                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                Post Now
-              </button>
-            </div>
-          )}
+    {/* Scheduled Info */}
+    <div className="bg-white border border-blue-100 rounded-md px-3 py-2 flex items-center justify-between">
+      
+      <div className="flex items-center gap-2">
+        <Calendar className="w-3.5 h-3.5 text-blue-600" />
+        <span className="text-[11px] text-gray-600 font-medium">
+          {post.scheduledDate
+            ? new Date(post.scheduledDate).toLocaleString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Not set"}
+        </span>
+      </div>
+
+      {timeLeft && (
+        <span className="text-[10px] font-semibold text-orange-600 animate-pulse whitespace-nowrap">
+          ⏳ {timeLeft}
+        </span>
+      )}
+    </div>
+
+    {/* Post Now Button */}
+    <button
+      onClick={() => handlePost(post)}
+      className="w-full flex items-center justify-center gap-1.5
+        bg-gradient-to-r from-green-500 to-emerald-600
+        text-white px-3 py-2 rounded-md
+        text-xs font-bold hover:shadow-md transition"
+    >
+      <Send className="w-4 h-4" />
+      Post Now
+    </button>
+
+  </div>
+)}
+
 
           {post.status === "posted" && (
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3">
@@ -391,6 +440,7 @@ export default function PostManagementPage() {
           name: loc.name || loc.title || `Location ${index + 1}`,
           address: loc.address || loc.storefrontAddress?.addressLines?.join(", ") || "Address not available",
           city: loc.city || "",
+          locationId: loc.locationId || loc.id || "", // Ensure locationId is available
           ...loc
         }));
         setAvailableLocations(formattedLocations);
@@ -753,7 +803,7 @@ export default function PostManagementPage() {
   };
 
   // Handler for when a date is confirmed in the ScheduleModal
-  const handleScheduleDateConfirmed = (postId, status, selectedDate) => {
+  const handleScheduleDateConfirmed = (postId, status, selectedDate) => {    
     setScheduledDateForLocations(selectedDate); // Store the selected date
     setPostToAction(posts.find(p => p._id === postId)); // Set the post to be scheduled
     setShowLocationModal(true); // Open the location selection modal
@@ -761,7 +811,7 @@ export default function PostManagementPage() {
   };
 
 
-  const handleUpdateStatus = async (postOrId, newStatus, scheduleDate) => {
+  const handleUpdateStatus = async (postOrId, newStatus, scheduleDate, locations, checkmark) => {
     const postId = typeof postOrId === 'string' ? postOrId : postOrId._id;
 
     // If the action is to open the schedule modal
@@ -770,7 +820,7 @@ export default function PostManagementPage() {
       setIsScheduleModalOpen(true);
       return;
     }
-    
+
 
     const userId = localStorage.getItem("userId");
     try {
@@ -779,6 +829,9 @@ export default function PostManagementPage() {
         status: newStatus,
         scheduledDate: scheduleDate,
         userId: userId,
+        locations: locations || [],
+        token: session?.accessToken || "",
+        checkmark: checkmark
       });
 
       if (!data.success) {
@@ -844,35 +897,57 @@ export default function PostManagementPage() {
       return;
     }
 
-    if (!postToAction) {
-      showToast("Post data not found", "error");
+    const userId = localStorage.getItem("userId");
+    
+    // Fix: Ensure type-safe comparison for location IDs
+    const selectedLocations = availableLocations.filter(loc =>
+      selectedLocationIds.some(id => String(id) === String(loc.id))
+    ).map(loc => ({ ...loc, isPosted: false }));
+
+    if (selectedLocations.length === 0) {
+      showToast("Error: No valid locations found matching selection.", "error");
       return;
     }
 
-    const userId = localStorage.getItem("userId");
-    const selectedLocations = availableLocations.filter(loc =>
-      selectedLocationIds.includes(loc.id)
-    ).map(loc => ({ ...loc, isPosted: false }));
-
     // Determine if this is a "Post Now" or "Schedule Post" action
-    if (scheduledDateForLocations && postToSchedule) {
+    if (scheduledDateForLocations && (postToSchedule || postToAction)) {
+      const targetPost = postToSchedule || postToAction;
+
       // This is a "Schedule Post" action
       // No direct cost deduction here for scheduling, as actual posting cost is handled by cron
 
+      // ✅ Explicitly map locations for DB Schema to ensure cron job works
+      const locationsForDb = selectedLocations.map(loc => ({
+        name: loc.name || "",
+        locality: loc.locality || "",
+        city: loc.city || loc.locationId || "",
+        locationId: String(loc.locationId || loc.id || ""), // ✅ Ensure string for DB
+        accountId: loc.accountId || "",
+        websiteUrl: loc.websiteUrl || loc.bookUrl || "",
+      }));
+
+      console.log("📅 Scheduling Post:", { postId: targetPost._id, date: scheduledDateForLocations, locations: locationsForDb, checkmark });
+
       await handleUpdateStatus(
-        postToSchedule._id,
+        targetPost._id,
         "scheduled",
         scheduledDateForLocations,
-        selectedLocations
+        locationsForDb,
+        checkmark
       );
       showToast(`Post scheduled for ${selectedLocationIds.length} locations on ${new Date(scheduledDateForLocations).toLocaleDateString()}!`, "success");
 
       // Reset scheduling specific states
       setScheduledDateForLocations(null);
       setPostToSchedule(null);
-      
+
     } else {
       // This is a "Post Now" action (existing logic)
+      if (!postToAction) {
+        showToast("Post data not found", "error");
+        return;
+      }
+
       // Calculate cost: 20 coins per location for posting
       const totalPostCost = selectedLocationIds.length * 20;
 
@@ -961,7 +1036,7 @@ export default function PostManagementPage() {
     }
     setPostToAction(null); // Clear postToAction after handling
   };
-  
+
 
   const handlePost = async (post) => {
     // First check if user has approved the post
@@ -986,7 +1061,7 @@ export default function PostManagementPage() {
 
     // Find the full location objects based on the selected IDs.
     // The `LocationSelectionModal` passes back the `id` property of the location objects.
-    const locationsToDelete = postToAction.locations.filter(loc => 
+    const locationsToDelete = postToAction.locations.filter(loc =>
       selectedLocationIds.includes(loc.id)
     );
 
@@ -1049,7 +1124,7 @@ export default function PostManagementPage() {
               : p
           )
         );
-  
+
         // ✅ Update counts
         setAllCounts((prev) => ({
           ...prev,
@@ -1182,7 +1257,7 @@ export default function PostManagementPage() {
             onClose={() => setIsScheduleModalOpen(false)}
             post={postToSchedule} // Pass the post to the modal
             onConfirm={handleScheduleDateConfirmed} // New handler for date confirmation
-            />
+          />
         )}
         {showRejectModal && (
           <RejectReasonModal
@@ -1211,7 +1286,7 @@ export default function PostManagementPage() {
         )}
         {showSuccess && <SuccessOverlay onComplete={() => setShowSuccess(false)} postsCount={postsGeneratedCount} />}
 
-{/* <div className="marquee-container w-full max-w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 text-black font-bold overflow-hidden overflow-x-hidden whitespace-nowrap rounded-lg shadow-lg py-3">
+        {/* <div className="marquee-container w-full max-w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 text-black font-bold overflow-hidden overflow-x-hidden whitespace-nowrap rounded-lg shadow-lg py-3">
 
   <div className="marquee-content flex gap-16 whitespace-nowrap animate-marquee">
     <span>Create post charges are now 80 — previously it was 200.</span>
@@ -1231,17 +1306,17 @@ export default function PostManagementPage() {
         <div className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 
 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl border-4 border-white text-center">
 
-  <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 sm:mb-3 
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 sm:mb-3 
   flex items-center justify-center gap-2 sm:gap-3">
-    <Sparkles className="w-8 h-8" />
-    Post Management
-  </h1>
+            <Sparkles className="w-8 h-8" />
+            Post Management
+          </h1>
 
-  <p className="text-white/90 text-sm sm:text-base font-medium">
-    Create stunning GMB posts with AI in seconds ✨
-  </p>
+          <p className="text-white/90 text-sm sm:text-base font-medium">
+            Create stunning GMB posts with AI in seconds ✨
+          </p>
 
-</div>
+        </div>
 
 
         <PostInput

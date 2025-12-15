@@ -49,23 +49,29 @@ export default function FranchisePage() {
     starter: {
       clients: 20,
       revenue: 30000,
-      investment: 25000,
-      monthly: 5000,
-      yearly: 60000
+      investment: 50000,
+      monthly: 12000,
+      yearly: 144000,
+      profitPercent: 40,
+      platformFeePercent: 50
     },
     standard: {
       clients: 50,
       revenue: 75000,
-      investment: 50000,
-      monthly: 25000,
-      yearly: 300000
+      investment: 100000,
+      monthly: 37500,
+      yearly: 450000,
+      profitPercent: 50,
+      platformFeePercent: 40
     },
     premium: {
       clients: 100,
       revenue: 150000,
-      investment: 100000,
-      monthly: 50000,
-      yearly: 600000
+      investment: 200000,
+      monthly: 90000,
+      yearly: 1080000,
+      profitPercent: 60,
+      platformFeePercent: 30
     }
   };
 
@@ -162,7 +168,7 @@ export default function FranchisePage() {
                         required
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder="+91 9289344726"
+                        placeholder="+91 9289344708"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
                       />
                     </div>
@@ -221,9 +227,9 @@ export default function FranchisePage() {
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
                     >
                       <option value="">Select investment range</option>
-                      <option value="25000">₹25,000 - Starter Plan</option>
-                      <option value="50000">₹50,000 - Standard Plan</option>
-                      <option value="100000">₹1,00,000 - Premium Plan</option>
+                      <option value="50000">₹50,000 - Starter Plan</option>
+                      <option value="100000">₹1,00,000 - Standard Plan</option>
+                      <option value="200000">₹2,00,000 - Premium Plan</option>
                       <option value="discuss">Need to Discuss</option>
                     </select>
                   </div>
@@ -372,7 +378,7 @@ export default function FranchisePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">500+</div>
+              <div className="text-2xl font-bold text-blue-600">1000+</div>
               <div className="text-sm">Active Businesses</div>
             </div>
             <div className="text-center">
@@ -468,21 +474,21 @@ export default function FranchisePage() {
                   <div className="text-xs text-gray-500 mt-1">One-time franchise fee</div>
                 </div>
 
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-2xl">
+                {/* <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-2xl">
                   <div className="text-sm text-gray-600 mb-1">Target Clients</div>
                   <div className="text-3xl font-bold text-green-600">
                     {profitCalculations[selectedPlan].clients} Businesses
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Average in 6-12 months</div>
-                </div>
+                </div> */}
 
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl">
+                {/* <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl">
                   <div className="text-sm text-gray-600 mb-1">Monthly Revenue</div>
                   <div className="text-3xl font-bold text-purple-600">
                     ₹{profitCalculations[selectedPlan].revenue.toLocaleString()}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">@ ₹1,500 per client/month</div>
-                </div>
+                </div> */}
               </div>
 
               {/* Right: Profit Calculation */}
@@ -491,22 +497,18 @@ export default function FranchisePage() {
                 
                 <div className="bg-yellow-50 border-2 border-yellow-200 p-6 rounded-2xl">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Monthly Revenue</span>
+                    <span className="text-gray-700 text-lg">Profit Margin</span>
+                    <span className="text-3xl font-bold text-blue-600">{profitCalculations[selectedPlan].profitPercent}%</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-gray-700">Monthly Revenue (Est.)</span>
                     <span className="font-semibold">₹{profitCalculations[selectedPlan].revenue.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Platform Fee (30%)</span>
-                    <span className="font-semibold text-red-600">-₹{(profitCalculations[selectedPlan].revenue * 0.3).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Operating Costs</span>
-                    <span className="font-semibold text-red-600">-₹{(profitCalculations[selectedPlan].revenue * 0.1).toLocaleString()}</span>
                   </div>
                   <div className="border-t-2 border-yellow-300 pt-4 mt-4">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-gray-800">Net Monthly Profit</span>
                       <span className="text-2xl font-bold text-green-600">
-                        ₹{Math.round(profitCalculations[selectedPlan].revenue * 0.6).toLocaleString()}
+                        ₹{Math.round(profitCalculations[selectedPlan].revenue * (profitCalculations[selectedPlan].profitPercent / 100)).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -515,10 +517,10 @@ export default function FranchisePage() {
                 <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-8 rounded-2xl shadow-xl">
                   <div className="text-sm opacity-90 mb-2">Annual Profit Potential</div>
                   <div className="text-4xl font-bold mb-2">
-                    ₹{Math.round(profitCalculations[selectedPlan].revenue * 0.6 * 12).toLocaleString()}
+                    ₹{Math.round(profitCalculations[selectedPlan].revenue * (profitCalculations[selectedPlan].profitPercent / 100) * 12).toLocaleString()}
                   </div>
                   <div className="text-sm opacity-90">
-                    ROI: {Math.round((profitCalculations[selectedPlan].revenue * 0.6 * 12 / profitCalculations[selectedPlan].investment) * 100)}% per year
+                    ROI: {Math.round((profitCalculations[selectedPlan].revenue * (profitCalculations[selectedPlan].profitPercent / 100) * 12 / profitCalculations[selectedPlan].investment) * 100)}% per year
                   </div>
                 </div>
 
@@ -535,7 +537,7 @@ export default function FranchisePage() {
           </div>
 
           {/* Real Examples */}
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
+          {/* <div className="grid md:grid-cols-3 gap-6 mt-12">
             <div className="bg-white p-6 rounded-2xl shadow-lg border">
               <div className="text-lg font-bold text-gray-800 mb-2">Beginner Level</div>
               <div className="text-sm text-gray-600 mb-4">First 3-6 months</div>
@@ -568,7 +570,7 @@ export default function FranchisePage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -967,8 +969,8 @@ export default function FranchisePage() {
             {[
               {
                 name: "Starter",
-                investment: "₹25,000",
-                commission: "60%",
+                investment: "₹50,000",
+                commission: "40%",
                 features: [
                   "City-level franchise rights",
                   "Complete training program",
@@ -978,14 +980,14 @@ export default function FranchisePage() {
                   "Sales scripts & templates",
                   "Monthly strategy calls"
                 ],
-                target: "20-30 clients",
-                potential: "₹18K-27K/month",
+                // target: "20-30 clients",
+                potential: "₹12K-18K/month",
                 best: "New entrepreneurs"
               },
               {
                 name: "Standard",
-                investment: "₹50,000",
-                commission: "65%",
+                investment: "₹1,00,000",
+                commission: "50%",
                 features: [
                   "Multi-city franchise rights",
                   "Priority training & support",
@@ -996,15 +998,15 @@ export default function FranchisePage() {
                   "White-label options",
                   "Team building guidance"
                 ],
-                target: "50-80 clients",
-                potential: "₹45K-72K/month",
+                // target: "50/-80 clients",
+                potential: "₹37K-50K/month",
                 best: "Growth-focused partners",
                 popular: true
               },
               {
                 name: "Premium",
-                investment: "₹1,00,000",
-                commission: "70%",
+                investment: "₹2,00,000",
+                commission: "60%",
                 features: [
                   "Regional franchise rights",
                   "VIP training & mentorship",
@@ -1016,7 +1018,7 @@ export default function FranchisePage() {
                   "Annual business retreat",
                   "Expansion funding support"
                 ],
-                target: "100+ clients",
+                // target: "100+ clients",
                 potential: "₹90K-1.5L/month",
                 best: "Established entrepreneurs"
               }
@@ -1042,10 +1044,10 @@ export default function FranchisePage() {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  <div className="bg-blue-50 p-3 rounded-lg">
+                  {/* <div className="bg-blue-50 p-3 rounded-lg">
                     <div className="text-xs text-gray-600">Target Clients</div>
                     <div className="font-bold text-blue-600">{plan.target}</div>
-                  </div>
+                  </div> */}
                   <div className="bg-purple-50 p-3 rounded-lg">
                     <div className="text-xs text-gray-600">Income Potential</div>
                     <div className="font-bold text-purple-600">{plan.potential}</div>
@@ -1076,7 +1078,7 @@ export default function FranchisePage() {
             ))}
           </div>
 
-          <div className="bg-yellow-50 border-2 border-yellow-200 p-6 rounded-2xl mt-12 max-w-4xl mx-auto">
+          {/* <div className="bg-yellow-50 border-2 border-yellow-200 p-6 rounded-2xl mt-12 max-w-4xl mx-auto">
             <div className="flex items-start gap-4">
               <Gift className="w-8 h-8 text-yellow-600 mt-1 flex-shrink-0" />
               <div>
@@ -1086,7 +1088,7 @@ export default function FranchisePage() {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -1189,11 +1191,11 @@ export default function FranchisePage() {
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
-              <div className="text-3xl font-bold mb-2">₹25K</div>
+              <div className="text-3xl font-bold mb-2">₹50K</div>
               <div className="text-sm opacity-90">Starting Investment</div>
             </div>
             <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
-              <div className="text-3xl font-bold mb-2">60-70%</div>
+              <div className="text-3xl font-bold mb-2">40-60%</div>
               <div className="text-sm opacity-90">Your Commission</div>
             </div>
             <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
@@ -1206,10 +1208,10 @@ export default function FranchisePage() {
             <p className="text-sm opacity-75 mb-4">Have questions? We're here to help!</p>
             <div className="flex flex-wrap justify-center gap-6 text-sm">
               <a href="tel:+919876543210" className="flex items-center gap-2 hover:text-yellow-300 transition">
-                <PhoneCall size={16} /> +91 9289344726
+                <PhoneCall size={16} /> +91 9289344708
               </a>
-              <a href="mailto:franchise@limbu.ai" className="flex items-center gap-2 hover:text-yellow-300 transition">
-                📧 franchise@limbu.ai
+              <a href="mailto:info@limbu.ai" className="flex items-center gap-2 hover:text-yellow-300 transition">
+                📧 info@limbu.ai
               </a>
               <button onClick={() => setShowForm(true)} className="flex items-center gap-2 hover:text-yellow-300 transition">
                 💬 Live Chat Support
@@ -1253,8 +1255,8 @@ export default function FranchisePage() {
             <div>
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>📞 +91 9289344726</li>
-                <li>📧 franchise@limbu.ai</li>
+                <li>📞 +91 9289344708</li>
+                <li>📧 info@limbu.ai</li>
                 <li>📍 Gurugram, India</li>
               </ul>
             </div>
