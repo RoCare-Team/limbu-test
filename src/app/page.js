@@ -571,6 +571,7 @@ export default function LimbuAILanding() {
             <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">Features</a>
             <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">How It Works</a>
             <a href="#examples" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">Examples</a>
+            <a href="/franchise-opportunities" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium text-slate-700">Become Franchise Partners</a>
             <button onClick={() => { setShowBookDemoModal(true); setIsMobileMenuOpen(false); }} className="text-lg font-medium text-blue-600 text-left">
               Book a Demo
             </button>
