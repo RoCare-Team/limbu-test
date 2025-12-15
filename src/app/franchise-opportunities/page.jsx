@@ -25,52 +25,66 @@ export default function FranchisePage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    setFormSubmitted(true);
-    
-    setTimeout(() => {
-      setShowForm(false);
-      setFormSubmitted(false);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        city: "",
-        experience: "",
-        investment: "",
-        message: ""
+    try {
+      const res = await fetch("/api/franchise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
-    }, 3000);
+
+      if (res.ok) {
+        setFormSubmitted(true);
+        setTimeout(() => {
+          setShowForm(false);
+          setFormSubmitted(false);
+          setFormData({
+            name: "",
+            email: "",
+            phone: "",
+            city: "",
+            experience: "",
+            investment: "",
+            message: ""
+          });
+        }, 3000);
+      } else {
+        const data = await res.json();
+        alert(data.message || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to submit application. Please check your connection.");
+    }
   };
 
   const profitCalculations = {
     starter: {
       clients: 20,
-      revenue: 30000,
+      revenue: 70,
       investment: 50000,
       monthly: 12000,
       yearly: 144000,
-      profitPercent: 40,
+      profitPercent: 30,
       platformFeePercent: 50
     },
     standard: {
       clients: 50,
-      revenue: 75000,
+      revenue: 60,
       investment: 100000,
       monthly: 37500,
       yearly: 450000,
-      profitPercent: 50,
+      profitPercent: 40,
       platformFeePercent: 40
     },
     premium: {
       clients: 100,
-      revenue: 150000,
+      revenue: 50,
       investment: 200000,
       monthly: 90000,
       yearly: 1080000,
-      profitPercent: 60,
+      profitPercent: 50,
       platformFeePercent: 30
     }
   };
@@ -493,45 +507,20 @@ export default function FranchisePage() {
 
               {/* Right: Profit Calculation */}
               <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6">Your Profit</h3>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">Profit Sharing</h3>
                 
                 <div className="bg-yellow-50 border-2 border-yellow-200 p-6 rounded-2xl">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700 text-lg">Profit Margin</span>
+                    <span className="text-gray-700 text-lg">Franchise</span>
                     <span className="text-3xl font-bold text-blue-600">{profitCalculations[selectedPlan].profitPercent}%</span>
                   </div>
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Monthly Revenue (Est.)</span>
-                    <span className="font-semibold">₹{profitCalculations[selectedPlan].revenue.toLocaleString()}</span>
+                    <span className="text-gray-700">Limbu Ai</span>
+                    <span className="font-semibold">{profitCalculations[selectedPlan].revenue.toLocaleString()}%</span>
                   </div>
-                  <div className="border-t-2 border-yellow-300 pt-4 mt-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-gray-800">Net Monthly Profit</span>
-                      <span className="text-2xl font-bold text-green-600">
-                        ₹{Math.round(profitCalculations[selectedPlan].revenue * (profitCalculations[selectedPlan].profitPercent / 100)).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
+                  
                 </div>
 
-                <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-8 rounded-2xl shadow-xl">
-                  <div className="text-sm opacity-90 mb-2">Annual Profit Potential</div>
-                  <div className="text-4xl font-bold mb-2">
-                    ₹{Math.round(profitCalculations[selectedPlan].revenue * (profitCalculations[selectedPlan].profitPercent / 100) * 12).toLocaleString()}
-                  </div>
-                  <div className="text-sm opacity-90">
-                    ROI: {Math.round((profitCalculations[selectedPlan].revenue * (profitCalculations[selectedPlan].profitPercent / 100) * 12 / profitCalculations[selectedPlan].investment) * 100)}% per year
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <TrendingUp className="text-blue-600 w-5 h-5 mt-0.5" />
-                    <div className="text-sm text-gray-700">
-                      <strong>Growth Tip:</strong> Most partners reach their target clients within 8-10 months with consistent effort
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -968,9 +957,9 @@ export default function FranchisePage() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                name: "Starter",
+                name: "Business Champion",
                 investment: "₹50,000",
-                commission: "40%",
+                commission: "30%",
                 features: [
                   "City-level franchise rights",
                   "Complete training program",
@@ -985,9 +974,9 @@ export default function FranchisePage() {
                 best: "New entrepreneurs"
               },
               {
-                name: "Standard",
+                name: "Business Growth Plan",
                 investment: "₹1,00,000",
-                commission: "50%",
+                commission: "40% + 10% Business Growth Plan",
                 features: [
                   "Multi-city franchise rights",
                   "Priority training & support",
@@ -1004,9 +993,9 @@ export default function FranchisePage() {
                 popular: true
               },
               {
-                name: "Premium",
+                name: "Business Excellence Plan",
                 investment: "₹2,00,000",
-                commission: "60%",
+                commission: "50% + 10% Business Growth Plan + 10% Business Champion",
                 features: [
                   "Regional franchise rights",
                   "VIP training & mentorship",
@@ -1038,8 +1027,8 @@ export default function FranchisePage() {
 
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl mb-6">
                   <div className="text-center">
-                    <div className="text-sm text-gray-600 mb-1">Commission Rate</div>
-                    <div className="text-3xl font-bold text-green-600">{plan.commission}</div>
+                    <div className="text-sm text-gray-600 mb-1">Profit Sharing</div>
+                    <div className="text-lg font-bold text-green-600 leading-tight">{plan.commission}</div>
                   </div>
                 </div>
 
