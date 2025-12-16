@@ -46,6 +46,11 @@ export default function LimbuAILanding() {
   const [toast, setToast] = useState(null);
   const [demoBooked, setDemoBooked] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [serviceForm, setServiceForm] = useState({ name: '', phone: '', email: '', gstNumber: '' });
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   const now = new Date();
   const isAfter4PM = now.getHours() >= 16; // 4 PM
@@ -168,6 +173,150 @@ export default function LimbuAILanding() {
   const handleDemoInputChange = (e) => {
     setDemoDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  const handleServiceBookClick = (plan) => {
+    setSelectedPlan(plan);
+    setBookingSuccess(false);
+    
+    if (isLoggedIn) {
+      try {
+        // Try to get user details from localStorage 'user' object first
+        const storedUser = localStorage.getItem("user");
+        let userData = {};
+        
+        if (storedUser) {
+           userData = JSON.parse(storedUser);
+        } else {
+           // Fallback: Decode token
+           const token = localStorage.getItem("token");
+           if (token) {
+             const base64Url = token.split('.')[1];
+             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+             const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+             }).join(''));
+             userData = JSON.parse(jsonPayload);
+           }
+        }
+
+        setServiceForm({
+          name: userData.fullName || userData.name || '',
+          phone: userData.phone || '',
+          email: userData.email || '',
+          gstNumber: ''
+        });
+      } catch (error) {
+        console.error("Error pre-filling form:", error);
+      }
+    } else {
+      setServiceForm({ name: '', phone: '', email: '', gstNumber: '' });
+    }
+
+    setShowServiceModal(true);
+  };
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleServicePayment = async (e) => {
+    e.preventDefault();
+    if (!serviceForm.name || !serviceForm.phone || !serviceForm.email) {
+      showToast("Please fill in all fields", "error");
+      return;
+    }
+
+    // Save booking details to API
+    try {
+      const response = await fetch("/api/service-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...serviceForm,
+          planTitle: selectedPlan.title,
+          planPrice: selectedPlan.price,
+          totalAmount: selectedPlan.totalPrice,
+        }),
+      });
+
+      if (response.ok) {
+        setBookingSuccess(true);
+        setServiceForm({ name: '', phone: '', email: '', gstNumber: '' });
+      } else {
+        showToast("Something went wrong. Please try again.", "error");
+      }
+    } catch (error) {
+      console.error("Error saving booking details:", error);
+      showToast("Error submitting request", "error");
+    }
+  };
+
+  const servicePlans = [
+       {
+      title: "Physical Magic QR Code",
+      price: "₹200",
+      period: "+ 18% GST",
+      totalPrice: "₹236",
+      gstAmount: "₹36",
+      subtitle: "Get a physical QR code delivered to your doorstep",
+      features: [
+        "Durable, high-quality print",
+        // "Custom branding with your logo",
+        "Weather-resistant material",
+        "Includes shipping charges",
+        "Helps in getting more positive reviews"
+      ],
+      tag: "Best for: Offline businesses wanting to boost online reviews.",
+      iconColor: "text-green-500",
+      buttonColor: "bg-green-600"
+    },
+    {
+      title: "GMB Assistance & Update Plan",
+      price: "₹999",
+      period: "+ 18% GST",
+      totalPrice: "₹1,179",
+      gstAmount: "₹180",
+      subtitle: "Ideal for existing Google Business Profiles",
+      features: [
+        "Google Business Profile functionality check",
+        "Website URL update",
+        "Mobile number update",
+        "Basic profile verification check",
+        "Minor corrections (name, address consistency)",
+        "1 month  support assistance"
+      ],
+      tag: "Best for: Businesses that already have a GMB listing and need basic updates or fixes.",
+      iconColor: "text-blue-500",
+      buttonColor: "bg-blue-600"
+    },
+    {
+      title: "GMB Creation & Management Plan (From Scratch)",
+      price: "₹2,500",
+      period: "+ 18% GST",
+      totalPrice: "₹2,950",
+      gstAmount: "₹450",
+      subtitle: "Ideal for new businesses or those without GMB",
+      features: [
+        "Google Business Profile creation from scratch",
+        "Business address setup & verification guidance",
+        "Category selection (primary & secondary)",
+        "Product listing setup",
+        "Service listing & management",
+        "Business details optimization",
+        "1-month complete assistance & support"
+      ],
+      tag: "Best for: New businesses or those without GMB",
+      iconColor: "text-purple-500",
+      buttonColor: "bg-purple-600"
+    },
+ 
+  ];
 
   const features = [
     {
@@ -750,6 +899,78 @@ export default function LimbuAILanding() {
         </div>
       </section>
 
+      {/* Services Section */}
+      <section id="services" className="relative bg-slate-50 py-16 sm:py-20 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-3 sm:mb-4 px-4">
+              Our <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Service Plans</span>
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4">Choose the perfect plan for your business growth</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 max-w-7xl mx-auto">
+            {servicePlans.map((plan, idx) => (
+              <div key={idx} className={`relative bg-white rounded-2xl shadow-xl border ${plan.popular ? 'border-purple-500 ring-2 ring-purple-500 ring-offset-2' : 'border-slate-200'} p-5 flex flex-col`}>
+                {plan.popular && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
+                    Most Popular
+                  </div>
+                )}
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">{plan.title}</h3>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="text-3xl font-bold text-slate-900">{plan.price}</span>
+                    <span className="text-xs text-slate-500 font-medium">{plan.period}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">{plan.subtitle}</p>
+                </div>
+
+                <div className="flex-grow space-y-4 mb-6">
+                  {plan.features && (
+                    <ul className="space-y-3">
+                      {plan.features.map((feature, fIdx) => (
+                        <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-600">
+                          <CheckCircle className={`w-5 h-5 ${plan.iconColor} flex-shrink-0`} />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  
+                  {plan.sections && plan.sections.map((section, sIdx) => (
+                    <div key={sIdx}>
+                      <h4 className="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wide">{section.title}</h4>
+                      <ul className="space-y-3">
+                        {section.features.map((feature, fIdx) => (
+                          <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-600">
+                            <CheckCircle className={`w-5 h-5 ${plan.iconColor} flex-shrink-0`} />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                {plan.tag && (
+                    <div className="mb-4 p-2 bg-slate-50 rounded-lg text-center text-xs font-medium text-slate-700 border border-slate-100">
+                        {plan.tag}
+                    </div>
+                )}
+
+                <button
+                  onClick={() => handleServiceBookClick(plan)}
+                  className={`w-full py-3 rounded-xl font-bold text-sm text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 ${plan.buttonColor}`}
+                >
+                  Book Service
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section id="how-it-works" className="relative py-16 sm:py-20 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -1014,6 +1235,105 @@ export default function LimbuAILanding() {
 
             {/* Click Outside Hint */}
             <p className="text-white/60 text-center mt-4 text-sm">Click outside or press ESC to close</p>
+          </div>
+        </div>
+      )}
+
+      {/* Service Booking Modal */}
+      {showServiceModal && selectedPlan && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+            <button 
+                onClick={() => setShowServiceModal(false)} 
+                className="absolute top-4 right-4 text-slate-500 hover:text-slate-800"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            {bookingSuccess ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4 animate-pulse" />
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Booked Service!</h2>
+                <p className="text-slate-600">Our team will connect with you shortly.</p>
+              </div>
+            ) : (
+            <>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Book {selectedPlan.title}</h2>
+            <p className="text-slate-600 mb-6">Complete the details below to proceed to payment.</p>
+            
+            <div className="bg-slate-50 p-2 rounded-lg mb-4 border border-slate-100">
+                <div className="flex justify-between items-center">
+                    <div className="text-sm text-slate-600">
+                        <span className="font-semibold">{selectedPlan.price}</span>
+                        <span className="mx-1 text-slate-400">+</span>
+                        <span className="font-semibold">{selectedPlan.gstAmount}</span>
+                        <span className="ml-1 text-xs text-slate-500">(GST)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-700">Total:</span>
+                        <span className="text-lg font-bold text-blue-600">{selectedPlan.totalPrice}</span>
+                    </div>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">{selectedPlan.subtitle}</p>
+            </div>
+
+            <form onSubmit={handleServicePayment} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={serviceForm.name}
+                  onChange={(e) => setServiceForm({...serviceForm, name: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                  placeholder="Enter your name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={serviceForm.phone}
+                  onChange={(e) => setServiceForm({...serviceForm, phone: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={serviceForm.email}
+                  onChange={(e) => setServiceForm({...serviceForm, email: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                  placeholder="Enter your email"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">GST Number (Optional)</label>
+                <input
+                  type="text"
+                  value={serviceForm.gstNumber}
+                  onChange={(e) => setServiceForm({...serviceForm, gstNumber: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                  placeholder="Enter GST number"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all hover:scale-[1.02] mt-2 text-sm"
+              >
+                Confirm
+              </button>
+            </form>
+            </>
+            )}
           </div>
         </div>
       )}
