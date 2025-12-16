@@ -316,14 +316,14 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
             <div className="pt-2 pb-4">
               {/* MAIN TOGGLE */}
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
+                {/* <input
                   type="checkbox"
 
                   checked={showAssets}
                   onChange={handleCheckBoxChange}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="font-bold text-gray-700">Create image with assets</span>
+                <span className="font-bold text-gray-700">Create image with assets</span> */}
               </label>
 
               {/* SHOW ASSETS SECTION */}
