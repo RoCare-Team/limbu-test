@@ -976,7 +976,7 @@ export default function FranchisePage() {
               {
                 name: "Business Growth Plan",
                 investment: "₹1,00,000",
-                commission: "40% + 10% Business Growth Plan",
+                commission: "40% on sharing + 10% Business Champion",
                 features: [
                   "Multi-city franchise rights",
                   "Priority training & support",
@@ -995,7 +995,7 @@ export default function FranchisePage() {
               {
                 name: "Business Excellence Plan",
                 investment: "₹2,00,000",
-                commission: "50% + 10% Business Growth Plan + 10% Business Champion",
+                commission: "50% + 10% Business Growth Plan + 20% Business Champion",
                 features: [
                   "Regional franchise rights",
                   "VIP training & mentorship",

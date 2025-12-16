@@ -9,14 +9,17 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET;
+
+    if (!keyId || !keySecret) {
       console.error("❌ Razorpay keys are missing in environment variables")
       return NextResponse.json({ error: "Razorpay environment variables missing" }, { status: 500 })
     }
 
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id: keyId,
+      key_secret: keySecret,
     })
 
     const order = await razorpay.orders.create({

@@ -51,6 +51,7 @@ export default function LimbuAILanding() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [serviceForm, setServiceForm] = useState({ name: '', phone: '', email: '', gstNumber: '' });
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [billingCycle, setBillingCycle] = useState("half-yearly");
 
   const now = new Date();
   const isAfter4PM = now.getHours() >= 16; // 4 PM
@@ -174,45 +175,31 @@ export default function LimbuAILanding() {
     setDemoDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleServiceBookClick = (plan) => {
+  const handleServiceBookClick = async (plan) => {
     setSelectedPlan(plan);
     setBookingSuccess(false);
-    
-    if (isLoggedIn) {
-      try {
-        // Try to get user details from localStorage 'user' object first
-        const storedUser = localStorage.getItem("user");
-        let userData = {};
-        
-        if (storedUser) {
-           userData = JSON.parse(storedUser);
-        } else {
-           // Fallback: Decode token
-           const token = localStorage.getItem("token");
-           if (token) {
-             const base64Url = token.split('.')[1];
-             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-             const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-             }).join(''));
-             userData = JSON.parse(jsonPayload);
-           }
-        }
+    setShowServiceModal(true);
 
-        setServiceForm({
-          name: userData.fullName || userData.name || '',
-          phone: userData.phone || '',
-          email: userData.email || '',
-          gstNumber: ''
-        });
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      try {
+        const res = await fetch(`/api/auth/signup?userId=${userId}`);
+        const data = await res.json();
+        
+        if (data) {
+          setServiceForm({
+            name: data.fullName || '',
+            phone: data.phone || '',
+            email: data.email || '',
+            gstNumber: data.gst || ''
+          });
+        }
       } catch (error) {
-        console.error("Error pre-filling form:", error);
+        console.error("Error fetching user details:", error);
       }
     } else {
       setServiceForm({ name: '', phone: '', email: '', gstNumber: '' });
     }
-
-    setShowServiceModal(true);
   };
 
   const loadRazorpayScript = () => {
@@ -232,34 +219,180 @@ export default function LimbuAILanding() {
       return;
     }
 
-    // Save booking details to API
+    const res = await loadRazorpayScript();
+    if (!res) {
+      showToast("Razorpay SDK failed to load. Are you online?", "error");
+      return;
+    }
+
     try {
-      const response = await fetch("/api/service-booking", {
+      // 1. Create Order
+      const amountVal = parseInt(selectedPlan.totalPrice.replace(/[^\d]/g, ''));
+      
+      const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...serviceForm,
-          planTitle: selectedPlan.title,
-          planPrice: selectedPlan.price,
-          totalAmount: selectedPlan.totalPrice,
+          planId: selectedPlan.title,
+          amount: amountVal,
+          receipt: `receipt_${Date.now()}`,
+          notes: {
+            plan_name: selectedPlan.title,
+            user_email: serviceForm.email
+          }
         }),
       });
-
-      if (response.ok) {
-        setBookingSuccess(true);
-        setServiceForm({ name: '', phone: '', email: '', gstNumber: '' });
-      } else {
-        showToast("Something went wrong. Please try again.", "error");
+      
+      const orderData = await orderRes.json();
+      if (orderData.error) {
+        showToast("Error creating payment order", "error");
+        return;
       }
+
+      // 2. Open Razorpay
+      const options = {
+        key: process.env.RAZORPAY_KEY_ID || "rzp_live_RbCgJ3vKqQjFVE",
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "Limbu.ai",
+        description: selectedPlan.title,
+        image: "",
+        order_id: orderData.order.id,
+        handler: async function (response) {
+          // 3. Save Booking on Success
+          try {
+            const saveRes = await fetch("/api/service-booking", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...serviceForm,
+                planTitle: selectedPlan.title,
+                planType: selectedPlan.planType,
+                planPrice: selectedPlan.price,
+                totalAmount: selectedPlan.totalPrice,
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                status: "paid"
+              }),
+            });
+
+            if (saveRes.ok) {
+              setBookingSuccess(true);
+              setServiceForm({ name: '', phone: '', email: '', gstNumber: '' });
+              showToast("Payment Successful!", "success");
+            } else {
+              showToast("Payment successful but failed to save booking.", "warning");
+            }
+          } catch (err) {
+            console.error(err);
+            showToast("Error saving booking", "error");
+          }
+        },
+        prefill: {
+          name: serviceForm.name,
+          email: serviceForm.email,
+          contact: serviceForm.phone
+        },
+        theme: {
+          color: "#3B82F6"
+        }
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
     } catch (error) {
-      console.error("Error saving booking details:", error);
-      showToast("Error submitting request", "error");
+      console.error("Payment Error:", error);
+      showToast("Something went wrong. Please try again.", "error");
     }
+  };
+
+  const subscriptionPlans = [
+    {
+      title: "Basic Plan",
+      basePrice: 999,
+      basePosts: 5,
+      baseCitations: 3,
+      staticFeatures: ["Review Reply Management","Magic Qr Code Generation","Insights Dashboard"],
+      description: "Ideal for small businesses needing basic online presence",
+      color: "bg-blue-600",
+      textColor: "text-blue-600",
+      borderColor: "border-blue-200"
+    },
+    {
+      title: "Professional Plan",
+      basePrice: 2500,
+      basePosts: 15,
+      baseCitations: 5,
+      staticFeatures: ["Review Reply Management", "Magic Qr Code Generation","Insights Dashboard", "Category Addition & Optimization"],
+      description: "Best for growing businesses looking for better visibility",
+      popular: true,
+      color: "bg-purple-600",
+      textColor: "text-purple-600",
+      borderColor: "border-purple-200"
+    },
+    {
+      title: "Premium Plan",
+      basePrice: 5000,
+      basePosts: 30,
+      baseCitations: 15,
+      staticFeatures: ["Review Reply System","Magic Qr Code Generation","Insights Dashboard","Add Professional Service"],
+      description: "Perfect for brands focused on automation and maximum reach",
+      color: "bg-pink-600",
+      textColor: "text-pink-600",
+      borderColor: "border-pink-200"
+    }
+  ];
+
+  const getMultiplier = () => {
+    switch (billingCycle) {
+      case "quarterly": return 3;
+      case "half-yearly": return 6;
+      case "yearly": return 12;
+      default: return 1;
+    }
+  };
+
+  const calculatePrice = (basePrice) => {
+    if (billingCycle === "monthly") return basePrice;
+    if (billingCycle === "quarterly") return Math.round(basePrice * 3 * 0.90);
+    if (billingCycle === "half-yearly") return Math.round(basePrice * 6 * 0.85);
+    if (billingCycle === "yearly") return Math.round(basePrice * 12 * 0.80);
+    return basePrice;
+  };
+
+  const handleSubscriptionClick = (plan) => {
+    const multiplier = getMultiplier();
+    const price = calculatePrice(plan.basePrice);
+    const gst = Math.round(price * 0.18);
+    const total = price + gst;
+    
+    const dynamicFeatures = [
+      `${plan.basePosts * multiplier} GMB Posts`,
+      `${plan.baseCitations * multiplier} Citations`,
+      ...plan.staticFeatures
+    ];
+
+    handleServiceBookClick({
+        title: plan.title,
+        planType: "our-package",
+        price: `₹${price.toLocaleString()}`,
+        period: billingCycle === 'monthly' ? '/ month' : 
+                 billingCycle === 'quarterly' ? '/ quarter' :
+                 billingCycle === 'half-yearly' ? '/ 6 months' : '/ year',
+        gstAmount: `₹${gst.toLocaleString()}`,
+        totalPrice: `₹${total.toLocaleString()}`,
+        subtitle: plan.description,
+        features: dynamicFeatures,
+        tag: plan.description,
+        buttonColor: plan.color
+    });
   };
 
   const servicePlans = [
        {
       title: "Physical Magic QR Code",
+      planType: "our-service",
       price: "₹200",
       period: "+ 18% GST",
       totalPrice: "₹236",
@@ -278,6 +411,7 @@ export default function LimbuAILanding() {
     },
     {
       title: "GMB Assistance & Update Plan",
+      planType: "our-service",
       price: "₹999",
       period: "+ 18% GST",
       totalPrice: "₹1,179",
@@ -297,6 +431,7 @@ export default function LimbuAILanding() {
     },
     {
       title: "GMB Creation & Management Plan (From Scratch)",
+      planType: "our-service",
       price: "₹2,500",
       period: "+ 18% GST",
       totalPrice: "₹2,950",
@@ -635,8 +770,8 @@ export default function LimbuAILanding() {
           <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Features</a>
             <a href="#how-it-works" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">How It Works</a>
-            <a href="#examples" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Examples</a>
-            {/* <a href="/work-with-us" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Work with Us</a> */}
+            <a href="#services" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Our services</a>
+            {/* <a href="#examples" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Example</a> */}
             <a href="/franchise-opportunities" className="text-sm font-medium text-slate-700 hover:text-blue-600 transition">Become Franchise Partners</a>
             <button
               onClick={() => setShowBookDemoModal(true)}
@@ -811,6 +946,9 @@ export default function LimbuAILanding() {
         </div>
       </section>
 
+
+      
+
       {/* Examples Section - Moved Up */}
       <section id="examples" className="relative bg-white py-16 sm:py-20 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -867,6 +1005,51 @@ export default function LimbuAILanding() {
           </div>
         </div>
       </section>
+
+       <section id="how-it-works" className="relative py-16 sm:py-20 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-3 sm:mb-4 px-4">
+              Get Started in <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">3 Simple Steps</span>
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4">From signup to automation in under 5 minutes</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8 relative">
+            {/* Connector Line (Desktop) */}
+            <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 -z-10" />
+
+            {steps.map((step, idx) => (
+              <div key={idx} className="relative bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-lg border border-slate-200 hover:shadow-2xl transition-all">
+                {/* Step Number */}
+                <div className="absolute -top-3 sm:-top-4 -left-3 sm:-left-4 w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg">
+                  {idx + 1}
+                </div>
+
+                {/* Icon */}
+                <div className="w-14 sm:w-16 h-14 sm:h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 mb-3 sm:mb-4 mt-4 sm:mt-6">
+                  {step.icon}
+                </div>
+
+                {/* Content */}
+                <h3 className="text-xl sm:text-2xl font-bold mb-2 text-slate-800">{step.title}</h3>
+                <p className="text-sm sm:text-base text-slate-600 mb-3 sm:mb-4">{step.description}</p>
+
+                {/* Details */}
+                <ul className="space-y-2">
+                  {step.details.map((detail, dIdx) => (
+                    <li key={dIdx} className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* Features Section */}
       <section id="features" className="relative bg-white py-12 sm:py-12 md:py-20">
@@ -971,51 +1154,98 @@ export default function LimbuAILanding() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="relative py-16 sm:py-20 md:py-24">
+      {/* Subscription Plans Section */}
+      <section id="subscription-plans" className="relative bg-white py-16 sm:py-20 md:py-24 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-3 sm:mb-4 px-4">
-              Get Started in <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">3 Simple Steps</span>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+              Our <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Package</span>
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4">From signup to automation in under 5 minutes</p>
+            <p className="text-lg text-slate-600 mb-8">Choose the Package that suits your business needs</p>
+
+            {/* Billing Cycle Toggle */}
+            <div className="flex flex-wrap justify-center gap-2 mb-8">
+              {['monthly', 'quarterly', 'half-yearly', 'yearly'].map((cycle) => (
+                <button
+                  key={cycle}
+                  onClick={() => setBillingCycle(cycle)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    billingCycle === cycle
+                      ? 'bg-slate-900 text-white shadow-lg'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {cycle === 'monthly' ? 'Monthly' : 
+                   cycle === 'quarterly' ? 'Quarterly' : 
+                   cycle === 'half-yearly' ? 'Half-Yearly' : 'Yearly'}
+                  {cycle === 'quarterly' && <span className="ml-1 text-xs text-green-400">-10%</span>}
+                  {cycle === 'half-yearly' && <span className="ml-1 text-xs text-green-400">-15% (Recommended)</span>}
+                  {cycle === 'yearly' && <span className="ml-1 text-xs text-green-400">-20%</span>}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 sm:gap-8 relative">
-            {/* Connector Line (Desktop) */}
-            <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 -z-10" />
+          <div className="grid md:grid-cols-3 gap-8">
+            {subscriptionPlans.map((plan, idx) => {
+              const price = calculatePrice(plan.basePrice);
+              const multiplier = getMultiplier();
+              const displayFeatures = [
+                `${plan.basePosts * multiplier} GMB Posts`,
+                `${plan.baseCitations * multiplier} Citations`,
+                ...plan.staticFeatures
+              ];
 
-            {steps.map((step, idx) => (
-              <div key={idx} className="relative bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-lg border border-slate-200 hover:shadow-2xl transition-all">
-                {/* Step Number */}
-                <div className="absolute -top-3 sm:-top-4 -left-3 sm:-left-4 w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg">
-                  {idx + 1}
+              return (
+                <div key={idx} className={`relative bg-white rounded-2xl shadow-xl border ${plan.popular ? 'border-purple-500 ring-2 ring-purple-500 ring-offset-2' : 'border-slate-200'} p-6 flex flex-col transition-transform hover:scale-105`}>
+                  {plan.popular && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg">
+                      Most Popular
+                    </div>
+                  )}
+                  
+                  <div className="mb-6">
+                    <h3 className={`text-xl font-bold ${plan.textColor} mb-2`}>{plan.title}</h3>
+                    <p className="text-sm text-slate-500 mb-4 h-10">{plan.description}</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold text-slate-900">₹{price.toLocaleString()}</span>
+                      <span className="text-sm text-slate-500 font-medium">
+                        {billingCycle === 'monthly' ? '/ month' : 
+                         billingCycle === 'quarterly' ? '/ quarter' :
+                         billingCycle === 'half-yearly' ? '/ 6 months' : '/ year'}
+                      </span>
+                    </div>
+                    {billingCycle !== 'monthly' && (
+                       <div className="text-xs text-green-600 font-semibold mt-1">
+                         Save ₹{((plan.basePrice * (billingCycle === 'quarterly' ? 3 : billingCycle === 'half-yearly' ? 6 : 12)) - price).toLocaleString()}
+                       </div>
+                    )}
+                  </div>
+
+                  <ul className="space-y-4 mb-8 flex-grow">
+                    {displayFeatures.map((feature, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-700">
+                        <CheckCircle className={`w-5 h-5 ${plan.textColor} flex-shrink-0`} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => handleSubscriptionClick(plan)}
+                    className={`w-full py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all ${plan.color}`}
+                  >
+                    Get Started
+                  </button>
                 </div>
-
-                {/* Icon */}
-                <div className="w-14 sm:w-16 h-14 sm:h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 mb-3 sm:mb-4 mt-4 sm:mt-6">
-                  {step.icon}
-                </div>
-
-                {/* Content */}
-                <h3 className="text-xl sm:text-2xl font-bold mb-2 text-slate-800">{step.title}</h3>
-                <p className="text-sm sm:text-base text-slate-600 mb-3 sm:mb-4">{step.description}</p>
-
-                {/* Details */}
-                <ul className="space-y-2">
-                  {step.details.map((detail, dIdx) => (
-                    <li key={dIdx} className="flex items-start gap-2 text-xs sm:text-sm text-slate-600">
-                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{detail}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
+      {/* How It Works */}
+     
       {/* Testimonials Section */}
       <section id="testimonials" className="relative py-16 sm:py-20 md:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
@@ -1329,7 +1559,7 @@ export default function LimbuAILanding() {
                 type="submit"
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all hover:scale-[1.02] mt-2 text-sm"
               >
-                Confirm
+                Pay Now
               </button>
             </form>
             </>

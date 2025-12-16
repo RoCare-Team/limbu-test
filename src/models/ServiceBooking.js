@@ -6,8 +6,11 @@ const ServiceBookingSchema = new mongoose.Schema({
   email: { type: String, required: true },
   gstNumber: { type: String },
   planTitle: { type: String, required: true },
+  planType: { type: String },
   planPrice: { type: String, required: true },
   totalAmount: { type: String, required: true },
+  paymentId: { type: String },
+  orderId: { type: String },
   status: { type: String, default: "pending" },
   createdAt: { type: Date, default: Date.now },
 });
