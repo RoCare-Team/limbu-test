@@ -103,237 +103,264 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
   };
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-gray-200 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all">
-      <a href={post.aiOutput} target="_blank" rel="noopener noreferrer">
-        <div className="relative group">
+    <div className="group bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full">
+      {/* Image Section */}
+      <div className="relative overflow-hidden bg-gray-100 aspect-[4/3]">
+        <a href={post.aiOutput} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
           <img
             src={post?.aiOutput || "https://via.placeholder.com/400"}
-            alt="Post"
-            className="w-full h-48 sm:h-64 object-cover group-hover:opacity-90 transition-opacity"
+            alt="Post content"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+        </a>
 
-          <div
-            className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black shadow-xl backdrop-blur-sm ${
+        {/* Status Badge */}
+        <div className="absolute top-3 left-3 z-10">
+           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${
               post.status === "pending"
-                ? "bg-yellow-500/90 text-white"
+                ? "bg-yellow-100/90 text-yellow-700 border border-yellow-200"
                 : post.status === "approved"
-                ? "bg-green-500/90 text-white"
+                ? "bg-green-100/90 text-green-700 border border-green-200"
                 : post.status === "posted"
-                ? "bg-purple-600/90 text-white"
-                : "bg-blue-500/90 text-white"
+                ? "bg-purple-100/90 text-purple-700 border border-purple-200"
+                : "bg-blue-100/90 text-blue-700 border border-blue-200"
             }`}
           >
-            {post.status.toUpperCase()}
-          </div>
-
-          <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex gap-2 sm:gap-3 transition-opacity">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                handleDownload(post);
-              }}
-              className="p-1.5 sm:p-2 bg-white/80 hover:bg-white rounded-full shadow-md backdrop-blur-sm transition"
-              title="Download"
-            >
-              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                handleShare(post);
-              }}
-              className="p-1.5 sm:p-2 bg-white/80 hover:bg-white rounded-full shadow-md backdrop-blur-sm transition"
-              title="Share"
-            >
-              <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
-            </button>
-          </div>
+            {post.status}
+          </span>
         </div>
-      </a>
 
-      <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-        <div>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <strong className="text-gray-900 text-sm sm:text-base font-bold flex items-center gap-2">
-              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
-              Description
-            </strong>
-            {!isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200 transition"
-              >
-                <Edit3 className="w-3 h-3" />
-                Edit
-              </button>
-            )}
-          </div>
+        {/* Overlay Actions (Download/Share) */}
+        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <button
+            onClick={(e) => { e.preventDefault(); handleDownload(post); }}
+            className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-full shadow-md backdrop-blur-sm transition-transform hover:scale-110"
+            title="Download"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); handleShare(post); }}
+            className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-full shadow-md backdrop-blur-sm transition-transform hover:scale-110"
+            title="Share"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
 
+      {/* Content Section */}
+      <div className="p-5 flex flex-col flex-grow space-y-4">
+        
+        {/* Description Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            AI Caption
+          </h3>
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+            >
+              <Edit3 className="w-3 h-3" /> Edit
+            </button>
+          )}
+        </div>
+
+        {/* Description Text */}
+        <div className="flex-grow">
           {isEditing ? (
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
               <textarea
                 value={editedDescription}
                 onChange={(e) => setEditedDescription(e.target.value)}
-                className="w-full p-2.5 sm:p-3 border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none text-gray-800 text-xs sm:text-sm min-h-[100px] sm:min-h-[120px]"
-                rows={5}
+                className="w-full p-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none bg-gray-50"
+                rows={4}
               />
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-xs sm:text-sm font-bold hover:shadow-lg transition"
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm"
                 >
-                  <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Save
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-bold hover:bg-gray-300 transition"
+                  className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
                 >
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <>
-              <p className={`text-xs sm:text-sm text-gray-700 leading-relaxed ${showFull ? "" : "line-clamp-3"}`}>
+            <div className="relative">
+              <p className={`text-sm text-gray-600 leading-relaxed ${showFull ? "" : "line-clamp-3"}`}>
                 {post?.description || "No description available"}
               </p>
-              {post?.description?.length > 150 && (
+              {post?.description?.length > 120 && (
                 <button
                   onClick={() => setShowFull(!showFull)}
-                  className="flex items-center gap-1 text-blue-600 text-xs sm:text-sm font-semibold mt-2 hover:text-blue-700"
+                  className="mt-1 text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
                 >
-                  {showFull ? <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                  {showFull ? "Show Less" : "Show More"}
+                  {showFull ? "Show Less" : "Read More"}
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
 
-        <p className="text-xs text-gray-500 flex items-center gap-1 pt-2 border-t border-gray-100">
-          <Calendar className="w-3 h-3" />
-          Created: {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : "N/A"}
-        </p>
+        {/* Date */}
+        <div className="pt-3 border-t border-gray-100 flex items-center text-xs text-gray-400">
+          <Calendar className="w-3 h-3 mr-1.5" />
+          {post.createdAt ? new Date(post.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : "Date unknown"}
+        </div>
 
-        <div className="pt-2 sm:pt-3 space-y-2 sm:space-y-3">
+        {/* Action Buttons Area */}
+        <div className="pt-1">
           {post.status === "pending" && (
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => onUpdateStatus(post._id, "approved")}
-                className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold hover:shadow-xl transition-all"
+                className="flex items-center justify-center gap-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:border-green-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               >
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <CheckCircle className="w-4 h-4" />
                 Approve
               </button>
               <button
                 onClick={() => onReject(post._id)}
-                className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-red-500 to-rose-600 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold hover:shadow-xl transition-all"
+                className="flex items-center justify-center gap-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                <XCircle className="w-4 h-4" />
                 Reject
               </button>
             </div>
           )}
 
           {post.status === "approved" && (
-            <div className="space-y-2 sm:space-y-3">
-              {/* Checkbox for Post/Photo selection */}
-              <div className="flex justify-center gap-4 sm:gap-6 pt-2 pb-2">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id={`post-checkbox-${post._id}`}
-                    checked={Array.isArray(post.checkmark) ? post.checkmark.includes('post') : true}
-                    onChange={() => onEditDescription(post._id, post.description, 'post')}
-                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <label htmlFor={`post-checkbox-${post._id}`} className="ml-2 text-gray-700 font-medium cursor-pointer">Post</label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id={`photo-checkbox-${post._id}`}
-                    checked={Array.isArray(post.checkmark) ? post.checkmark.includes('photo') : true}
-                    onChange={() => onEditDescription(post._id, post.description, 'photo')}
-                    className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
-                  />
-                  <label htmlFor={`photo-checkbox-${post._id}`} className="ml-2 text-gray-700 font-medium cursor-pointer">Photo</label>
-                </div>
+            <div className="space-y-3">
+               <div className="flex items-center justify-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(post.checkmark) ? post.checkmark.includes('post') : true}
+                      onChange={() => onEditDescription(post._id, post.description, 'post')}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Post</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(post.checkmark) ? post.checkmark.includes('photo') : true}
+                      onChange={() => onEditDescription(post._id, post.description, 'photo')}
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span>Photo</span>
+                  </label>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg sm:rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3">
-                <button
-                  onClick={() => handlePost(post)}
-                  className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all cursor-pointer"
-                >
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Post to GMB
-                </button>
-                <div className="flex flex-col gap-2 mt-3">
-  <button
-    onClick={() => onUpdateStatus(post)}
-    className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl 
-    text-xs sm:text-sm font-black hover:shadow-xl transition-all cursor-pointer whitespace-nowrap"
-  >
-    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-    Schedule Post...
-  </button>
-</div>
 
-              </div>
+              <button
+  onClick={() => handlePost(post)}
+  className="
+    w-full flex items-center justify-center gap-2
+    bg-gradient-to-r from-blue-100 to-indigo-100
+    hover:from-blue-200 hover:to-indigo-200
+    text-blue-700
+    border border-blue-200
+    px-4 py-3 rounded-xl
+    text-sm font-semibold
+    transition-all duration-200
+  "
+>
+  <Send className="w-4 h-4" />
+  Post Now
+</button>
+
+              
+              <button
+                onClick={() => onUpdateStatus(post)}
+                className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+              >
+                <Calendar className="w-4 h-4" />
+                Schedule
+              </button>
             </div>
           )}
 
           {post.status === "scheduled" && (
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3 sm:space-y-4">
-              <div className="bg-white rounded-lg p-2.5 sm:p-3 border border-blue-200">
-                <p className="text-xs sm:text-sm text-gray-700 font-semibold flex items-center gap-2 mb-1">
-                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
-                  Scheduled for:
-                </p>
-                <p className="text-blue-700 font-black text-base sm:text-lg">
-                  {post.scheduledDate
-                    ? new Date(post.scheduledDate).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Not set"}
-                </p>
+            <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Scheduled For</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {post.scheduledDate
+                      ? new Date(post.scheduledDate).toLocaleString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "Date not set"}
+                  </p>
+                </div>
               </div>
-
               <button
-                onClick={() => handlePost(post)}
-                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
-              >
-                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                Post Now
-              </button>
+  onClick={() => handlePost(post)}
+  className="
+    w-full flex items-center justify-center gap-2
+    bg-blue-50 text-blue-600
+    border border-blue-100
+    hover:bg-blue-100 hover:border-blue-200
+    px-4 py-2.5 rounded-xl
+    text-sm font-semibold
+    transition-all duration-200
+  "
+>
+  <Send className="w-4 h-4" />
+  Post Now
+</button>
+
             </div>
           )}
+{post.status === "posted" && (
+  <div className="grid grid-cols-2 gap-3">
+    {/* Repost */}
+    <button
+      onClick={() => handlePost(post)}
+      className="
+        flex items-center justify-center gap-2
+        bg-blue-50 text-blue-600
+        border border-blue-200
+        hover:bg-blue-100 hover:border-blue-300
+        px-4 py-2.5 rounded-xl text-sm font-semibold
+        transition-all
+      "
+    >
+      <Send className="w-4 h-4" />
+      Repost
+    </button>
 
-          {post.status === "posted" && (
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg sm:rounded-xl p-4 sm:p-5 space-y-3">
-              <button
-                onClick={() => handlePost(post)}
-                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
-              >
-                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                Repost Now
-              </button>
-              <button
-                onClick={() => onUpdateStatus(post)}
-                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-base font-black hover:shadow-xl transition-all"
-              >
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-                Schedule Again
-              </button>
-            </div>
-          )}
+    {/* Schedule */}
+    <button
+      onClick={() => onUpdateStatus(post)}
+      className="
+        flex items-center justify-center gap-2
+        bg-purple-50 text-purple-600
+        border border-purple-200
+        hover:bg-purple-100 hover:border-purple-300
+        px-4 py-2.5 rounded-xl text-sm font-semibold
+        transition-all
+      "
+    >
+      <Calendar className="w-4 h-4" />
+      Schedule
+    </button>
+  </div>
+)}
 
         </div>
       </div>
