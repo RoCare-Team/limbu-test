@@ -875,6 +875,7 @@ export default function PostManagementPage() {
       // This is a "Post Now" action (existing logic)
       // Calculate cost: 20 coins per location for posting
       const totalPostCost = selectedLocationIds.length * 20;
+      let deductionSuccessful = false;
 
       try {
         // Re-check wallet balance
@@ -893,6 +894,31 @@ export default function PostManagementPage() {
         setIsPosting(true);
         setPostsGeneratedCount(selectedLocationIds.length);
 
+        // Deduct coins from wallet (20 per location) BEFORE posting
+        const walletRes = await deductFromWalletAction(userId, {
+          amount: totalPostCost,
+          type: "deduct",
+          reason: "Post-on-GMB",
+          metadata: {
+            aiPrompt: prompt,
+            logoUsed: !!logo,
+          }
+        });
+        console.log("walletReswalletRes",walletRes);
+        
+
+        if (walletRes.message === "Wallet updated") {
+          const newBalance = walletBalance - totalPostCost;
+          setUserWallet(newBalance);
+          localStorage.setItem("walletBalance", newBalance);
+          showToast(`${totalPostCost} coins deducted (${selectedLocationIds.length} locations × 20 coins)`, "info");
+          deductionSuccessful = true;
+        } else {
+          showToast(walletRes.error || "Wallet deduction failed", "error");
+          setIsPosting(false);
+          return;
+        }
+
         // Prepare location data for webhook
         const locationData = selectedLocations.map(loc => ({
           city: loc.locationId,
@@ -910,30 +936,13 @@ export default function PostManagementPage() {
           checkmark: checkmark,
         });
 
+        console.log("datadatadata",data,responseOk);
+        
+
         // If post success → Deduct coins
         if (responseOk) {
           showToast("Post successfully sent to all locations!", "success");
           setShowSuccess(true);
-
-          // Deduct coins from wallet (20 per location)
-          const walletRes = await deductFromWalletAction(userId, {
-            amount: totalPostCost,
-            type: "deduct",
-            reason: "Post-on-GMB",
-            metadata: {
-              aiPrompt: prompt,
-              logoUsed: !!logo,
-            }
-          });
-
-          if (walletRes.success) {
-            const newBalance = walletBalance - totalPostCost;
-            setUserWallet(newBalance);
-            localStorage.setItem("walletBalance", newBalance);
-            showToast(`${totalPostCost} coins deducted (${selectedLocationIds.length} locations × 20 coins)`, "info");
-          } else {
-            showToast("Post sent, but wallet deduction failed", "warning");
-          }
 
           // Update post with selected locations
           await updatePostStatusAction({
@@ -948,12 +957,29 @@ export default function PostManagementPage() {
 
         } else {
           console.error("Webhook failed:", data);
-          showToast(`Failed to send post`, "error");
+          throw new Error("Webhook failed");
         }
 
       } catch (error) {
         console.error("Post error:", error);
-        showToast("Network error: Failed to send post", "error");
+        
+        if (deductionSuccessful) {
+          showToast(`Failed to send post. Refunding coins...`, "error");
+          // Refund coins
+          await deductFromWalletAction(userId, {
+            amount: totalPostCost,
+            type: "credit",
+            reason: "Refund-Post-Failed",
+            metadata: {
+              originalReason: "Post-on-GMB",
+            }
+          });
+          const userData = await getUserWalletAction(userId);
+          setUserWallet(userData.wallet);
+          localStorage.setItem("walletBalance", userData.wallet);
+        } else {
+          showToast("Network error: Failed to send post", "error");
+        }
       } finally {
         // Reset states related to posting
         setIsPosting(false);
