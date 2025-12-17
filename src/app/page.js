@@ -402,7 +402,7 @@ export default function LimbuAILanding() {
         "Durable, high-quality print",
         // "Custom branding with your logo",
         "Weather-resistant material",
-        "Includes shipping charges",
+        // "Includes shipping charges",
         "Helps in getting more positive reviews"
       ],
       tag: "Best for: Offline businesses wanting to boost online reviews.",
