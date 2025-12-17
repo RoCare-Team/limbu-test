@@ -20,7 +20,6 @@ const FranchiseSchema = new mongoose.Schema(
     },
     experience: {
       type: String,
-      required: [true, "Please provide experience details"],
     },
     investment: {
       type: String,
@@ -33,6 +32,10 @@ const FranchiseSchema = new mongoose.Schema(
       type: String,
       default: "pending",
     },
+    paymentId: String,
+    orderId: String,
+    amount: Number,
+    plan: String,
   },
   { timestamps: true }
 );

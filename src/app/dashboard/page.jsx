@@ -32,7 +32,10 @@ import {
   Rocket,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import FirstPostModal from "../../components/FirstPostModal";
+
 import Link from "next/link";
+import { fetchAllPostsAction } from "../actions/postActions";
 
 // --- API Helpers ---
 export async function fetchGMBAccounts(accessToken) {
@@ -652,7 +655,9 @@ export default function DashboardPage() {
   const [searchKeywordsData, setSearchKeywordsData] = useState(null);
   const [searchKeywordsLoading, setSearchKeywordsLoading] = useState(false);
   const [cacheStatus, setCacheStatus] = useState(""); // For showing cache info
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);  
+  const [showFirstPostModal, setShowFirstPostModal] = useState(false);
+
 
   const userId = localStorage.getItem("userId");
 
@@ -784,19 +789,13 @@ const NavLinks = ({ isAuthenticated }) => {
         setInitialFetchDone(true);
         setCacheStatus(`Loaded from cache (${ageMinutes} min ago)`);
         
-        // Auto-refresh if cache is older than 5 minutes
-        if (age > 5 * 60 * 1000) {
-          toast.info("Cache data is old. Refreshing in background...", { duration: 2000 });
-          setTimeout(() => fetchInitialData(true), 1000);
-        }
-        
-        return true;
+        return { loaded: true, needsRefresh: age > 5 * 60 * 1000 };
       } else {
         console.log("⚠️ Cache expired, will fetch fresh data");
         setCacheStatus("Cache expired, fetching fresh data...");
       }
     }
-    return false;
+    return { loaded: false, needsRefresh: false };
   }, []);
 
   // Save to cache
@@ -819,7 +818,7 @@ const NavLinks = ({ isAuthenticated }) => {
   }, []);
 
   // --- Fetch All Accounts & Locations ---
-  const fetchInitialData = useCallback(async (forceRefresh = false) => {
+  const fetchInitialData = useCallback(async (forceRefresh = false, isBackground = false) => {
     if (!session?.accessToken || !session?.user?.email) {
       console.log("⚠️ No session or access token available");
       return;
@@ -828,8 +827,15 @@ const NavLinks = ({ isAuthenticated }) => {
     const userEmail = session.user.email;
 
     // Check cache first if not forcing refresh
-    if (!forceRefresh && loadFromCache(userEmail)) {
-      return;
+    if (!forceRefresh) {
+      const { loaded, needsRefresh } = loadFromCache(userEmail);
+      if (loaded) {
+        if (needsRefresh) {
+          toast.info("Cache data is old. Refreshing in background...", { duration: 2000 });
+          setTimeout(() => fetchInitialData(true, true), 1000);
+        }
+        return;
+      }
     }
 
     if (fetchInProgress.current && !forceRefresh) {
@@ -838,9 +844,9 @@ const NavLinks = ({ isAuthenticated }) => {
     }
 
     fetchInProgress.current = true;
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     setNoAccountsFound(false);
-    setCacheStatus("Fetching fresh data from Google...");
+    if (!isBackground) setCacheStatus("Fetching fresh data from Google...");
     
     const token = session.accessToken;
 
@@ -859,7 +865,7 @@ const NavLinks = ({ isAuthenticated }) => {
         setNoAccountsFound(true);
         saveToCache(userEmail, [], true);
         setInitialFetchDone(true);
-        setLoading(false);
+        if (!isBackground) setLoading(false);
         fetchInProgress.current = false;
         setCacheStatus("No accounts found");
         return;
@@ -912,19 +918,19 @@ const NavLinks = ({ isAuthenticated }) => {
       } else {
         console.log("❌ No locations found in any account");
         setAccounts([]);
-        setNoAccountsFound(true);
-        saveToCache(userEmail, [], true);
+        setNoAccountsFound(false);
+        saveToCache(userEmail, [], false);
         setCacheStatus("No listings found");
       }
     } catch (error) {
       console.error("❌ Error fetching data:", error);
       toast.error("Failed to load listings. Please try again.");
-      setNoAccountsFound(true);
+      if (!isBackground) setNoAccountsFound(true);
       setCacheStatus("Error fetching data");
     }
 
     setInitialFetchDone(true);
-    setLoading(false);
+    if (!isBackground) setLoading(false);
     fetchInProgress.current = false;
   }, [session?.accessToken, session?.user?.email, loadFromCache, saveToCache]);
 
@@ -933,6 +939,33 @@ const NavLinks = ({ isAuthenticated }) => {
   useEffect(()=>{
     fetchInitialData()
   },[])
+
+      useEffect(()=>{
+        let timerId = null;
+        const fetchPosts = async () => {
+          try {
+            const userId = localStorage.getItem("userId");
+            // NOTE: `fetchAllPostsAction` is not defined in this file. Assuming it is imported elsewhere.
+            const allPostsData = await fetchAllPostsAction(userId);
+      
+            if (allPostsData.success && allPostsData.data.length === 0) {
+              timerId = setTimeout(() => {
+                setShowFirstPostModal(true);
+              }, 3000);
+            }
+          } catch (err) {
+            toast.error(err.message || "Error fetching posts", "error");
+          }
+        };
+
+        fetchPosts();
+
+        return () => {
+          if (timerId) clearTimeout(timerId);
+        };
+      },[]);
+
+
 
   // Initial fetch on session load
   useEffect(() => {
@@ -1260,6 +1293,14 @@ const NavLinks = ({ isAuthenticated }) => {
       />
       <Toaster position="top-right" />
 
+
+       {showFirstPostModal && (
+          <FirstPostModal
+            onClose={() => setShowFirstPostModal(false)}
+            onCreate={() => router.push("/post-management")}
+          />
+        )}
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10 backdrop-blur-sm bg-white/95">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
@@ -1337,7 +1378,7 @@ const NavLinks = ({ isAuthenticated }) => {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Loading State */}
-        {loading && !initialFetchDone && (
+        {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <CircularProgress size={60} thickness={4} sx={{ color: "#3b82f6" }} />

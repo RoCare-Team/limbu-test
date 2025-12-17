@@ -7,9 +7,9 @@ export async function POST(req) {
     await dbConnect();
     const body = await req.json();
 
-    const { name, email, phone, city, experience, investment } = body;
+    const { name, email, phone, city, investment } = body;
 
-    if (!name || !email || !phone || !city || !experience || !investment) {
+    if (!name || !email || !phone || !city || !investment) {
       return NextResponse.json(
         { success: false, message: "Please fill all required fields" },
         { status: 400 }

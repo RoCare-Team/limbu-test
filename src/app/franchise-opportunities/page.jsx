@@ -7,55 +7,161 @@ import Link from "next/link";
 export default function FranchisePage() {
   const [selectedPlan, setSelectedPlan] = useState("standard");
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
+  const [serviceForm, setServiceForm] = useState({
     name: "",
-    email: "",
     phone: "",
+    email: "",
     city: "",
-    experience: "",
-    investment: "",
-    message: ""
+    gstNumber: ""
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+  const handleOpenForm = async (plan = null) => {
+    if (plan) setSelectedPlan(plan);
+    setShowForm(true);
+
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      try {
+        const res = await fetch(`/api/auth/signup?userId=${userId}`);
+        const data = await res.json();
+        
+        if (data) {
+          setServiceForm(prev => ({
+            ...prev,
+            name: data.fullName || '',
+            phone: data.phone || '',
+            email: data.email || '',
+            gstNumber: data.gst || ''
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    } else {
+      setServiceForm(prev => ({
+        ...prev,
+        name: '',
+        phone: '',
+        email: '',
+        gstNumber: ''
+      }));
+    }
+  };
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleServicePayment = async (e) => {
     e.preventDefault();
+    
+    if (!serviceForm.name || !serviceForm.phone || !serviceForm.email || !serviceForm.city) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    const res = await loadRazorpayScript();
+    if (!res) {
+      alert("Razorpay SDK failed to load. Are you online?");
+      return;
+    }
+
+    // Calculate amounts
+    const investmentAmount = profitCalculations[selectedPlan].investment;
+    const gstAmount = Math.round(investmentAmount * 0.18);
+    const totalAmount = investmentAmount + gstAmount;
+
     try {
-      const res = await fetch("/api/franchise", {
+      // 1. Create Order
+      const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          planId: selectedPlan,
+          amount: totalAmount, // Send total amount including GST
+          receipt: `franchise_${Date.now()}`,
+          notes: {
+            plan_name: selectedPlan,
+            user_email: serviceForm.email
+          }
+        }),
       });
 
-      if (res.ok) {
-        setFormSubmitted(true);
-        setTimeout(() => {
-          setShowForm(false);
-          setFormSubmitted(false);
-          setFormData({
-            name: "",
-            email: "",
-            phone: "",
-            city: "",
-            experience: "",
-            investment: "",
-            message: ""
-          });
-        }, 3000);
-      } else {
-        const data = await res.json();
-        alert(data.message || "Something went wrong. Please try again.");
+      const orderData = await orderRes.json();
+      if (orderData.error) {
+        alert("Error creating payment order");
+        return;
       }
+
+      // 2. Open Razorpay
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_RbCgJ3vKqQjFVE",
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "Limbu.ai Franchise",
+        description: `${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} Plan Franchise Fee`,
+        order_id: orderData.order.id,
+        handler: async function (response) {
+          try {
+            const res = await fetch("/api/franchise", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                ...serviceForm, 
+                plan: selectedPlan,
+                investment: investmentAmount,
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id, 
+                amount: totalAmount, // Send total amount paid
+                status: "paid"
+              }),
+            });
+
+            if (res.ok) {
+              setFormSubmitted(true);
+              setTimeout(() => {
+                setShowForm(false);
+                setFormSubmitted(false);
+                setServiceForm({
+                  name: "",
+                  phone: "",
+                  email: "",
+                  city: "",
+                  gstNumber: ""
+                });
+              }, 3000);
+            } else {
+              const data = await res.json();
+              alert(data.message || "Something went wrong. Please try again.");
+            }
+          } catch (error) {
+            console.error("Error submitting form:", error);
+            alert("Failed to submit application. Please check your connection.");
+          }
+        },
+        prefill: {
+          name: serviceForm.name,
+          email: serviceForm.email,
+          contact: serviceForm.phone
+        },
+        theme: {
+          color: "#2563EB"
+        }
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
     } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Failed to submit application. Please check your connection.");
+      console.error("Payment Error:", error);
+      alert("Failed to initiate payment.");
     }
   };
 
@@ -89,9 +195,14 @@ export default function FranchisePage() {
     }
   };
 
+  // Reactive amount calculations for UI
+  const investmentAmount = profitCalculations[selectedPlan].investment;
+  const gstAmount = Math.round(investmentAmount * 0.18);
+  const totalAmount = investmentAmount + gstAmount;
+
   return (
     <div className="w-full bg-gray-50 text-gray-900">
-
+      
       {/* =================== APPLICATION FORM MODAL =================== */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
@@ -139,152 +250,101 @@ export default function FranchisePage() {
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-8 space-y-5">
-                  {/* Name */}
+                <form onSubmit={handleServicePayment} className="p-8 space-y-3">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Full Name *
-                    </label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
                     <input
                       type="text"
-                      name="name"
                       required
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Enter your full name"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
+                      value={serviceForm.name}
+                      onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                      placeholder="Enter your name"
                     />
                   </div>
 
-                  {/* Email and Phone */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="your@email.com"
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="+91 9289344708"
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* City */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Your City *
-                    </label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number</label>
                     <input
-                      type="text"
-                      name="city"
+                      type="tel"
                       required
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="Which city are you from?"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
+                      value={serviceForm.phone}
+                      onChange={(e) => setServiceForm({ ...serviceForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                      placeholder="Enter your phone number"
                     />
                   </div>
 
-                  {/* Experience */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Current Professional Status *
-                    </label>
-                    <select
-                      name="experience"
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
+                    <input
+                      type="email"
                       required
-                      value={formData.experience}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
+                      value={serviceForm.email}
+                      onChange={(e) => setServiceForm({ ...serviceForm, email: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">City</label>
+                    <input
+                      type="text"
+                      required
+                      value={serviceForm.city}
+                      onChange={(e) => setServiceForm({ ...serviceForm, city: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                      placeholder="Enter your city"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Select Franchise Plan</label>
+                    <select
+                      value={selectedPlan}
+                      onChange={(e) => setSelectedPlan(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                     >
-                      <option value="">Select your status</option>
-                      <option value="business_owner">Business Owner</option>
-                      <option value="entrepreneur">Entrepreneur</option>
-                      <option value="sales_professional">Sales Professional</option>
-                      <option value="marketing_professional">Marketing Professional</option>
-                      <option value="corporate_employee">Corporate Employee</option>
-                      <option value="freelancer">Freelancer</option>
-                      <option value="student">Student/Graduate</option>
-                      <option value="other">Other</option>
+                      <option value="starter">Business Champion - ₹50,000 + GST</option>
+                      <option value="standard">Business Growth Plan - ₹1,00,000 + GST</option>
+                      <option value="premium">Business Excellence Plan - ₹2,00,000 + GST</option>
                     </select>
                   </div>
 
-                  {/* Investment Capacity */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Investment Capacity *
-                    </label>
-                    <select
-                      name="investment"
-                      required
-                      value={formData.investment}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
-                    >
-                      <option value="">Select investment range</option>
-                      <option value="50000">₹50,000 - Starter Plan</option>
-                      <option value="100000">₹1,00,000 - Standard Plan</option>
-                      <option value="200000">₹2,00,000 - Premium Plan</option>
-                      <option value="discuss">Need to Discuss</option>
-                    </select>
-                  </div>
-
-                  {/* Message */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Tell Us About Yourself (Optional)
-                    </label>
-                    <textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      placeholder="Why do you want to become a franchise partner? What's your background?"
-                      rows="3"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all resize-none"
-                    ></textarea>
-                  </div>
-
-                  {/* Benefits Reminder */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm text-gray-700">
-                        <strong className="text-green-700">What You'll Get:</strong> Complete training, marketing materials, dedicated support, franchise dashboard, and 60-70% commission on every client!
-                      </div>
+                  {/* Payment Breakdown */}
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2 my-3">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Investment Amount:</span>
+                        <span className="font-semibold text-slate-800">₹{investmentAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">GST (18%):</span>
+                        <span className="font-semibold text-slate-800">₹{gstAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold border-t border-slate-300 pt-2 mt-2">
+                        <span className="text-slate-800">Total Payable:</span>
+                        <span className="text-blue-600">₹{totalAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Submit Button */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">GST Number (Optional)</label>
+                    <input
+                      type="text"
+                      value={serviceForm.gstNumber}
+                      onChange={(e) => setServiceForm({ ...serviceForm, gstNumber: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                      placeholder="Enter GST number"
+                    />
+                  </div>
+
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all hover:scale-[1.02] mt-2 text-sm"
                   >
-                    Submit Application <ArrowRight className="w-5 h-5" />
+                    Pay ₹{totalAmount.toLocaleString()} Now
                   </button>
-
-                  {/* Trust Message */}
-                  <p className="text-center text-sm text-gray-500">
-                    🔒 Your information is 100% secure and confidential
-                  </p>
                 </form>
               </>
             ) : (
@@ -372,13 +432,13 @@ export default function FranchisePage() {
 
           <div className="flex flex-wrap justify-center gap-4 mt-8">
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={() => handleOpenForm()}
               className="bg-yellow-400 text-black font-bold px-8 py-4 rounded-full hover:bg-yellow-300 transition-all hover:scale-105 flex items-center gap-2 shadow-2xl"
             >
               Start Your Franchise <ArrowRight size={20} />
             </button>
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={() => handleOpenForm()}
               className="bg-white/20 border-2 border-white px-8 py-4 rounded-full hover:bg-white/30 transition-all backdrop-blur-md"
             >
               Watch Success Stories
@@ -1058,7 +1118,7 @@ export default function FranchisePage() {
                 </div>
 
                 <button 
-                  onClick={() => setShowForm(true)}
+                  onClick={() => handleOpenForm(["starter", "standard", "premium"][i])}
                   className={`w-full py-4 rounded-full font-bold transition-all ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
                 >
                   Choose {plan.name}
@@ -1164,14 +1224,14 @@ export default function FranchisePage() {
 
           <div className="flex flex-wrap justify-center gap-6 mb-12">
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={() => handleOpenForm()}
               className="bg-yellow-400 text-black px-10 py-5 rounded-full text-xl font-bold hover:bg-yellow-300 transition-all hover:scale-110 flex items-center gap-2 shadow-2xl"
             >
               Apply for Franchise Now <ArrowRight size={24} />
             </button>
 
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={() => handleOpenForm()}
               className="bg-white/20 border-2 border-white px-10 py-5 rounded-full text-xl hover:bg-white/30 transition-all backdrop-blur-md flex items-center gap-2"
             >
               <PhoneCall size={24} /> Schedule Free Consultation
@@ -1202,7 +1262,7 @@ export default function FranchisePage() {
               <a href="mailto:info@limbu.ai" className="flex items-center gap-2 hover:text-yellow-300 transition">
                 📧 info@limbu.ai
               </a>
-              <button onClick={() => setShowForm(true)} className="flex items-center gap-2 hover:text-yellow-300 transition">
+              <button onClick={() => handleOpenForm()} className="flex items-center gap-2 hover:text-yellow-300 transition">
                 💬 Live Chat Support
               </button>
             </div>
@@ -1234,7 +1294,7 @@ export default function FranchisePage() {
             <div>
               <h4 className="font-bold mb-4">Franchise</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><button onClick={() => setShowForm(true)} className="hover:text-white transition">Apply Now</button></li>
+                <li><button onClick={() => handleOpenForm()} className="hover:text-white transition">Apply Now</button></li>
                 <li><a href="#" className="hover:text-white transition">Benefits</a></li>
                 <li><a href="#" className="hover:text-white transition">Support</a></li>
                 <li><a href="#" className="hover:text-white transition">FAQs</a></li>
