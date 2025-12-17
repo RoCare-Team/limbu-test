@@ -970,13 +970,13 @@ export default function FranchisePage() {
                   "Monthly strategy calls"
                 ],
                 // target: "20-30 clients",
-                potential: "₹12K-18K/month",
+                potential: "₹25K-1L/month",
                 best: "New entrepreneurs"
               },
               {
                 name: "Business Growth Plan",
                 investment: "₹1,00,000",
-                commission: "40% on sharing + 10% Business Champion",
+                commission: "40% on revenue + 10% Business Champion",
                 features: [
                   "Multi-city franchise rights",
                   "Priority training & support",
@@ -988,14 +988,14 @@ export default function FranchisePage() {
                   "Team building guidance"
                 ],
                 // target: "50/-80 clients",
-                potential: "₹37K-50K/month",
+                potential: "₹50K-2L/month",
                 best: "Growth-focused partners",
                 popular: true
               },
               {
                 name: "Business Excellence Plan",
                 investment: "₹2,00,000",
-                commission: "50% + 10% Business Growth Plan + 20% Business Champion",
+                commission: "50% on revenue + 10% Business Growth Plan + 20% Business Champion",
                 features: [
                   "Regional franchise rights",
                   "VIP training & mentorship",
@@ -1008,7 +1008,7 @@ export default function FranchisePage() {
                   "Expansion funding support"
                 ],
                 // target: "100+ clients",
-                potential: "₹90K-1.5L/month",
+                potential: "₹50k-3L/month",
                 best: "Established entrepreneurs"
               }
             ].map((plan, i) => (
