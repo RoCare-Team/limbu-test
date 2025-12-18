@@ -190,7 +190,7 @@ export async function PUT(req) {
       updateData.description = description;
     }
 
-    if (typeof checkmark === "boolean") {
+    if (checkmark !== undefined && checkmark !== null) {
       updateData.checkmark = checkmark;
     }
 

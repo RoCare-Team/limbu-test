@@ -234,7 +234,7 @@ export async function GET() {
             output: post.aiOutput,
             description: post.description || "",
             accessToken,
-            checkmark: "post",
+            checkmark: post.checkmark || "post",
           };
 
           console.log("---------------------------------------------------");
