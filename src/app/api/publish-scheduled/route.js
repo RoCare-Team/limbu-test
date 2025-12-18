@@ -55,6 +55,8 @@ async function getFreshAccessToken(refreshToken) {
    GET REFRESH TOKEN FROM gmb_dashboard.users
 -------------------------------------------------- */
 async function getRefreshTokenByEmail(email) {
+  console.log("emsaillll",email);
+  
   if (!email) return null;
 
   const gmbDb = mongoose.connection.useDb("gmb_dashboard");
@@ -87,11 +89,10 @@ export async function GET() {
     log("📦 Mongo connected");
 
     const now = new Date();
-    const futureLimit = new Date(now.getTime() + 60 * 1000);
 
     const posts = await Post.find({
       status: "scheduled",
-      scheduledDate: { $lte: futureLimit },
+      scheduledDate: { $lte: now },
     }).lean();
 
     log(`Found ${posts.length} posts to process.`);
@@ -233,14 +234,14 @@ export async function GET() {
             output: post.aiOutput,
             description: post.description || "",
             accessToken,
-            checkmark: post.checkmark || false,
+            checkmark: "post",
           };
 
           console.log("---------------------------------------------------");
           console.log("📦 FULL PAYLOAD BEING SENT TO GMB (DEBUG):");
           console.log(JSON.stringify({ 
             ...payload, 
-            accessToken: accessToken ? `Bearer ${accessToken.substring(0, 10)}...` : "MISSING" 
+            accessToken: accessToken ? accessToken : "MISSING" 
           }, null, 2));
           console.log("---------------------------------------------------");
 
@@ -253,6 +254,8 @@ export async function GET() {
           }
 
           post.locations[i].isPosted = true;
+          post.locations[i].postedAt = new Date();
+          post.locations[i].apiResponse = result;
           log(`✅ Successfully posted to ${loc.name || loc.locationId}`);
 
           user.wallet = Math.max((user.wallet || 0) - 20, 0);

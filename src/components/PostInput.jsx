@@ -5,15 +5,16 @@ import {
   Sparkles,
   Upload,
   X,
+  ChevronDown,
+  Check,
 } from "lucide-react";
-import { createDefaultAssetsAction, updateAssetAction } from "@/app/actions/postActions";
-import { deleteAssetAction, loadAssetsFromServerAction } from "@/app/actions/assetActions";
 
 const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo, assetId, fetchUserAssets, setUserAssets, showToast, selectedAssets, setSelectedAssets }) => {
 
   const removeImage = () => setLogo(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState([]);
   const [showAssets, setShowAssets] = useState(false);
+  const [expandedAsset, setExpandedAsset] = useState(null);
 
   const [updatingAsset, setUpdatingAsset] = useState(null);
   const sizeOptions = [
@@ -38,12 +39,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     { label: "Vibrant Mix", value: "vibrant, rainbow, multicolor, bold", colors: ["#FF1493", "#00FF00", "#FFD700", "#1E90FF"] }
   ];
 
-
-
-
   const handleCheckBoxChange = async () => {
-    // If there's no assetId, it means the user has no assets saved yet.
-    // We'll create a default asset record for them.
     if (!assetId) {
       const userId = localStorage.getItem("userId");
       if (!userId) {
@@ -55,7 +51,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
         const result = await createDefaultAssetsAction(userId);
         if (result.success) {
           showToast("Default assets created!", "info");
-          await fetchUserAssets(); // Refresh assets to get the new assetId and data
+          await fetchUserAssets();
         } else {
           throw new Error(result.error || "Failed to create default assets.");
         }
@@ -75,8 +71,6 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     });
   };
 
-
-
   const handleAssetUpload = async (e, asset) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -84,7 +78,6 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     setUpdatingAsset(asset.name);
 
     try {
-      // 1️⃣ Convert file → Base64
       const base64Image = await fileToBase64(file);
 
       const fieldMap = {
@@ -103,14 +96,11 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
         return;
       }
 
-      // 2️⃣ API ko base64 bhejna → Cloudinary upload backend me hoga
       const result = await updateAssetAction(assetId, fieldName, base64Image);
       if (result.success) {
         showToast(`${asset.name} updated successfully!`, "success");
-        // Automatically select the newly uploaded asset
         if (result.data?.asset) {
           const newAsset = { name: asset.name, url: result.data.asset[fieldName] };
-          // Add to selected assets, avoiding duplicates
           setSelectedAssets(prev => [...prev.filter(a => a.name !== newAsset.name), newAsset]);
         }
         await fetchUserAssets();
@@ -144,7 +134,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
       const result = await updateAssetAction(assetId, fieldName, newValue);
       if (result.success) {
         showToast(`${asset.name} updated successfully!`, "success");
-        await fetchUserAssets(); // Refresh assets from server
+        await fetchUserAssets();
       } else {
         throw new Error(result.error || `Failed to update ${asset.name}`);
       }
@@ -181,7 +171,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
       if (result.success) {
         showToast(`${asset.name} removed successfully!`, "success");
-        await fetchUserAssets(); // Refresh assets from the server to update UI
+        await fetchUserAssets();
       } else {
         throw new Error(result.error || `Failed to remove ${asset.name}`);
       }
@@ -197,95 +187,83 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     if (assets && assets.length > 0) {
       const assetsToSelect = assets.filter(asset => {
         const assetTypesToAutoSelect = ['Character', 'Product', 'Uniform', 'Background', 'Logo'];
-        // Check if the asset type is in our list and has a URL
         return assetTypesToAutoSelect.includes(asset.name) && asset.url;
       });
 
-      // Update selectedAssets, preserving any existing selections that are still valid
-      // and adding the newly auto-selected ones.
       setSelectedAssets(prevSelected => {
         const newSelections = [...assetsToSelect];
-        // This simple override ensures that on load, uploaded assets are selected.
-        // User can still manually uncheck them.
         return newSelections;
       });
     }
-  }, [assets]); // This effect runs when the assets are loaded
+  }, [assets]);
 
-
-    useEffect(() => {
-      try {
-        const savedKeywords = localStorage.getItem("selectedKeywords");
-        if (savedKeywords) {
-          setSuggestedKeywords(JSON.parse(savedKeywords));
-        }
-      } catch (error) {
-        console.error("Error parsing keywords from localStorage:", error);
+  useEffect(() => {
+    try {
+      const savedKeywords = localStorage.getItem("selectedKeywords");
+      if (savedKeywords) {
+        setSuggestedKeywords(JSON.parse(savedKeywords));
       }
-    }, []);
-  
-    const handleAssetToggle = (asset) => {
-      const isSelected = selectedAssets.some(a => a.url === asset.url);
-      let newSelectedAssets;
-      if (isSelected) {
-        newSelectedAssets = selectedAssets.filter(a => a.url !== asset.url);
-      } else {
-        newSelectedAssets = [...selectedAssets, asset];
-      }
-      setSelectedAssets(newSelectedAssets);
-    };
-  
-    console.log("assetssss", assets);
-  
+    } catch (error) {
+      console.error("Error parsing keywords from localStorage:", error);
+    }
+  }, []);
 
-    return (
-      <>
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border-2 border-blue-200 p-4 sm:p-6 md:p-8">
-        <div className="flex flex-col space-y-4 sm:space-y-6">
+  const handleAssetToggle = (asset) => {
+    const isSelected = selectedAssets.some(a => a.url === asset.url);
+    let newSelectedAssets;
+    if (isSelected) {
+      newSelectedAssets = selectedAssets.filter(a => a.url !== asset.url);
+    } else {
+      newSelectedAssets = [...selectedAssets, asset];
+    }
+    setSelectedAssets(newSelectedAssets);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6">
+        <div className="space-y-4">
+          {/* Prompt Input */}
           <div className="space-y-2">
-            <label className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-500" />
               What would you like to create?
             </label>
             <textarea
-              placeholder="Describe your post idea... e.g., 'Create a festive Diwali offer post for RO water purifier with 30% discount'"
+              placeholder="Describe your post idea..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-xl text-sm sm:text-base text-gray-800 focus:ring-4 focus:ring-blue-300 focus:border-blue-500 outline-none transition-all min-h-[100px] sm:min-h-[120px] resize-none placeholder:text-gray-400 bg-gray-50"
+              className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all min-h-[90px] resize-none placeholder:text-gray-400"
               disabled={loading}
             />
             {suggestedKeywords.length > 0 && (
-              <div className="pt-2">
-                <p className="text-xs text-gray-600 mb-2">Suggestions:</p>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedKeywords.map((keyword, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setPrompt(prev => `${prev} ${keyword}`.trim())}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors"
-                    >
-                      {keyword}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestedKeywords.map((keyword, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setPrompt(prev => `${prev} ${keyword}`.trim())}
+                    className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full hover:bg-blue-100 transition-colors"
+                  >
+                    {keyword}
+                  </button>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Logo Upload */}
+          {/* Logo Upload - Compact */}
           {!showAssets && (
-            <div className="space-y-2 mb-4">
-              <label className="text-base font-bold text-gray-800 flex items-center gap-2">
-                <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-                Add Your Logo (Optional)
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-blue-500" />
+                Add Logo (Optional)
               </label>
 
               {!logo ? (
-                <label className="flex flex-col items-center justify-center w-full h-32 sm:h-36 border-3 border-dashed border-blue-400 rounded-xl cursor-pointer bg-blue-50 hover:bg-blue-100 hover:border-blue-500 transition-all group">
-                  <div className="flex flex-col items-center justify-center">
-                    <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-                    <p className="text-sm sm:text-base text-gray-700 font-semibold">Click to upload logo</p>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+                <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-600">Click to upload</span>
                   </div>
                   <input
                     type="file"
@@ -296,113 +274,114 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                   />
                 </label>
               ) : (
-                <div className="relative w-full h-32 sm:h-36 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border-2 border-blue-300 p-3 sm:p-4 shadow-md">
+                <div className="relative h-24 bg-gray-50 rounded-lg border border-gray-300 p-2">
                   <img
                     src={URL.createObjectURL(logo)}
                     alt="Logo Preview"
-                    className="w-full h-full object-contain rounded-lg"
+                    className="w-full h-full object-contain rounded"
                   />
                   <button
                     onClick={removeImage}
-                    className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-red-500 text-white rounded-full p-1.5 sm:p-2 hover:bg-red-600 transition-all shadow-xl hover:scale-110"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all shadow-md"
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
               )}
             </div>
           )}
-          {assets && (
-            <div className="pt-2 pb-4">
-              {/* MAIN TOGGLE */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                {/* <input
-                  type="checkbox"
 
-                  checked={showAssets}
-                  onChange={handleCheckBoxChange}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="font-bold text-gray-700">Create image with assets</span> */}
-              </label>
+          {/* Assets Section - Compact List */}
+          {assets && showAssets && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-gray-700">Your Assets</p>
+              <div className="space-y-2">
+                {assets.map((asset, index) => {
+                  const isSelected = selectedAssets.some(a => a.name === asset.name && a.url === asset.url);
+                  const isExpanded = expandedAsset === asset.name;
 
-              {/* SHOW ASSETS SECTION */}
-              {showAssets && (
-                <div className="pt-4">
-                  <p className="text-sm font-bold text-gray-600 mb-3">
-                    Select assets to use:
-                  </p>
-
-                  {/* WRAPPER CARD */}
-                  <div className="w-full border border-gray-300 rounded-xl p-4 sm:p-6 grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:gap-8">
-
-                    {assets.map((asset, index) => {
-                      const isSelected = selectedAssets.some(
-                        (a) => a.name === asset.name && a.url === asset.url
-                      );
-
-
-
-
-                      return (
-                        <div key={index} className="flex flex-col w-32">
-
-                          {/* LABEL + CHECKBOX */}
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-1 w-full">
-                              <span className="text-sm font-semibold text-gray-800">
-                                {asset.name}
-                              </span>
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                      {/* Asset Header */}
+                      <div className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center gap-3 flex-1">
+                          {/* Thumbnail or Icon */}
+                          {asset.url && asset.name !== "Size" && asset.name !== "Color" ? (
+                            <div className="w-10 h-10 rounded border border-gray-300 overflow-hidden flex-shrink-0">
+                              <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
                             </div>
-                            {asset.url && asset.name !== "Size" && asset.name !== "Color" && (
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleAssetToggle(asset)}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                            )}
-                          </div>
-
-                          {/* ============= UPLOAD CARD IF NO ASSET ============= */}
-                          {!asset.url && (
-                            <div className="w-32 h-32 rounded-lg bg-gray-100 border border-gray-300 flex flex-col items-center justify-center hover:shadow transition-all">
-                              {updatingAsset === asset.name ? (
-                                <div className="flex flex-col items-center gap-2">
-                                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                                  <span className="text-xs text-gray-600">
-                                    Updating...
-                                  </span>
-                                </div>
-                              ) : (
-                                <>
-                                  <label className="cursor-pointer flex flex-col items-center gap-1">
-                                    <div className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md">
-                                      Upload Asset
-                                    </div>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) => handleAssetUpload(e, asset)}
-                                      disabled={updatingAsset}
-                                    />
-                                    <span className="text-[10px] text-gray-500 mt-1">PNG, JPG</span>
-                                  </label>
-                                </>
-                              )}
+                          ) : (
+                            <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
+                              <ImageIcon className="w-5 h-5 text-gray-400" />
                             </div>
                           )}
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">{asset.name}</p>
+                            {asset.url && asset.name === "Size" && (
+                              <p className="text-xs text-gray-500">{asset.url}</p>
+                            )}
+                            {asset.url && asset.name === "Color" && (
+                              <div className="flex gap-1 mt-1">
+                                {(colorPalettes.find(p => p.value === asset.url)?.colors || []).slice(0, 4).map((color, i) => (
+                                  <div key={i} className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: color }} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-                          {/* ============= SIZE DROPDOWN ============= */}
-                          {asset.url && asset.name === "Size" && (
+                        <div className="flex items-center gap-2">
+                          {asset.url && asset.name !== "Size" && asset.name !== "Color" && (
+                            <div 
+                              onClick={() => handleAssetToggle(asset)}
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
+                                isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300 hover:border-blue-400'
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setExpandedAsset(isExpanded ? null : asset.name)}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                          >
+                            <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="p-3 bg-white border-t border-gray-200">
+                          {!asset.url ? (
+                            <div className="flex flex-col items-center gap-2">
+                              {updatingAsset === asset.name ? (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Uploading...</span>
+                                </div>
+                              ) : (
+                                <label className="cursor-pointer">
+                                  <div className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                                    Upload {asset.name}
+                                  </div>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleAssetUpload(e, asset)}
+                                    disabled={updatingAsset}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          ) : asset.name === "Size" ? (
                             <select
                               value={asset.url}
-                              onChange={(e) =>
-                                handleAssetChange(asset, e.target.value)
-                              }
+                              onChange={(e) => handleAssetChange(asset, e.target.value)}
                               disabled={!!updatingAsset}
-                              className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
                             >
                               {sizeOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -410,96 +389,78 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                                 </option>
                               ))}
                             </select>
-                          )}
-
-                          {/* ============= COLOR DROPDOWN ============= */}
-                          {asset.url && asset.name === "Color" && (
-                            <>
-                              <select
-                                value={asset.url}
-                                onChange={(e) => handleAssetChange(asset, e.target.value)}
-                                disabled={!!updatingAsset}
-                                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500"
-                              >
-                                <option value="" disabled>Select a palette</option>
-                                {colorPalettes.map((palette) => (
-                                  <option key={palette.value} value={palette.value}>
-                                    {palette.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <div className="flex gap-1 mt-2 justify-center">
-                                {(colorPalettes.find(p => p.value === asset.url)?.colors || []).map((color, i) => (
-                                  <div key={i} className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: color }}>
-                                    &nbsp;
+                          ) : asset.name === "Color" ? (
+                            <select
+                              value={asset.url}
+                              onChange={(e) => handleAssetChange(asset, e.target.value)}
+                              disabled={!!updatingAsset}
+                              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                            >
+                              <option value="" disabled>Select palette</option>
+                              {colorPalettes.map((palette) => (
+                                <option key={palette.value} value={palette.value}>
+                                  {palette.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="w-32 h-32 rounded-lg border border-gray-300 overflow-hidden">
+                                {updatingAsset === asset.name ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                    <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
                                   </div>
-                                ))}
+                                ) : (
+                                  <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
+                                )}
                               </div>
-                            </>
+                              <button
+                                onClick={() => handleAssetDelete(asset)}
+                                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           )}
-
-                          {/* ============= IMAGE CARD ============= */}
-                          {asset.url &&
-                            asset.name !== "Size" &&
-                            asset.name !== "Color" && (
-                              <div className="relative group">
-                                <div
-                                  className={`w-32 h-32 border rounded-xl overflow-hidden transition-all 
-                            ${isSelected ? "border-blue-500 shadow-sm" : "border-gray-300"}
-                            hover:shadow`}
-                                >
-                                  {updatingAsset === asset.name ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-100">
-                                      <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                                      <span className="text-xs text-gray-600">
-                                        Updating...
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <img
-                                      src={asset.url}
-                                      alt={asset.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  )}
-                                </div>
-                                <button
-                                  onClick={() => handleAssetDelete(asset)}
-                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all shadow-md"
-                                  title={`Remove ${asset.name}`}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-        </div>
 
-        <button
-          onClick={() => onGenerate(selectedAssets, showAssets)}
-          disabled={loading || !prompt.trim()}
-          className="w-full inline-flex items-center justify-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-6 sm:px-8 py-4 rounded-xl hover:shadow-2xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-black text-base"
-        >
-          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-          Generate Post with AI
-        </button>
+          {/* Generate Button */}
+          <button
+            onClick={() => onGenerate(selectedAssets, showAssets)}
+            disabled={loading || !prompt.trim()}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-semibold text-sm"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Generate Post
+              </>
+            )}
+          </button>
 
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-3 sm:p-4 mt-4">
-          <p className="text-xs sm:text-sm text-amber-900 flex items-start gap-2">
-            <span className="text-lg sm:text-xl">💡</span>
-            <span><strong>Pro Tip:</strong> Be specific about your business, offer details, colors, and style for best results!</span>
-          </p>
+          {/* Pro Tip */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs text-amber-900 flex items-start gap-2">
+              <span className="text-base">💡</span>
+              <span><strong>Tip:</strong> Be specific about details for best results!</span>
+            </p>
+          </div>
         </div>
       </div>
-      </>
-    );
-  };
+    </div>
+  );
+};
 
-  export default PostInput
+export default PostInput;

@@ -16,7 +16,7 @@ const PostSchema = new mongoose.Schema(
     scheduledDate: { type: Date },
     rejectReason: { type: String, default: "" },
     accessToken: { type: String }, // Store token at schedule time
-    checkmark: { type: Boolean, default: false }, // ✅ Added checkmark field
+    checkmark: { type: String, default: false }, // ✅ Added checkmark field
     
     locations: [
       {
@@ -28,7 +28,9 @@ const PostSchema = new mongoose.Schema(
         locality: String,
         websiteUrl: String,
         isPosted: { type: Boolean, default: false },
-        error: String
+        error: String,
+        postedAt: Date,
+        apiResponse: Object
       }
     ],
 

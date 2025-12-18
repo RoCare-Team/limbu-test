@@ -106,15 +106,30 @@ export async function PUT(req) {
   try {
     await dbConnect();
 
-    const { id, status, scheduledDate, userId, description, reason } = await req.json();
+    const {
+      id,
+      status,
+      scheduledDate,
+      userId,
+      description,
+      reason,
+      locations,
+      checkmark,
+      refreshToken,
+    } = await req.json();
+ 
+    console.log("📦 PUT /api/post-status Payload:", { id, status, locationsCount: locations?.length, checkmark, hasRefreshToken: !!refreshToken });
 
     if (!id || !status || !userId) {
-      return json({ success: false, error: "id, status & userId required" }, 400);
+      return json(
+        { success: false, error: "id, status & userId required" },
+        400
+      );
     }
 
     const updateData = { status };
 
-    // --- Scheduled ---
+    /* -------------------- SCHEDULED -------------------- */
     if (status === "scheduled") {
       if (!scheduledDate) {
         return json(
@@ -123,13 +138,43 @@ export async function PUT(req) {
         );
       }
 
-      updateData.scheduledDate = new Date(scheduledDate);
-      if (isNaN(updateData.scheduledDate.getTime())) {
-        return json({ success: false, error: "Invalid scheduledDate" }, 400);
+      const parsedDate = new Date(scheduledDate);
+      if (isNaN(parsedDate.getTime())) {
+        return json(
+          { success: false, error: "Invalid scheduledDate" },
+          400
+        );
+      }
+
+      updateData.scheduledDate = parsedDate;
+
+      // ✅ Save refreshToken if provided (critical for auto-posting)
+      if (refreshToken) {
+        updateData.refreshToken = refreshToken;
+        console.log(`🔄 RefreshToken saved for scheduled post ${id}`);
+      }
+
+      // ✅ Save locations only if provided
+      if (Array.isArray(locations) && locations.length > 0) {
+        console.log(`📍 Saving ${locations.length} locations for scheduled post ${id}`);
+        // Explicitly map to schema fields to avoid strict mode issues with extra fields
+        updateData.locations = locations.map(loc => ({
+          locationId: loc.locationId,
+          accountId: loc.accountId,
+          name: loc.name,
+          address: loc.address,
+          city: loc.city || "",
+          locality: loc.locality || "",
+          websiteUrl: loc.websiteUrl || "",
+          isPosted: false, // Reset posted status for new schedule
+          error: ""
+        }));
+      } else {
+        console.warn(`⚠ No locations provided for scheduled post ${id}`);
       }
     }
 
-    // --- Rejected (New Logic) ---
+    /* -------------------- REJECTED -------------------- */
     if (status === "rejected") {
       if (!reason || reason.trim() === "") {
         return json(
@@ -140,23 +185,39 @@ export async function PUT(req) {
       updateData.rejectReason = reason;
     }
 
-    // --- Approved / Posted / Pending ---
-    // (no special fields required)
+    /* -------------------- OPTIONAL FIELDS -------------------- */
+    if (typeof description === "string") {
+      updateData.description = description;
+    }
 
+    if (typeof checkmark === "boolean") {
+      updateData.checkmark = checkmark;
+    }
+
+    console.log("🛠 Updating Post with:", JSON.stringify(updateData, null, 2));
+
+    /* -------------------- UPDATE -------------------- */
     const updated = await Post.findOneAndUpdate(
       { _id: id, userId },
-      updateData,
+      { $set: updateData },
       { new: true }
     );
 
     if (!updated) {
-      return json({ success: false, error: "Post not found" }, 404);
+      return json(
+        { success: false, error: "Post not found" },
+        404
+      );
     }
 
     return json({ success: true, data: updated });
 
   } catch (err) {
-    return json({ success: false, error: err.message }, 500);
+    console.error("Update Post Error:", err);
+    return json(
+      { success: false, error: err.message },
+      500
+    );
   }
 }
 

@@ -202,12 +202,12 @@ const PostCard = ({
               >
                 <CheckCircle className="w-4 h-4" /> Repost
               </button>
-              {/* <button
+              <button
                 onClick={() => handleDeleteFromGMB(post)}
                 className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" /> Delete
-              </button> */}
+              </button>
             </div>
           )}
         </div>
