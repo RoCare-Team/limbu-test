@@ -248,6 +248,7 @@ export default function LimbuAILanding() {
         showToast("Error creating payment order", "error");
         return;
       }
+      
 
       // 2. Open Razorpay
       const options = {
