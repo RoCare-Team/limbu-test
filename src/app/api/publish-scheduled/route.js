@@ -4,6 +4,7 @@ import dbConnect from "@/lib/dbConnect";
 import Post from "@/models/PostStatus";
 import User from "@/models/User";
 import { postToGmbAction } from "@/lib/gmb/postToGmb";
+import { deductFromWalletAction } from "@/app/actions/postActions";
 
 /* -------------------------------------------------- 
    DEBUG LOGGER
@@ -11,12 +12,8 @@ import { postToGmbAction } from "@/lib/gmb/postToGmb";
 let debugLogs = [];
 const log = (...args) => {
   const formatted = args.map(a => {
-    if (a instanceof Error) {
-      return a.stack || a.message;
-    }
-    if (typeof a === "object" && a !== null) {
-      return JSON.stringify(a, null, 2);
-    }
+    if (a instanceof Error) return a.stack || a.message;
+    if (typeof a === "object" && a !== null) return JSON.stringify(a, null, 2);
     return a;
   });
   try { console.log(...formatted); } catch {}
@@ -27,6 +24,8 @@ const log = (...args) => {
    REFRESH ACCESS TOKEN
 -------------------------------------------------- */
 async function getFreshAccessToken(refreshToken) {
+  console.log("refreshTokenrefreshTokenrefreshToken",refreshToken);
+  
   log("🔄 Refreshing access token");
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -55,8 +54,6 @@ async function getFreshAccessToken(refreshToken) {
    GET REFRESH TOKEN FROM gmb_dashboard.users
 -------------------------------------------------- */
 async function getRefreshTokenByEmail(email) {
-  console.log("emsaillll",email);
-  
   if (!email) return null;
 
   const gmbDb = mongoose.connection.useDb("gmb_dashboard");
@@ -67,9 +64,7 @@ async function getRefreshTokenByEmail(email) {
     { projection: { projects: 1 } }
   );
 
-  if (!user || !Array.isArray(user.projects) || user.projects.length === 0) {
-    return null;
-  }
+  if (!user?.projects?.length) return null;
 
   const latestProject = user.projects[user.projects.length - 1];
   log("🔑 Refresh token found for", email);
@@ -98,7 +93,6 @@ export async function GET() {
     log(`Found ${posts.length} posts to process.`);
 
     if (!posts.length) {
-      log("ℹ No scheduled posts");
       return NextResponse.json({ success: true, logs: debugLogs });
     }
 
@@ -110,120 +104,57 @@ export async function GET() {
       posted: 0,
     };
 
-    const tokenCache = new Map(); // email → accessToken
-
-    /* -------------------------------------------------- 
-       LOOP POSTS
-    -------------------------------------------------- */
     for (const rawPost of posts) {
       const postId = rawPost._id.toString();
-      log(`📝 Processing post ${postId}`);
-
-      // DEBUG: Log raw post locations to debug "Invalid or empty locations" error
-      console.log(`🔍 DEBUG: Post ${postId} raw locations:`, JSON.stringify(rawPost.locations, null, 2));
-
-      if (!rawPost.userId) {
-        log(`❌ Post ${postId} is missing a userId.`);
-        stats.skipped++;
-        continue;
-      }
-
-      // 🚨 HARD GUARD — raw data
-      if (!Array.isArray(rawPost.locations) || rawPost.locations.length === 0) {
-        log("⚠ Invalid or empty locations (raw)");
-        stats.failed++;
-        continue;
-      }
-
-      const user = await User.findOne({ userId: rawPost.userId });
-      if (!user || !user.email) {
-        log(`❌ User/email not found for userId: ${rawPost.userId}`);
-        stats.skipped++;
-        continue;
-      }
-
-      const refreshToken = await getRefreshTokenByEmail(user.email);
-      if (!refreshToken) {
-        log("❌ No refreshToken for", user.email);
-        stats.failed++;
-        await Post.updateOne(
-          { _id: postId },
-          { $set: { status: "failed", error: "GMB refresh token not found." } }
-        );
-        continue;
-      }
-
-      let accessToken = tokenCache.get(user.email);
-      if (!accessToken) {
-        try {
-          accessToken = await getFreshAccessToken(refreshToken);
-          tokenCache.set(user.email, accessToken);
-        } catch (err) {
-          log(`❌ Token refresh error for ${user.email}:`, err.message);
-          stats.failed++;
-          await Post.updateOne(
-            { _id: postId },
-            { $set: { status: "failed", error: err.message } }
-          );
-          continue;
-        }
-      }
-
       const post = await Post.findById(postId);
+
       if (!post) {
-        log("❌ Post vanished");
+        log(`- Post ${postId} not found in DB, skipping.`);
         stats.skipped++;
         continue;
       }
 
-      // 🚨 CRITICAL FIX — normalize locations
-      if (!Array.isArray(post.locations)) {
-        log("🚨 FIXED corrupt locations field");
-        post.locations = [];
+      log(`📝 Processing post ${post._id.toString()}`);
+
+      if (!Array.isArray(post.locations) || !post.locations.length) {
+        log("⚠ Invalid or empty locations");
         post.status = "failed";
-        post.error = "Invalid locations data";
+        post.error = "Scheduled post has no locations.";
         await post.save();
         stats.failed++;
         continue;
       }
 
-      // 🧹 SANITIZE LOCATIONS: Remove non-object entries (like "") that crash Mongoose validation
-      const validLocs = post.locations.filter(l => l && typeof l === "object");
-      if (validLocs.length !== post.locations.length) {
-        log(`🧹 Removed ${post.locations.length - validLocs.length} invalid location entries`);
-        post.locations = validLocs;
+      const user = await User.findOne({ userId: post.userId });
+      if (!user) {
+        log("❌ User not found for post " + postId);
+        post.status = "failed";
+        post.error = "Owner user not found.";
+        await post.save();
+        stats.skipped++;
+        continue;
       }
 
-      if (post.locations.length === 0) {
-        log("❌ No valid locations to post to");
+      const refreshToken = post.refreshToken;
+
+      if (!refreshToken) {
+        log("❌ No refresh token on post document:", postId);
         post.status = "failed";
-        post.error = "No valid locations found";
+        post.error = "GMB refresh token not found on post document";
         await post.save();
         stats.failed++;
         continue;
       }
 
+      log("🔑 Using stored refreshToken from post document to get a fresh access token.");
+      const accessToken = await getFreshAccessToken(refreshToken);
       let failed = false;
 
-      /* -------------------------------------------------- 
-         LOCATION LOOP
-      -------------------------------------------------- */
       for (let i = 0; i < post.locations.length; i++) {
         const loc = post.locations[i];
+        if (!loc?.locationId || loc.isPosted) continue;
 
-        if (
-          !loc ||
-          typeof loc !== "object" ||
-          !loc.locationId ||
-          loc.isPosted === true
-        ) {
-          log("⚠ Skipping invalid location entry");
-          continue;
-        }
-
-        log(`📍 Posting to ${loc.name || loc.locationId}`);
-
-        try { 
+        try {
           const payload = {
             account: loc.accountId,
             locationData: [{
@@ -234,55 +165,55 @@ export async function GET() {
             output: post.aiOutput,
             description: post.description || "",
             accessToken,
-            checkmark: post.checkmark || "post",
+            checkmark: post.checkmark || "both",
           };
 
-          console.log("---------------------------------------------------");
-          console.log("📦 FULL PAYLOAD BEING SENT TO GMB (DEBUG):");
-          console.log(JSON.stringify({ 
-            ...payload, 
-            accessToken: accessToken ? accessToken : "MISSING" 
-          }, null, 2));
-          console.log("---------------------------------------------------");
+          log("📦 Payload:", payload);
 
           const result = await postToGmbAction(payload);
+          if (!result?.ok) throw new Error("GMB post failed");
 
-          log(`📬 GMB Action Result:`, JSON.stringify(result, null, 2));
+          // ✅ Wallet deduction ONLY after success
+          const walletData = await deductFromWalletAction(user.userId, {
+            amount: 20,
+            type: "deduct",
+            reason: "Post-on-GMB",
+            metadata: {
+              aiPrompt: post.promat || "",
+              logoUsed: !!post.logoUrl,
+              postId: post._id.toString(),
+              locationId: loc.locationId,
+            },
+          });
 
-          if (!result?.ok) {
-            throw new Error(result?.data?.message || "GMB post failed");
+          console.log("wallletDaat",walletData);
+          
+
+          if (!walletData === "Wallet updated") {
+            throw new Error("Wallet deduction failed");
           }
+
+          log("🪙 20 coins deducted via wallet action");
 
           post.locations[i].isPosted = true;
           post.locations[i].postedAt = new Date();
           post.locations[i].apiResponse = result;
-          log(`✅ Successfully posted to ${loc.name || loc.locationId}`);
 
-          user.wallet = Math.max((user.wallet || 0) - 20, 0);
-          await user.save();
-
-          log("🪙 20 coins deducted");
         } catch (err) {
-          log(`❌ GMB post failed for location ${loc.locationId}:`, err.message);
+          log(`❌ Error posting to location ${loc.locationId}:`, err.message);
           post.status = "failed";
-          post.error = `Location ${loc.locationId}: ${err.message}`;
+          post.error = err.message;
           failed = true;
           break;
         }
       }
 
-      /* -------------------------------------------------- 
-         FINALIZE POST
-      -------------------------------------------------- */
       if (!failed) {
-        const done = post.locations.every(l => l.isPosted === true);
-        post.status = done ? "posted" : "scheduled";
+        post.status = post.locations.every(l => l.isPosted) ? "posted" : "scheduled";
         post.error = null;
-        if (done) stats.posted++;
-        log(`✅ Post ${postId} status updated to '${post.status}'.`);
+        stats.posted++;
       } else {
         stats.failed++;
-        log(`❌ Post ${postId} marked as 'failed'. Error: ${post.error}`);
       }
 
       await post.save();
@@ -293,10 +224,6 @@ export async function GET() {
 
   } catch (err) {
     log("💥 CRON CRASH", err.stack);
-    return NextResponse.json({
-      success: false,
-      error: err.message,
-      logs: debugLogs
-    });
+    return NextResponse.json({ success: false, error: err.message, logs: debugLogs });
   }
 }

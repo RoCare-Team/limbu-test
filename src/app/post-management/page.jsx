@@ -45,6 +45,9 @@ import PostInput from "@/components/PostInput";
 import TabButton from "@/components/TabButton";
 import RejectReasonModal from "../../components/RejectReasonModal";
 import "./PostManagement.module.css";
+import Lottie from "lottie-react";
+import animationData from "@/assets/animation/Loading.json"; // if not using public
+
 
 
 // Scheduling Modal Component
@@ -113,8 +116,12 @@ const PreviewSection = ({
     return (
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 w-full min-h-[400px] flex flex-col items-center justify-center p-8 text-center space-y-6">
         <div className="relative">
-          <div className="absolute inset-0 bg-blue-100 rounded-full blur-xl animate-pulse"></div>
-          <Loader2 className="w-16 h-16 text-blue-600 animate-spin relative z-10" />
+         <Lottie
+        animationData={animationData}
+        loop
+        autoplay
+        className="w-24 h-24"
+      />
         </div>
         <div>
           <h3 className="text-xl font-bold text-gray-800">Generating Magic...</h3>
@@ -352,14 +359,17 @@ const PreviewSection = ({
 
         {status === "failed" && (
             <div className="space-y-3">
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-xs text-red-600 font-bold uppercase flex items-center gap-1">
-                  <XCircle className="w-3 h-3" /> Posting Failed
-                </p>
-                <p className="text-sm text-red-800 mt-1 font-medium">
-                  {previewData.error || "Unknown error occurred"}
-                </p>
-              </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
+  <p className="text-[10px] text-red-600 font-semibold uppercase flex items-center gap-1 leading-tight">
+    <XCircle className="w-2.5 h-2.5" />
+    Posting Failed
+  </p>
+
+  <p className="text-xs text-red-700 mt-0.5 leading-snug">
+    {previewData.error || "Network Error"}
+  </p>
+</div>
+
 
               <button
                 onClick={() => handlePost(previewData)}
@@ -1150,40 +1160,40 @@ export default function PostManagementPage() {
     }
   };
 
-  const handleConfirmPost = async () => {
-    if (!previewData) return;
+  // const handleConfirmPost = async () => {
+  //   if (!previewData) return;
     
-    const userId = localStorage.getItem("userId");
-    try {
-      const postData = await savePostAction({
-        userId,
-        aiOutput: previewData.aiOutput,
-        description: previewData.description,
-        logoUrl: previewData.logoUrl,
-        status: "pending",
-        promat: previewData.user_input,
-        locations: [],
-      });
+  //   const userId = localStorage.getItem("userId");
+  //   try {
+  //     const postData = await savePostAction({
+  //       userId,
+  //       aiOutput: previewData.aiOutput,
+  //       description: previewData.description,
+  //       logoUrl: previewData.logoUrl,
+  //       status: "pending",
+  //       promat: previewData.user_input,
+  //       locations: [],
+  //     });
 
-      if (!postData.success) {
-        throw new Error(postData.error || "Failed to save post.");
-      }
+  //     if (!postData.success) {
+  //       throw new Error(postData.error || "Failed to save post.");
+  //     }
 
-      setPosts((prev) => [postData.data, ...prev]);
-      setAllCounts((prev) => ({
-        ...prev,
-        total: prev.total + 1,
-        pending: prev.pending + 1,
-      }));
+  //     setPosts((prev) => [postData.data, ...prev]);
+  //     setAllCounts((prev) => ({
+  //       ...prev,
+  //       total: prev.total + 1,
+  //       pending: prev.pending + 1,
+  //     }));
 
-      showToast("Post Saved Successfully! 💾");
-      setPreviewData(postData.data);
-      setPrompt("");
-      setLogo(null);
-    } catch (error) {
-      showToast(error.message, "error");
-    }
-  };
+  //     showToast("Post Saved Successfully! 💾");
+  //     setPreviewData(postData.data);
+  //     setPrompt("");
+  //     setLogo(null);
+  //   } catch (error) {
+  //     showToast(error.message, "error");
+  //   }
+  // };
 
   const handleDateChange = (id, value) => {
     setScheduleDates((prev) => ({ ...prev, [id]: value }));
@@ -1198,12 +1208,15 @@ export default function PostManagementPage() {
   };
 
 
+  
+
+
  const handleUpdateStatus = async (
   postOrId,
   newStatus,
   scheduleDate = null,
   locations = [],
-  checkmark = false
+  checkmark = false,
 ) => {
   console.log("📍 Locations:", locations);
   console.log("✅ Checkmark:", checkmark);
@@ -1217,7 +1230,17 @@ export default function PostManagementPage() {
     return;
   }
 
+  console.log("newStatusnewStatus",newStatus);
+  
+
   const userId = localStorage.getItem("userId");
+
+  // When scheduling, we must have a refresh token to pass to the backend.
+  if (!session?.refreshToken) {
+    showToast("Your session is invalid. Please log in again to schedule posts.", "error");
+    return;
+  }
+
 
   try {
     // 🔹 NORMALIZED PAYLOAD
@@ -1228,9 +1251,9 @@ export default function PostManagementPage() {
       scheduledDate: scheduleDate || null,
       locations: Array.isArray(locations) ? locations : [],
       checkmark: checkmark,
+      refreshToken: newStatus === "scheduled" ? session?.refreshToken : undefined,
     };
 
-    console.log("📦 Update Payload:", payload);
 
     const res = await updatePostStatusAction(payload);
     console.log("resresres",res);
