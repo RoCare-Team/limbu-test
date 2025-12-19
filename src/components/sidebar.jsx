@@ -395,7 +395,7 @@ const fetchNotifications = async () => {
  const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Post Management', icon: <AccountIcon />, path: '/post-management' },
-  { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
+  // { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
   { text: 'Review Management', icon: <PostIcon />, path: '/review-management' },
 
 
