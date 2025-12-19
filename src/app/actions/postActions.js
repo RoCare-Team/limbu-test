@@ -90,6 +90,7 @@ export async function updatePostStatusAction(payload) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     });
+    
     return await res.json();
 }
 
