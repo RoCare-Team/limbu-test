@@ -765,6 +765,7 @@ export default function PostManagementPage() {
   const [assetId, setAssetId] = useState(null);
   const [selectedAssets, setSelectedAssets] = useState([]);
   const previewRef = useRef(null);
+  const [bussinessTitle,setBussinessTitle] = useState("")
 
 
   // Load locations from localStorage
@@ -920,7 +921,7 @@ export default function PostManagementPage() {
       reader.onerror = (err) => reject(err);
     });
 
-  const handleGenerateClick = async (selectedAssets, useAssetsFlow) => {
+  const handleGenerateClick = async (selectedAssets, useAssetsFlow, businessName, keywords) => {
     // Auto-scroll to preview section on mobile
     if (typeof window !== 'undefined' && window.innerWidth < 1024 && previewRef.current) {
       previewRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -928,7 +929,7 @@ export default function PostManagementPage() {
 
     setLastUsedAssetsFlow(useAssetsFlow);
     if (useAssetsFlow) {
-      await handleImageGenerateWithAssets(selectedAssets);
+      await handleImageGenerateWithAssets(selectedAssets, businessName, keywords);
     } else {
       await handleAiAgent(selectedAssets);
     }
@@ -1043,13 +1044,18 @@ export default function PostManagementPage() {
 
 
 
-  const handleImageGenerateWithAssets = async (selectedAssets = []) => {
+  const handleImageGenerateWithAssets = async (selectedAssets = [], businessName, keywords) => {
     if (!prompt.trim()) {
       showToast("Please enter a prompt before generating!", "error");
       return;
     }
 
+    console.log("businessNamebusinessName",businessName);
+    
+
     const userId = localStorage.getItem("userId");
+
+
 
     try {
       // Check wallet balance for AI generation (150 coins)
@@ -1067,7 +1073,6 @@ export default function PostManagementPage() {
       // Start AI generation process
       setIsGenerating(true);
       setAiResponse(null);
-      setCountdown(59);
       setCountdown(120);
 
       const timer = setInterval(() => {
@@ -1089,6 +1094,8 @@ export default function PostManagementPage() {
       // Call the asset generation API
       const apiResponse = await generateWithAssetsAction({
         topic: prompt,
+        bussiness_name: businessName || "",
+        keywords: keywords || "",
         colourPalette: userAssets.find(a => a.name === 'Color')?.url || "",
         size: userAssets.find(a => a.name === 'Size')?.url || "1:1",
         characterImage: selectedAssets.find(a => a.name === 'Character')?.url || "",
@@ -1132,8 +1139,8 @@ export default function PostManagementPage() {
       // Save Post Immediately
       const savedPostResponse = await savePostAction({
         userId,
-        aiOutput: data.image,
-        description: data.description,
+        aiOutput: data.image || data.output,
+        description: data.description || "Generated Content",
         logoUrl: data.logoUrl,
         status: "pending",
         promat: data.user_input || prompt,
@@ -1206,9 +1213,6 @@ export default function PostManagementPage() {
     setShowLocationModal(true); // Open the location selection modal
     setIsScheduleModalOpen(false); // Close the date picker modal
   };
-
-
-  
 
 
  const handleUpdateStatus = async (
@@ -1396,7 +1400,6 @@ export default function PostManagementPage() {
 
     // Determine if this is a "Post Now" or "Schedule Post" action
     if (scheduledDateForLocations && postToSchedule) {
-      console.log("scheduledDateForLocationsscheduledDateForLocationsscheduledDateForLocations",scheduledDateForLocations,postToSchedule);
       
       // This is a "Schedule Post" action
       // No direct cost deduction here for scheduling, as actual posting cost is handled by cron
@@ -1478,7 +1481,6 @@ export default function PostManagementPage() {
           checkmark: checkmarkPayload,
         });
 
-        console.log("datadatadata",data,responseOk);
         
 
         // If post success → Deduct coins
@@ -1703,7 +1705,7 @@ export default function PostManagementPage() {
       showToast("Failed to download image", "error");
     }
   };
-  const handleShare = async (post) => {
+  const handleShare   = async (post) => {
     if (navigator.share) {
       try {
         await navigator.share({
@@ -1719,6 +1721,22 @@ export default function PostManagementPage() {
       showToast("Link copied to clipboard! 📋");
     }
   };
+
+
+  useEffect(() => {
+  const locationDetailsData = localStorage.getItem("locationDetails");
+
+  if (locationDetailsData) {
+    try {
+      const parsedData = JSON.parse(locationDetailsData);
+      if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0]?.title) {
+        setBussinessTitle(parsedData[0].title);
+      }
+    } catch (error) {
+      console.error("Failed to parse locationDetails from localStorage:", error);
+    }
+  }
+}, []);
 
   useEffect(() => {
     fetchPosts();
@@ -1743,7 +1761,7 @@ export default function PostManagementPage() {
         </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
         {toast && <Toast message={toast.message} type={toast.type} />}
         {showLocationModal && (
           <LocationSelectionModal
@@ -1887,6 +1905,7 @@ export default function PostManagementPage() {
               showToast={showToast}
               selectedAssets={selectedAssets}
               setSelectedAssets={setSelectedAssets}
+              bussinessTitle={bussinessTitle}
             />
           </div>
 

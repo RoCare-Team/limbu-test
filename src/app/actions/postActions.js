@@ -76,7 +76,7 @@ export async function deductFromWalletAction(userId, payload) {
 }
 
 export async function generateWithAssetsAction(payload) {
-    const res = await fetch("https://n8n.limbutech.in/webhook/6678555b-a0a2-4cbf-b157-7d0f831bd51c", {
+    const res = await fetch(`${API_URL}/api/aiAssetsGenerate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -153,4 +153,3 @@ export async function generateVideoAction(payload) {
     return { success: false, error: error.message };
   }
 }
-

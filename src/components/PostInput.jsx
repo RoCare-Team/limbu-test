@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { deleteAssetAction, saveAssetsToServerAction } from "@/app/actions/assetActions";
 import {
   Loader2,
   Image as ImageIcon,
@@ -7,14 +8,27 @@ import {
   X,
   ChevronDown,
   Check,
+  Trash2,
+  Edit2
 } from "lucide-react";
 
-const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo, assetId, fetchUserAssets, setUserAssets, showToast, selectedAssets, setSelectedAssets }) => {
+const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo, assetId, fetchUserAssets, setUserAssets, showToast, selectedAssets, setSelectedAssets,bussinessTitle }) => {
+  console.log("bussinessTitlebussinessTitle",bussinessTitle);
+  
 
   const removeImage = () => setLogo(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState([]);
-  const [showAssets, setShowAssets] = useState(false);
-  const [expandedAsset, setExpandedAsset] = useState(null);
+  const [showAssets, setShowAssets] = useState(true);
+  const [businessName, setBusinessName] = useState(bussinessTitle);
+  const [keywords, setKeywords] = useState("");
+
+  console.log("businessNamebusinessName",businessName);
+  
+  useEffect(() => {
+    setBusinessName(bussinessTitle);
+  }, [bussinessTitle]);
+
+
 
   const [updatingAsset, setUpdatingAsset] = useState(null);
   const sizeOptions = [
@@ -40,27 +54,11 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
   ];
 
   const handleCheckBoxChange = async () => {
-    if (!assetId) {
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        showToast("User ID not found. Please log in again.", "error");
-        return;
-      }
-
-      try {
-        const result = await createDefaultAssetsAction(userId);
-        if (result.success) {
-          showToast("Default assets created!", "info");
-          await fetchUserAssets();
-        } else {
-          throw new Error(result.error || "Failed to create default assets.");
-        }
-      } catch (error) {
-        showToast(error.message, "error");
-      }
-    }
     setShowAssets(!showAssets);
   };
+
+
+
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -96,14 +94,21 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
         return;
       }
 
-      const result = await updateAssetAction(assetId, fieldName, base64Image);
+      // Optimistic update with Base64
+      const newAssetBase64 = { name: asset.name, url: base64Image };
+      setSelectedAssets(prev => [...prev.filter(a => a.name !== asset.name), newAssetBase64]);
+      
+      // Update parent assets to prevent useEffect overwrite
+      setUserAssets(prev => prev.map(a => a.name === asset.name ? { ...a, url: base64Image } : a));
+
+      const userId = localStorage.getItem("userId");
+      const payload = { [fieldName]: base64Image };
+      if (!assetId && userId) payload.userId = userId;
+
+      const result = await saveAssetsToServerAction(payload, assetId);
       if (result.success) {
         showToast(`${asset.name} updated successfully!`, "success");
-        if (result.data?.asset) {
-          const newAsset = { name: asset.name, url: result.data.asset[fieldName] };
-          setSelectedAssets(prev => [...prev.filter(a => a.name !== newAsset.name), newAsset]);
-        }
-        await fetchUserAssets();
+        if (!assetId) await fetchUserAssets();
       } else {
         throw new Error(result.error || `Failed to upload ${asset.name}`);
       }
@@ -131,7 +136,11 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     setUpdatingAsset(asset.name);
 
     try {
-      const result = await updateAssetAction(assetId, fieldName, newValue);
+      const userId = localStorage.getItem("userId");
+      const payload = { [fieldName]: newValue };
+      if (!assetId && userId) payload.userId = userId;
+
+      const result = await saveAssetsToServerAction(payload, assetId);
       if (result.success) {
         showToast(`${asset.name} updated successfully!`, "success");
         await fetchUserAssets();
@@ -166,12 +175,16 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
     setUpdatingAsset(asset.name);
 
+    // Optimistic update
+    setUserAssets(prev => prev.map(a => a.name === asset.name ? { ...a, url: "" } : a));
+    setSelectedAssets(prev => prev.filter(a => a.name !== asset.name));
+
     try {
       const result = await deleteAssetAction(assetId, fieldName);
 
       if (result.success) {
         showToast(`${asset.name} removed successfully!`, "success");
-        await fetchUserAssets();
+        fetchUserAssets();
       } else {
         throw new Error(result.error || `Failed to remove ${asset.name}`);
       }
@@ -182,6 +195,8 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
       setUpdatingAsset(null);
     }
   };
+
+
 
   useEffect(() => {
     if (assets && assets.length > 0) {
@@ -208,6 +223,10 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     }
   }, []);
 
+
+
+
+
   const handleAssetToggle = (asset) => {
     const isSelected = selectedAssets.some(a => a.url === asset.url);
     let newSelectedAssets;
@@ -219,6 +238,9 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     setSelectedAssets(newSelectedAssets);
   };
 
+
+  console.log("businessNamebusinessName111111111111111111111111",businessName);
+  
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6">
@@ -249,6 +271,30 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Business Name & Keywords */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Business Name</label>
+              <input
+                type="text"
+                value={businessName || ''}
+                onChange={(e) => setBusinessName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                placeholder="Enter business name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Keywords</label>
+              <input
+                type="text"
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                placeholder="Enter keywords"
+              />
+            </div>
           </div>
 
           {/* Logo Upload - Compact */}
@@ -295,135 +341,104 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
           {assets && showAssets && (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-gray-700">Your Assets</p>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {assets.map((asset, index) => {
                   const isSelected = selectedAssets.some(a => a.name === asset.name && a.url === asset.url);
-                  const isExpanded = expandedAsset === asset.name;
+                  const isImageField = asset.name !== "Size" && asset.name !== "Color";
 
                   return (
-                    <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div key={index} className="border border-gray-200 rounded-lg overflow-hidden flex flex-col bg-white group relative">
                       {/* Asset Header */}
-                      <div className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className="flex items-center gap-3 flex-1">
-                          {/* Thumbnail or Icon */}
-                          {asset.url && asset.name !== "Size" && asset.name !== "Color" ? (
-                            <div className="w-10 h-10 rounded border border-gray-300 overflow-hidden flex-shrink-0">
-                              <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                              <ImageIcon className="w-5 h-5 text-gray-400" />
-                            </div>
-                          )}
-                          
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-800">{asset.name}</p>
-                            {asset.url && asset.name === "Size" && (
-                              <p className="text-xs text-gray-500">{asset.url}</p>
-                            )}
-                            {asset.url && asset.name === "Color" && (
-                              <div className="flex gap-1 mt-1">
-                                {(colorPalettes.find(p => p.value === asset.url)?.colors || []).slice(0, 4).map((color, i) => (
-                                  <div key={i} className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: color }} />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {asset.url && asset.name !== "Size" && asset.name !== "Color" && (
-                            <div 
-                              onClick={() => handleAssetToggle(asset)}
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
-                                isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300 hover:border-blue-400'
-                              }`}
-                            >
-                              {isSelected && <Check className="w-3 h-3 text-white" />}
-                            </div>
-                          )}
-                          <button
-                            onClick={() => setExpandedAsset(isExpanded ? null : asset.name)}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                      <div className="p-2 flex justify-between items-center bg-gray-50 border-b border-gray-100">
+                        <span className="text-xs font-bold text-gray-700 truncate">{asset.name}</span>
+                        {/* Checkbox for selection */}
+                        {asset.url && isImageField && (
+                          <div
+                            onClick={() => handleAssetToggle(asset)}
+                            className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-all ${
+                              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300 hover:border-blue-400'
+                            }`}
                           >
-                            <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                          </button>
-                        </div>
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Expanded Content */}
-                      {isExpanded && (
-                        <div className="p-3 bg-white border-t border-gray-200">
-                          {!asset.url ? (
-                            <div className="flex flex-col items-center gap-2">
-                              {updatingAsset === asset.name ? (
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  <span>Uploading...</span>
+                      {/* Asset Content */}
+                      <div className="p-2 flex-1 flex flex-col justify-center">
+                        {updatingAsset === asset.name ? (
+                          <div className="flex flex-col items-center justify-center h-24 text-gray-500">
+                            <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                            <span className="text-xs">Updating...</span>
+                          </div>
+                        ) : isImageField ? (
+                          // IMAGE ASSET UI
+                          <div className="relative w-full aspect-square bg-gray-100 rounded-md overflow-hidden border border-gray-200 group/image">
+                            {asset.url ? (
+                              <>
+                                <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
+                                {/* Hover Actions */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <label className="p-1.5 bg-white rounded-full cursor-pointer hover:bg-blue-50 text-blue-600 shadow-sm transition-transform hover:scale-110" title="Replace">
+                                    <Edit2 className="w-4 h-4" />
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => handleAssetUpload(e, asset)}
+                                    />
+                                  </label>
+                                  <button 
+                                    onClick={() => handleAssetDelete(asset)}
+                                    className="p-1.5 bg-white rounded-full hover:bg-red-50 text-red-600 shadow-sm transition-transform hover:scale-110"
+                                    title="Remove"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                 </div>
-                              ) : (
-                                <label className="cursor-pointer">
-                                  <div className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                                    Upload {asset.name}
-                                  </div>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => handleAssetUpload(e, asset)}
-                                    disabled={updatingAsset}
-                                  />
-                                </label>
-                              )}
-                            </div>
-                          ) : asset.name === "Size" ? (
-                            <select
-                              value={asset.url}
-                              onChange={(e) => handleAssetChange(asset, e.target.value)}
-                              disabled={!!updatingAsset}
-                              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                            >
-                              {sizeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : asset.name === "Color" ? (
-                            <select
-                              value={asset.url}
-                              onChange={(e) => handleAssetChange(asset, e.target.value)}
-                              disabled={!!updatingAsset}
-                              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                            >
-                              <option value="" disabled>Select palette</option>
-                              {colorPalettes.map((palette) => (
-                                <option key={palette.value} value={palette.value}>
-                                  {palette.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="w-32 h-32 rounded-lg border border-gray-300 overflow-hidden">
-                                {updatingAsset === asset.name ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                    <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                                  </div>
-                                ) : (
-                                  <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
-                                )}
-                              </div>
-                              <button
-                                onClick={() => handleAssetDelete(asset)}
-                                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                              </>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-200 transition-colors">
+                                <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                <span className="text-[10px] text-gray-500 font-medium">Upload</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleAssetUpload(e, asset)}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        ) : (
+                          // DROPDOWN ASSET UI (Size/Color)
+                          <div className="h-full flex items-center">
+                            {asset.name === "Size" && (
+                              <select
+                                value={asset.url}
+                                onChange={(e) => handleAssetChange(asset, e.target.value)}
+                                className="w-full p-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                               >
-                                Remove
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                                {sizeOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            )}
+                            {asset.name === "Color" && (
+                              <select
+                                value={asset.url}
+                                onChange={(e) => handleAssetChange(asset, e.target.value)}
+                                className="w-full p-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                              >
+                                <option value="" disabled>Select palette</option>
+                                {colorPalettes.map((palette) => (
+                                  <option key={palette.value} value={palette.value}>{palette.label}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -433,7 +448,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
           {/* Generate Button */}
           <button
-            onClick={() => onGenerate(selectedAssets, showAssets)}
+            onClick={() => onGenerate(selectedAssets, showAssets, businessName, keywords)}
             disabled={loading || !prompt.trim()}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-semibold text-sm"
           >
