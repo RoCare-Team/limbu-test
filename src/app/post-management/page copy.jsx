@@ -1,6 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  fetchPostsAction,
+  fetchAllPostsAction,
+  getUserWalletAction,
+  generateWithAiAgentAction,
+  savePostAction,
+  deductFromWalletAction,
+  generateWithAssetsAction, deletePostFromGmbAction,
+  updatePostStatusAction, postToGmbAction,
+} from "@/app/actions/postActions";
+import { deleteAssetAction, loadAssetsFromServerAction } from "@/app/actions/assetActions";
+import { useCallback, useEffect, useState } from "react";
 import {
   Loader2,
   CheckCircle,
@@ -8,380 +19,464 @@ import {
   Calendar,
   Image as ImageIcon,
   Sparkles,
+  ArrowLeft,
+  Send,
+  XCircle,
   Download,
   Share2,
-  Upload,
+  Edit3,
+  Save,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import LabelImportantIcon from '@mui/icons-material/LabelImportant';
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import Toast from "../../components/Toast";
+import LocationSelectionModal from "../../components/LocationSelectionModal";
+import InsufficientBalanceModal from "../../components/InsufficientBalanceModal";
+import LoadingOverlay from "../../components/LoadingOverlay";
+import SuccessOverlay from "../../components/SuccessOverlay"; // Corrected import path
+import PostInput from "@/components/PostInput";
+import TabButton from "@/components/TabButton";
+import RejectReasonModal from "../../components/RejectReasonModal";
+import "./PostManagement.module.css";
 
-// Toast Component
-const Toast = ({ message, type = "success" }) => (
-  <div className={`fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 animate-slide-in ${type === "success" ? "bg-green-500" : "bg-red-500"
-    } text-white`}>
-    {message}
-  </div>
-);
 
-// Loading Overlay Component - Only for AI Generation
-const LoadingOverlay = () => (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-    <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-3xl shadow-2xl p-8 flex flex-col items-center space-y-6 max-w-sm w-full border border-white/20">
-      <div className="relative">
-        <div className="absolute inset-0 bg-yellow-400/30 rounded-full blur-xl animate-pulse"></div>
-        <Loader2 className="w-16 h-16 md:w-20 md:h-20 text-white animate-spin relative z-10" />
-        <Sparkles className="w-7 h-7 text-yellow-300 absolute -top-2 -right-2 animate-bounce" />
-      </div>
-      <div className="text-center space-y-3">
-        <h3 className="text-2xl font-bold text-white">Generating Your Post</h3>
-        <p className="text-blue-100 text-sm">AI is creating something amazing...</p>
-      </div>
-      <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-        <div className="bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 h-full rounded-full animate-shimmer"></div>
-      </div>
-    </div>
-  </div>
-);
+// Scheduling Modal Component
+const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA')); // Date only
 
-// Post Input Component
-const PostInput = ({ prompt, setPrompt, logo, setLogo, onGenerate, loading }) => {
-  const removeImage = () => setLogo(null);
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    onConfirm(post._id, "scheduled", selectedDate);
+    onClose();
+  };
 
   return (
-    <div className="bg-gradient-to-br from-white to-blue-50/50 p-6 md:p-8 rounded-2xl shadow-lg border border-blue-100">
-      <div className="flex flex-col space-y-5">
-        {/* Prompt Input */}
-        <div className="space-y-3">
-          <label className="text-base font-bold text-gray-800 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            What would you like to create?
-          </label>
-
-          <textarea
-            placeholder="Describe your post idea... e.g., 'Create a festive Diwali offer post for RO water purifier with 30% discount'"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full p-4 border-2 border-gray-200 rounded-xl text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all min-h-[100px] resize-none placeholder:text-gray-400 bg-white shadow-sm"
-            disabled={loading}
-          />
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Schedule Post</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
         </div>
-
-        {/* Logo Upload */}
-        <div className="space-y-3">
-          <label className="text-base font-bold text-gray-800 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-blue-500" />
-            Add Your Logo (Optional)
-          </label>
-
-          {!logo ? (
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer bg-blue-50/50 hover:bg-blue-100/50 transition-all group">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <ImageIcon className="w-10 h-10 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
-                <p className="text-sm text-gray-600 font-medium">Click to upload logo</p>
-                <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setLogo(e.target.files[0])}
-                className="hidden"
-                disabled={loading}
-              />
-            </label>
-          ) : (
-            <div className="relative w-full h-32 bg-white rounded-xl border-2 border-blue-200 p-3 shadow-sm">
-              <img
-                src={URL.createObjectURL(logo)}
-                alt="Logo Preview"
-                className="w-full h-full object-contain rounded-lg"
-              />
-              <button
-                onClick={removeImage}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-all shadow-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Generate Button */}
-        <button
-          onClick={onGenerate}
-          disabled={loading || !prompt.trim()}
-          className="w-full inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:shadow-2xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-bold text-lg"
-        >
-          <Sparkles className="w-6 h-6" />
-          Generate Post with AI
-        </button>
-
-        {/* Tip */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <p className="text-sm text-amber-800 flex items-start gap-2">
-            <span className="text-lg">💡</span>
-            <span><strong>Pro Tip:</strong> Be specific about your business, offer details, colors, and style for best results!</span>
-          </p>
+        <p className="text-gray-600 mb-4">Select a date to schedule this post.</p>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          min={new Date().toLocaleDateString('en-CA')} // Disables past dates
+          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-300">
+            Cancel
+          </button>
+          <button onClick={handleConfirm} className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700">
+            Confirm & Schedule
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// Tab Button Component
-const TabButton = ({ tab, isActive, onClick, count }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-3.5 rounded-xl border-2 text-sm md:text-base font-bold transition-all flex-1 min-w-0 shadow-sm hover:shadow-md ${isActive
-      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent scale-105"
-      : "bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-      }`}
-  >
-    <tab.icon className="w-5 h-5 flex-shrink-0" />
-    <span className="truncate hidden sm:inline">{tab.label}</span>
-    <span className="truncate sm:hidden">{tab.shortLabel || tab.label}</span>
-    <span
-      className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${isActive ? "bg-white/25 text-white" : "bg-blue-100 text-blue-700"
-        }`}
-    >
-      {count}
-    </span>
-  </button>
-);
+// Main Component
+// Post Card Component (Moved here from PostCard.jsx to be local as per user's request)
+const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject, handleDownload, handleShare, handlePost, onEditDescription, handleDeleteFromGMB }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [showFull, setShowFull] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(post?.description || "");
 
-// Post Card Component
-const PostCard = ({ post, showFull, setShowFull, scheduleDates, onDateChange, onUpdateStatus, onReject, handleDownload, handleShare, handlePost, isEditing, setIsEditing }) => (
-  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all">
-    <a href={post.aiOutput} target="_blank">
-      <div className="relative">
-        <img
-          src={post?.aiOutput || "https://via.placeholder.com/400"}
-          alt="Post"
-          className="w-full h-56 md:h-64 object-cover"
-        />
-        <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${post.status === "pending" ? "bg-yellow-500 text-white" :
-          post.status === "approved" ? "bg-green-500 text-white" :
-            "bg-blue-500 text-white"
-          }`}>
-          {post.status.toUpperCase()}
+  const handleSave = () => {
+    onEditDescription(post._id, editedDescription);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditedDescription(post?.description || "");
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="group bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full">
+      {/* Image Section */}
+      <div className="relative overflow-hidden bg-gray-100 aspect-[4/3]">
+        <a href={post.aiOutput} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+          <img
+            src={post?.aiOutput || "https://via.placeholder.com/400"}
+            alt="Post content"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </a>
+
+        {/* Status Badge */}
+        <div className="absolute top-3 left-3 z-10">
+           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${
+              post.status === "pending"
+                ? "bg-yellow-100/90 text-yellow-700 border border-yellow-200"
+                : post.status === "approved"
+                ? "bg-green-100/90 text-green-700 border border-green-200"
+                : post.status === "posted"
+                ? "bg-purple-100/90 text-purple-700 border border-purple-200"
+                : "bg-blue-100/90 text-blue-700 border border-blue-200"
+            }`}
+          >
+            {post.status}
+          </span>
+        </div>
+
+        {/* Overlay Actions (Download/Share) */}
+        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <button
+            onClick={(e) => { e.preventDefault(); handleDownload(post); }}
+            className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-full shadow-md backdrop-blur-sm transition-transform hover:scale-110"
+            title="Download"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); handleShare(post); }}
+            className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-full shadow-md backdrop-blur-sm transition-transform hover:scale-110"
+            title="Share"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
-    </a>
 
-    <div className="p-5 space-y-4">
-      <div className="mt-2">
-        <strong className="text-gray-900 block mb-1">Description:</strong>
-
-        {isEditing ? (
-          <textarea
-            value={post?.description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800 text-sm"
-            rows={5}
-          />
-        ) : (
-          <p
-            className={`text-sm text-gray-700 ${showFull ? "" : "line-clamp-4"
-              }`}
-          >
-            {post?.description || "No description available"}
-          </p>
-        )}
-
-        {post?.description?.length > 150 && !isEditing && (
-          <button
-            onClick={() => setShowFull(!showFull)}
-            className="text-blue-600 text-sm font-medium mt-1 hover:underline"
-          >
-            {showFull ? "View Less" : "View More"}
-          </button>
-        )}
-
-        <div className="mt-3 flex gap-3">
-          {isEditing ? (
-            <>
-              <button
-                onClick={() => {
-                  // You can handle save logic here (API or state update)
-                  setIsEditing(false);
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setDescription(post?.description || "");
-                  setIsEditing(false);
-                }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
+      {/* Content Section */}
+      <div className="p-5 flex flex-col flex-grow space-y-4">
+        
+        {/* Description Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            AI Caption
+          </h3>
+          {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200"
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
             >
-              Edit Description
+              <Edit3 className="w-3 h-3" /> Edit
             </button>
           )}
         </div>
-      </div>
-      <p className="text-xs text-gray-500 flex items-center gap-1">
-        <Calendar className="w-3 h-3" />
-        {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ""}
-      </p>
 
+        {/* Description Text */}
+        <div className="flex-grow">
+          {isEditing ? (
+            <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full p-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none bg-gray-50"
+                rows={4}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <p className={`text-sm text-gray-600 leading-relaxed ${showFull ? "" : "line-clamp-3"}`}>
+                {post?.description || "No description available"}
+              </p>
+              {post?.description?.length > 120 && (
+                <button
+                  onClick={() => setShowFull(!showFull)}
+                  className="mt-1 text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  {showFull ? "Show Less" : "Read More"}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
-      <div className="flex flex-col gap-3 pt-2">
-        {post.status === "pending" && (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={() => onUpdateStatus(post._id, "approved")}
-              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Approve
-            </button>
-            <button
-              onClick={() => onReject(post._id)}
-              className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              Reject
-            </button>
-          </div>
-        )}
+        {/* Date */}
+        <div className="pt-3 border-t border-gray-100 flex items-center text-xs text-gray-400">
+          <Calendar className="w-3 h-3 mr-1.5" />
+          {post.createdAt ? new Date(post.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : "Date unknown"}
+        </div>
 
-        {post.status === "approved" && (
-          <div className="flex flex-col gap-3 w-full">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Action Buttons Area */}
+        <div className="pt-1">
+          {post.status === "pending" && (
+            <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => handleDownload(post)}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-md transition-all flex items-center justify-center gap-2"
+                onClick={() => onUpdateStatus(post._id, "approved")}
+                className="flex items-center justify-center gap-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:border-green-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               >
-                <Download className="w-4 h-4" />
-                Download
+                <CheckCircle className="w-4 h-4" />
+                Approve
               </button>
-
               <button
-                onClick={() => handleShare(post)}
-                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-md transition-all flex items-center justify-center gap-2"
+                onClick={() => onReject(post._id)}
+                className="flex items-center justify-center gap-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               >
-                <Share2 className="w-4 h-4" />
-                Share
+                <XCircle className="w-4 h-4" />
+                Reject
               </button>
             </div>
+          )}
 
-            <div className="flex flex-col gap-2">
-              <input
-                type="datetime-local"
-                value={scheduleDates[post._id] || ""}
-                onChange={(e) => onDateChange(post._id, e.target.value)}
-                min={new Date().toISOString().slice(0, 16)} // 🚫 disables past date/time
-                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:border-green-400 transition-all cursor-pointer"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                You can only select current or future date & time
-              </p>
+          {post.status === "approved" && (
+            <div className="space-y-3">
+               <div className="flex items-center justify-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(post.checkmark) ? post.checkmark.includes('post') : true}
+                      onChange={() => onEditDescription(post._id, post.description, 'post')}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Post</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(post.checkmark) ? post.checkmark.includes('photo') : true}
+                      onChange={() => onEditDescription(post._id, post.description, 'photo')}
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span>Photo</span>
+                  </label>
+              </div>
 
               <button
-                onClick={() => onUpdateStatus(post._id, "scheduled")}
-                className="bg-gradient-to-r from-green-500 to-teal-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+  onClick={() => handlePost(post)}
+  className="
+    w-full flex items-center justify-center gap-2
+    bg-gradient-to-r from-blue-100 to-indigo-100
+    hover:from-blue-200 hover:to-indigo-200
+    text-blue-700
+    border border-blue-200
+    px-4 py-3 rounded-xl
+    text-sm font-semibold
+    transition-all duration-200
+  "
+>
+  <Send className="w-4 h-4" />
+  Post Now
+</button>
+
+              
+              <button
+                onClick={() => onUpdateStatus(post)}
+                className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               >
                 <Calendar className="w-4 h-4" />
-                Schedule Post
+                Schedule
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {post.status === "scheduled" && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-3 space-y-4">
-            {/* Scheduled Info */}
-            <div>
-              <p className="text-sm text-gray-700 font-medium flex items-center gap-2">
-                📅 Scheduled for:
-              </p>
-              <p className="text-blue-700 font-bold mt-1">
-                {post.scheduledDate
-                  ? new Date(post.scheduledDate).toLocaleString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                  : "Not set"}
-              </p>
-            </div>
-
-            {/* Download + Share Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          {post.status === "scheduled" && (
+            <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Scheduled For</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {post.scheduledDate
+                      ? new Date(post.scheduledDate).toLocaleString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "Date not set"}
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={() => handleDownload(post)}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-md transition-all flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
+  onClick={() => handlePost(post)}
+  className="
+    w-full flex items-center justify-center gap-2
+    bg-blue-50 text-blue-600
+    border border-blue-100
+    hover:bg-blue-100 hover:border-blue-200
+    px-4 py-2.5 rounded-xl
+    text-sm font-semibold
+    transition-all duration-200
+  "
+>
+  <Send className="w-4 h-4" />
+  Post Now
+</button>
 
-              <button
-                onClick={() => handleShare(post)}
-                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-md transition-all flex items-center justify-center gap-2"
-              >
-                <Share2 className="w-4 h-4" />
-                Share
-              </button>
             </div>
+          )}
+{post.status === "posted" && (
+  <div className="grid grid-cols-2 gap-3">
+    {/* Repost */}
+    <button
+      onClick={() => handlePost(post)}
+      className="
+        flex items-center justify-center gap-2
+        bg-blue-50 text-blue-600
+        border border-blue-200
+        hover:bg-blue-100 hover:border-blue-300
+        px-4 py-2.5 rounded-xl text-sm font-semibold
+        transition-all
+      "
+    >
+      <Send className="w-4 h-4" />
+      Repost
+    </button>
 
-            {/* Post Button (Separate Line) */}
-            <div className="pt-2">
-              <button
-                onClick={() => handlePost(post)}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <LabelImportantIcon className="w-4 h-4" />
-                Post
-              </button>
-            </div>
-          </div>
-        )}
+    {/* Schedule */}
+    <button
+      onClick={() => onUpdateStatus(post)}
+      className="
+        flex items-center justify-center gap-2
+        bg-purple-50 text-purple-600
+        border border-purple-200
+        hover:bg-purple-100 hover:border-purple-300
+        px-4 py-2.5 rounded-xl text-sm font-semibold
+        transition-all
+      "
+    >
+      <Calendar className="w-4 h-4" />
+      Schedule
+    </button>
+  </div>
+)}
 
-
-
-
-
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-// Main Component
-export default function PostManagement() {
-  const { data: session } = useSession()
-  const { slug } = useParams();
-
-
-
-  const [savedPost, setSavedPost] = useState()
-
+export default function PostManagementPage() {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [posts, setPosts] = useState([]);
   const [aiResponse, setAiResponse] = useState(null);
+  const [countdown, setCountdown] = useState(0);
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [userWallet, setUserWallet] = useState(0);
+  const [requiredCoins, setRequiredCoins] = useState(0);
+  const { slug } = useParams();
+  const { data: session } = useSession();
 
+
+  const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("total");
   const [prompt, setPrompt] = useState("");
   const [scheduleDates, setScheduleDates] = useState({});
   const [logo, setLogo] = useState(null);
   const [toast, setToast] = useState(null);
-  const [showFull, setShowFull] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [postsGeneratedCount, setPostsGeneratedCount] = useState(0);
+
+  const [userAssets, setUserAssets] = useState([]);
+  const [rejectPostId, setRejectPostId] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [postToAction, setPostToAction] = useState(null);
+  const [showDeleteLocationModal, setShowDeleteLocationModal] = useState(false);
+  const [isPosting, setIsPosting] = useState(false); // Moved here from PostCard
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [postToSchedule, setPostToSchedule] = useState(null);
+  const [scheduledDateForLocations, setScheduledDateForLocations] = useState(null); // New state for selected date
+
+  const [assetId, setAssetId] = useState(null);
+  const [selectedAssets, setSelectedAssets] = useState([]);
 
 
+  // Load locations from localStorage
+  const [availableLocations, setAvailableLocations] = useState([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("locationDetails");
+    if (stored) {
+      try {
+        const parsedLocations = JSON.parse(stored);
+        // Transform the data to match the expected format
+        const formattedLocations = parsedLocations.map((loc, index) => ({
+          id: loc.id || index + 1,
+          name: loc.name || loc.title || `Location ${index + 1}`,
+          address: loc.address || loc.storefrontAddress?.addressLines?.join(", ") || "Address not available",
+          city: loc.city || "",
+          ...loc
+        }));
+        setAvailableLocations(formattedLocations);
+      } catch (err) {
+        console.error("Invalid JSON in localStorage:", err);
+        // Fallback to empty array if parsing fails
+        setAvailableLocations([]);
+      }
+    }
+  }, []);
+
+  const fetchUserAssets = useCallback(async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    try {
+      const result = await loadAssetsFromServerAction(userId);
+
+      if (result.success && result.data.length > 0) {
+        const latestAssets = result.data[0];
+        setAssetId(latestAssets._id);
+
+        const productImagesArray = Array.isArray(latestAssets.productImage)
+          ? latestAssets.productImage
+          : latestAssets.productImage
+            ? [latestAssets.productImage]
+            : [];
+
+        const imageAssets = [
+          { name: "Character", url: latestAssets.characterImage || "" },
+          { name: "Product", url: latestAssets.productImage || "" },
+          { name: "Uniform", url: latestAssets.uniformImage || "" },
+          { name: "Background", url: latestAssets.backgroundImage || "" },
+          { name: "Logo", url: latestAssets.logoImage || "" },
+          { name: "Size", url: latestAssets.size || "" },
+          { name: "Color", url: latestAssets.colourPalette || "" },
+        ];
+
+        setUserAssets(imageAssets);
+      } else {
+        // If no assets are found, set default assets for the UI
+        setUserAssets([
+          { name: "Character", url: "" },
+          { name: "Product", url: "" },
+          { name: "Uniform", url: "" },
+          { name: "Background", url: "" },
+          { name: "Logo", url: "" },
+          { name: "Size", url: "3:4" }, // Default aspect ratio
+          { name: "Color", url: "warm, yellow, orange, red" }, // Default color palette
+        ]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user assets:", error);
+    }
+  }, []);
+
+
+
+  useEffect(() => { fetchUserAssets(); }, [fetchUserAssets]);
 
 
   const showToast = (message, type = "success") => {
@@ -394,55 +489,44 @@ export default function PostManagement() {
     approved: 0,
     pending: 0,
     scheduled: 0,
+    posted: 0,
+    rejected: 0,
   });
 
   const tabs = [
-    { id: "pending", label: "Pending", shortLabel: "Pending", icon: Clock, count: allCounts.pending },
-    { id: "approved", label: "Approved", shortLabel: "Approved", icon: CheckCircle, count: allCounts.approved },
-    { id: "scheduled", label: "Scheduled", shortLabel: "Scheduled", icon: Calendar, count: allCounts.scheduled },
     { id: "total", label: "Total Posts", shortLabel: "Total", icon: ImageIcon, count: allCounts.total },
+    { id: "pending", label: "Pending", shortLabel: "Pending", icon: Clock, count: allCounts.pending },
+    { id: "approved", label: "Approved", shortLabel: "Approved", icon: CheckCircle, count: allCounts.approved }, // Corrected icon
+    { id: "rejected", label: "Rejected", shortLabel: "Rejected", icon: XCircle, count: allCounts.rejected },
+    { id: "scheduled", label: "Scheduled", shortLabel: "Scheduled", icon: Calendar, count: allCounts.scheduled },
+    { id: "posted", label: "Posted", shortLabel: "Posted", icon: Send, count: allCounts.posted },
   ];
 
-
-  const fetchPosts = async (status) => {
+  const fetchPosts = async () => {
     try {
-      const userId = localStorage.getItem("userId"); // ✅ later make dynamic from session/auth
+      const userId = localStorage.getItem("userId");
+      const allPostsData = await fetchAllPostsAction(userId);
 
-      // build url with userId and optional status
-      const url =
-        status === "total"
-          ? `/api/post-status?userId=${userId}`
-          : `/api/post-status?userId=${userId}&status=${status}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to fetch posts");
-      }
-
-      setPosts(data.data);
-
-      // ✅ fetch all posts again for counts
-      const allPostsRes = await fetch(`/api/post-status?userId=${userId}`);
-      const allPostsData = await allPostsRes.json();
-
-      if (allPostsRes.ok && allPostsData.success) {
+      if (allPostsData.success) {
         const allPosts = allPostsData.data;
-        const total = allPosts.length;
-        const approved = allPosts.filter((p) => p.status === "approved").length;
-        const pending = allPosts.filter((p) => p.status === "pending").length;
-        const scheduled = allPosts.filter((p) => p.status === "scheduled").length;
+        setPosts(allPosts);
 
-        setAllCounts({ total, approved, pending, scheduled });
+        setAllCounts({
+          total: allPosts.filter((p) => p.status !== "rejected").length,
+          approved: allPosts.filter((p) => p.status === "approved").length,
+          pending: allPosts.filter((p) => p.status === "pending").length,
+          scheduled: allPosts.filter((p) => p.status === "scheduled").length,
+          posted: allPosts.filter((p) => p.status === "posted").length,
+          rejected: allPosts.filter((p) => p.status === "rejected").length,
+        });
+      } else {
+        throw new Error(allPostsData.error || "Failed to fetch posts");
       }
     } catch (err) {
       showToast(err.message || "Error fetching posts", "error");
     }
   };
 
-
-  // Helper: File -> Base64 string
   const fileToBase64 = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -451,75 +535,101 @@ export default function PostManagement() {
       reader.onerror = (err) => reject(err);
     });
 
-  const handleAiAgent = async () => {
-    const userId = localStorage.getItem("userId"); // ✅ later make dynamic from session/auth
+  const handleGenerateClick = async (selectedAssets, useAssetsFlow) => {
+    if (useAssetsFlow) {
+      await handleImageGenerateWithAssets(selectedAssets);
+    } else {
+      await handleAiAgent(selectedAssets);
+    }
+  };
 
+  const handleAiAgent = async (selectedAssets = []) => {
     if (!prompt.trim()) {
       showToast("Please enter a prompt before generating!", "error");
       return;
     }
 
+    const userId = localStorage.getItem("userId");
+
     try {
+      // Check wallet balance for AI generation (150 coins)
+      const userData = await getUserWalletAction(userId);
+      const walletBalance = userData.wallet || 0;
+      setUserWallet(walletBalance);
+
+      // Check if user has sufficient balance for AI generation (80 coins)
+      if (walletBalance < 80) {
+        setRequiredCoins(80);
+        setShowInsufficientBalance(true);
+        return;
+      }
+
+      // Start AI generation process
       setIsGenerating(true);
       setAiResponse(null);
+      setCountdown(59);
 
-      // --- 1️⃣ Convert logo file to base64 (if provided) ---
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Convert logo to base64 if provided
       let logoBase64 = null;
       if (logo) {
         logoBase64 = await fileToBase64(logo);
       }
 
-      // --- 2️⃣ Call AI Agent API with JSON body ---
-      const res = await fetch("/api/aiAgent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: prompt,
-          logo: logoBase64, // base64 string instead of file
-        }),
-      });
+      // Call AI Agent API (single generation, not per location)
+      const apiResponse = await generateWithAiAgentAction(prompt, logoBase64, selectedAssets);
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to generate post from AI agent.");
-      }
-
-      const apiResponse = await res.json();
+      clearInterval(timer);
 
       if (!apiResponse.success) {
-        throw new Error(apiResponse.error || "AI agent failed with no specific error.");
+        throw new Error(apiResponse.error || "AI agent failed.");
       }
 
       const data = apiResponse.data || {};
-      const aiOutput = data.output; // AI-generated image/post URL
-      const logoUrl = data.logoUrl; // Cloudinary logo URL
-      const description = data.description
-
-
-
-      // ✅ Save successful AI agent response
-      setAiResponse(data);
-
-      // --- 3️⃣ Save post in MongoDB ---
-      const postRes = await fetch("/api/post-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userId, // Replace with real logged-in user ID
-          aiOutput,
-          description,
-          logoUrl, // optional field
-          status: "pending",
-        }),
+      // Save post to database
+      const postData = await savePostAction({
+        userId,
+        aiOutput: data.output,
+        description: data.description,
+        logoUrl: data.logoUrl,
+        status: "pending",
+        promat: data.user_input,
+        locations: [], // No locations assigned yet
       });
-
-      const postData = await postRes.json();
 
       if (!postData.success) {
         throw new Error(postData.error || "Failed to save post in database.");
       }
 
-      // --- 4️⃣ Update frontend state ---
+      // Deduct 80 coins for AI generation
+      const walletData = await deductFromWalletAction(userId, {
+        amount: 80,
+        type: "deduct",
+        reason: "image_generated",
+        metadata: {
+          aiPrompt: prompt,
+          logoUsed: !!logo,
+        }
+      });
+
+      if (walletData.error) {
+        console.warn("Wallet deduction failed:", walletData.error);
+        showToast(walletData.error, "error");
+      } else {
+        showToast("80 coins deducted for AI generation ✅", "success");
+        setUserWallet((prev) => Math.max(0, prev - 80));
+      }
+
+      // Update frontend state
       setPosts((prev) => [postData.data, ...prev]);
       setAllCounts((prev) => ({
         ...prev,
@@ -528,306 +638,682 @@ export default function PostManagement() {
       }));
 
       showToast("AI Post Generated & Saved Successfully! 🎉");
+
       setPrompt("");
       setLogo(null);
+      setSelectedAssets([]);
+      setCountdown(0);
     } catch (error) {
       console.error("Generation Error:", error);
       showToast(error.message || "Failed to generate AI post!", "error");
     } finally {
       setIsGenerating(false);
+      setCountdown(0);
     }
   };
 
+
+
+  const handleImageGenerateWithAssets = async (selectedAssets = []) => {
+    if (!prompt.trim()) {
+      showToast("Please enter a prompt before generating!", "error");
+      return;
+    }
+
+    const userId = localStorage.getItem("userId");
+
+    try {
+      // Check wallet balance for AI generation (150 coins)
+      const userData = await getUserWalletAction(userId);
+      const walletBalance = userData.wallet || 0;
+      setUserWallet(walletBalance);
+
+      // Check if user has sufficient balance for AI generation (80 coins)
+      if (walletBalance < 80) {
+        setRequiredCoins(80);
+        setShowInsufficientBalance(true);
+        return;
+      }
+
+      // Start AI generation process
+      setIsGenerating(true);
+      setAiResponse(null);
+      setCountdown(59);
+      setCountdown(120);
+
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Convert logo to base64 if provided
+      let logoBase64 = null;
+      if (logo) {
+        logoBase64 = await fileToBase64(logo);
+      }
+
+      // Call the asset generation API
+      const apiResponse = await generateWithAssetsAction({
+        topic: prompt,
+        colourPalette: userAssets.find(a => a.name === 'Color')?.url || "",
+        size: userAssets.find(a => a.name === 'Size')?.url || "1:1",
+        characterImage: selectedAssets.find(a => a.name === 'Character')?.url || "",
+        uniformImage: selectedAssets.find(a => a.name === 'Uniform')?.url || "",
+        productImage: selectedAssets.find(a => a.name.startsWith('Product'))?.url || "",
+        backgroundImage: selectedAssets.find(a => a.name === 'Background')?.url || "",
+        logoImage: selectedAssets.find(a => a.name === 'Logo')?.url || logoBase64 || "",
+        platform: "gmb"
+      });
+
+      clearInterval(timer);
+
+
+      // The direct response from n8n is now the data we need
+      if (apiResponse.status !== "true" && !apiResponse.success) {
+        throw new Error(apiResponse.error || apiResponse.message || "AI asset generation failed.");
+      }
+
+      const data = apiResponse.success ? apiResponse.data : apiResponse;
+
+      const postData = await savePostAction({
+        userId,
+        aiOutput: data.image,
+        description: data.description,
+        logoUrl: data.logoUrl,
+        status: "pending",
+        promat: data.user_input,
+        locations: [], // No locations assigned yet
+      });
+
+      if (!postData.success) {
+        throw new Error(postData.error || "Failed to save post in database.");
+      }
+
+      // Deduct 80 coins for AI generation
+      const walletData = await deductFromWalletAction(userId, {
+        amount: 80,
+        type: "deduct",
+        reason: "image_generated",
+        metadata: {
+          aiPrompt: prompt,
+          logoUsed: !!logo,
+        }
+      });
+
+      if (walletData.error) {
+        console.warn("Wallet deduction failed:", walletData.error);
+        showToast(walletData.error, "error");
+      } else {
+        showToast("80 coins deducted for AI generation ✅", "success");
+        setUserWallet((prev) => Math.max(0, prev - 80));
+      }
+
+      // Update frontend state
+      setPosts((prev) => [postData.data, ...prev]);
+      setAllCounts((prev) => ({
+        ...prev,
+        total: prev.total + 1,
+        pending: prev.pending + 1,
+      }));
+
+      showToast("AI Post Generated & Saved Successfully! 🎉");
+
+      setPrompt("");
+      setLogo(null);
+      setCountdown(0);
+    } catch (error) {
+      console.error("Generation Error:", error);
+      showToast(error.message || "Failed to generate AI post!", "error");
+    } finally {
+      setIsGenerating(false);
+      setCountdown(0);
+    }
+  };
 
   const handleDateChange = (id, value) => {
     setScheduleDates((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleUpdateStatus = async (id, newStatus) => {
-    const scheduleDate = scheduleDates[id];
-    const userId = localStorage.getItem("userId"); // ✅ later make dynamic from session/auth
+  // Handler for when a date is confirmed in the ScheduleModal
+  const handleScheduleDateConfirmed = (postId, status, selectedDate) => {
+    setScheduledDateForLocations(selectedDate); // Store the selected date
+    setPostToAction(posts.find(p => p._id === postId)); // Set the post to be scheduled
+    setShowLocationModal(true); // Open the location selection modal
+    setIsScheduleModalOpen(false); // Close the date picker modal
+  };
 
 
-    if (newStatus === "scheduled" && !scheduleDate) {
-      showToast("Please select a schedule date!", "error");
+  const handleUpdateStatus = async (postOrId, newStatus, scheduleDate) => {
+    const postId = typeof postOrId === 'string' ? postOrId : postOrId._id;
+
+    // If the action is to open the schedule modal
+    if (typeof postOrId === 'object' && !newStatus) {
+      setPostToSchedule(postOrId);
+      setIsScheduleModalOpen(true);
       return;
     }
+    
 
+    const userId = localStorage.getItem("userId");
     try {
-      const res = await fetch("/api/post-status", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          status: newStatus,
-          scheduledDate: scheduleDate,
-          userId: userId, // ✅ pass userId
-        }),
+      const data = await updatePostStatusAction({
+        id: postId,
+        status: newStatus,
+        scheduledDate: scheduleDate,
+        userId: userId,
       });
 
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         showToast(data.error || "Failed to update post", "error");
         return;
       }
 
       showToast("Post Updated Successfully! ✅");
-
       setPosts((prev) =>
         prev.map((p) =>
-          p._id === id
-            ? { ...p, status: newStatus, scheduledDate: data.data.scheduledDate }
-            : p
+          p._id === postId ? { ...p, status: newStatus, scheduledDate: data.data.scheduledDate, locations: data.data.locations } : p
         )
       );
-
       await fetchPosts(activeTab);
     } catch (err) {
       showToast("Error updating post", "error");
     }
   };
 
-
-
-
-
-  const handlePost = async (post) => {
-    const fullAccount = localStorage.getItem("accountId"); // "accounts/100262617409791423070"
-    const accountId = fullAccount.split("/").pop(); // "100262617409791423070"
-    const payloadDetails = JSON.parse(localStorage.getItem("listingData"));
+  const handleEditDescription = async (id, newDescription) => {
+    const userId = localStorage.getItem("userId");
 
     try {
-      const response = await fetch(
-        "https://n8n.srv968758.hstgr.cloud/webhook/cc144420-81ab-43e6-8995-9367e92363b0",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            city: slug,
-            account: accountId,
-            bookUrl:
-              payloadDetails?.website,
-            output:
-              post.aiOutput,
-            description:
-              post.description,
-            cityName: payloadDetails?.locality,
-            accessToken:
-              session.accessToken,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      const data = await updatePostStatusAction({
+        id,
+        description: newDescription,
+        userId: userId,
+        status: "pending"
+      });
+      if (!data.success) {
+        showToast(data.error || "Failed to update description", "error");
+        return;
       }
 
-      const data = await response.json();
-      console.log("responseresponse", data);
-      setSavedPost(data)
-      console.log("✅ Successfully sent data:", data);
-      alert("Post successfully sent to webhook!");
-    } catch (error) {
-      console.error("❌ Error sending data:", error);
-      alert("Failed to send post. Please check console for details.");
+      showToast("Description Updated Successfully! ✅");
+      setPosts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, description: newDescription } : p))
+      );
+    } catch (err) {
+      showToast("Error updating description", "error");
     }
   };
 
 
-  console.log("ASDFGHJK", posts);
 
+  const handleDeleteFromGMB = async (post) => {
+    // First, check if the post has been published anywhere.
+    if (!post.locations || post.locations.length === 0) {
+      showToast("This post hasn't been published to any locations yet.", "error");
+      return;
+    }
+
+    // Set the specific post to be actioned and open the modal for location selection.
+    setPostToAction(post);
+    setShowDeleteLocationModal(true);
+  };
+
+  const handleLocationConfirm = async (selectedLocationIds, checkmark) => {
+    setShowLocationModal(false);
+
+    if (selectedLocationIds.length === 0) {
+      showToast("Please select at least one location", "error");
+      return;
+    }
+
+    if (!postToAction) {
+      showToast("Post data not found", "error");
+      return;
+    }
+
+    const userId = localStorage.getItem("userId");
+    const selectedLocations = availableLocations.filter(loc =>
+      selectedLocationIds.includes(loc.id)
+    ).map(loc => ({ ...loc, isPosted: false }));
+
+    // Determine if this is a "Post Now" or "Schedule Post" action
+    if (scheduledDateForLocations && postToSchedule) {
+      // This is a "Schedule Post" action
+      // No direct cost deduction here for scheduling, as actual posting cost is handled by cron
+
+      await handleUpdateStatus(
+        postToSchedule._id,
+        "scheduled",
+        scheduledDateForLocations,
+        selectedLocations
+      );
+      showToast(`Post scheduled for ${selectedLocationIds.length} locations on ${new Date(scheduledDateForLocations).toLocaleDateString()}!`, "success");
+
+      // Reset scheduling specific states
+      setScheduledDateForLocations(null);
+      setPostToSchedule(null);
+      
+    } else {
+      // This is a "Post Now" action (existing logic)
+      // Calculate cost: 20 coins per location for posting
+      const totalPostCost = selectedLocationIds.length * 20;
+      let deductionSuccessful = false;
+
+      try {
+        // Re-check wallet balance
+        const userData = await getUserWalletAction(userId);
+        const walletBalance = userData.wallet || 0;
+        setUserWallet(walletBalance);
+
+        // Check if user has sufficient balance
+        if (walletBalance < totalPostCost) {
+          showToast(`Insufficient wallet balance. Required: ${totalPostCost} coins`, "error");
+          setRequiredCoins(totalPostCost);
+          setShowInsufficientBalance(true);
+          return;
+        }
+
+        setIsPosting(true);
+        setPostsGeneratedCount(selectedLocationIds.length);
+
+        // Deduct coins from wallet (20 per location) BEFORE posting
+        const walletRes = await deductFromWalletAction(userId, {
+          amount: totalPostCost,
+          type: "deduct",
+          reason: "Post-on-GMB",
+          metadata: {
+            aiPrompt: prompt,
+            logoUsed: !!logo,
+          }
+        });
+        console.log("walletReswalletRes",walletRes);
+        
+
+        if (walletRes.message === "Wallet updated") {
+          const newBalance = walletBalance - totalPostCost;
+          setUserWallet(newBalance);
+          localStorage.setItem("walletBalance", newBalance);
+          showToast(`${totalPostCost} coins deducted (${selectedLocationIds.length} locations × 20 coins)`, "info");
+          deductionSuccessful = true;
+        } else {
+          showToast(walletRes.error || "Wallet deduction failed", "error");
+          setIsPosting(false);
+          return;
+        }
+
+        // Prepare location data for webhook
+        const locationData = selectedLocations.map(loc => ({
+          city: loc.locationId,
+          cityName: loc.locality,
+          bookUrl: loc.websiteUrl || "",
+        }));
+
+        // Send post to webhook
+        const { ok: responseOk, data } = await postToGmbAction({
+          account: selectedLocations[0]?.accountId || "",
+          locationData: locationData,
+          output: postToAction?.aiOutput || "",
+          description: postToAction?.description || "",
+          accessToken: session?.accessToken || "",
+          checkmark: checkmark,
+        });
+
+        console.log("datadatadata",data,responseOk);
+        
+
+        // If post success → Deduct coins
+        if (responseOk) {
+          showToast("Post successfully sent to all locations!", "success");
+          setShowSuccess(true);
+
+          // Update post with selected locations
+          await updatePostStatusAction({
+            id: postToAction._id,
+            locations: selectedLocations,
+            status: "posted",
+            userId: userId,
+          });
+
+          // Refresh posts
+          await fetchPosts(activeTab);
+
+        } else {
+          console.error("Webhook failed:", data);
+          throw new Error("Webhook failed");
+        }
+
+      } catch (error) {
+        console.error("Post error:", error);
+        
+        if (deductionSuccessful) {
+          showToast(`Failed to send post. Refunding coins...`, "error");
+          // Refund coins
+          await deductFromWalletAction(userId, {
+            amount: totalPostCost,
+            type: "credit",
+            reason: "Refund-Post-Failed",
+            metadata: {
+              originalReason: "Post-on-GMB",
+            }
+          });
+          const userData = await getUserWalletAction(userId);
+          setUserWallet(userData.wallet);
+          localStorage.setItem("walletBalance", userData.wallet);
+        } else {
+          showToast("Network error: Failed to send post", "error");
+        }
+      } finally {
+        // Reset states related to posting
+        setIsPosting(false);
+      }
+    }
+    setPostToAction(null); // Clear postToAction after handling
+  };
+  
+
+  const handlePost = async (post) => {
+    // First check if user has approved the post
+    if (post.status !== "approved" && post.status !== "scheduled" && post.status !== "posted") {
+      showToast("Please approve the post first!", "error");
+      return;
+    }
+
+    // Set the post to be actioned and open the location modal
+    setPostToAction(post);
+    setShowLocationModal(true);
+  };
+
+  const handleDeleteLocationConfirm = async (selectedLocationIds) => {
+    setShowDeleteLocationModal(false);
+    if (selectedLocationIds.length === 0) return;
+
+    if (!postToAction || !postToAction.locations) {
+      showToast("Post or location data is missing for deletion.", "error");
+      return;
+    }
+
+    // Find the full location objects based on the selected IDs.
+    // The `LocationSelectionModal` passes back the `id` property of the location objects.
+    const locationsToDelete = postToAction.locations.filter(loc => 
+      selectedLocationIds.includes(loc.id)
+    );
+
+    setIsPosting(true); // Reuse the posting loading overlay for a consistent feel
+
+    for (const location of locationsToDelete) {
+      const payload = {
+        locationIds: location.locationId,
+        acc_id: location.accountId,
+        access_token: session?.accessToken,
+      };
+
+      // try {
+      //   const result = await deletePostFromGmbAction(payload);
+
+      //   if (!result.success) {
+      //     throw new Error(`Failed to delete from ${location.name}.`);
+      //   }
+      //   showToast(`Post deleted from ${location.name}.`, "success");
+      // } catch (error) {
+      //   showToast(error.message, "error");
+      // }
+    }
+
+    setIsPosting(false);
+    setPostToAction(null);
+    // Optionally, refetch posts or update the post's `locations` array in the state
+  };
 
   const handleReject = async (id) => {
-    const userId = localStorage.getItem("userId"); // ✅ later make dynamic from session/auth
+    if (confirm("Are you sure you want to reject this post?")) {
+      setRejectPostId(id);
+      setShowRejectModal(true);
+    }
+  };
 
-    if (!confirm("Are you sure you want to delete this post?")) return;
+  const submitRejection = async () => {
+    const userId = localStorage.getItem("userId");
+
+    if (!rejectReason.trim()) {
+      showToast("Please enter a reason!", "error");
+      return;
+    }
 
     try {
-      const res = await fetch(`/api/post-status?id=${id}&userId=${userId}`, { // ✅ add userId in query
-        method: "DELETE",
+      const data = await updatePostStatusAction({
+        id: rejectPostId,
+        userId,
+        status: "rejected",
+        reason: rejectReason,
       });
+      if (data.success) {
+        showToast("Post rejected successfully! ❌");
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        showToast("Post deleted successfully! 🗑️");
-        const removed = posts.find((p) => p._id === id);
-        setPosts((prev) => prev.filter((p) => p._id !== id));
-
-        if (removed) {
-          setAllCounts((prev) => {
-            const next = { ...prev, total: Math.max(0, prev.total - 1) };
-            if (removed.status === "pending") next.pending = Math.max(0, next.pending - 1);
-            if (removed.status === "approved") next.approved = Math.max(0, next.approved - 1);
-            if (removed.status === "scheduled") next.scheduled = Math.max(0, next.scheduled - 1);
-            return next;
-          });
-        }
-      } else {
-        showToast(data.error || "Failed to delete", "error");
+        // ✅ Update status only (do not delete)
+        setPosts((prev) =>
+          prev.map((p) =>
+            p._id === rejectPostId
+              ? { ...p, status: "rejected", rejectReason: rejectReason }
+              : p
+          )
+        );
+  
+        // ✅ Update counts
+        setAllCounts((prev) => ({
+          ...prev,
+          pending: Math.max(0, prev.pending - 1),
+          rejected: prev.rejected + 1,
+        }));
       }
+
+      // Reset modal data
+      setRejectReason("");
+      setRejectPostId(null);
+      setShowRejectModal(false);
+
     } catch (error) {
-      showToast("Error deleting post", "error");
+      console.error(error);
+      showToast("Error rejecting post", "error");
     }
   };
 
 
   const handleDownload = async (post) => {
-    console.log("Downloading image:", post);
-
     if (!post.aiOutput) {
-      alert("No image available to download.");
-      return;
+      showToast("No image available to download.", "error");
+      return
     }
 
     try {
-      let imageBlob;
-      let extension = "jpg"; // default fallback
+      const apiUrl = `/api/downloadImage?url=${encodeURIComponent(post.aiOutput)}`;
 
-      // 🖼️ Case 1: Direct Image URL (e.g. https://example.com/image.jpg)
-      if (post.aiOutput.startsWith("http")) {
-        const response = await fetch(post.aiOutput);
-        if (!response.ok) throw new Error("Failed to fetch image.");
-        imageBlob = await response.blob();
+      const response = await fetch(apiUrl);
 
-        // Extract file extension from Content-Type or URL
-        const contentType = response.headers.get("Content-Type");
-        if (contentType && contentType.startsWith("image/")) {
-          extension = contentType.split("/")[1];
-        } else {
-          const urlExt = post.aiOutput.split(".").pop().split("?")[0];
-          if (["jpg", "jpeg", "png", "webp", "svg"].includes(urlExt)) {
-            extension = urlExt;
-          }
-        }
-      }
-
-      // 🧬 Case 2: Base64 Data (e.g. data:image/jpeg;base64,...)
-      else if (post.aiOutput.startsWith("data:image")) {
-        const [meta, base64Data] = post.aiOutput.split(",");
-        const mimeType = meta.match(/:(.*?);/)[1];
-        const byteString = atob(base64Data);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        imageBlob = new Blob([ab], { type: mimeType });
-        extension = mimeType.split("/")[1];
-      }
-
-      // ❌ Invalid format
-      else {
-        alert("Invalid image format.");
+      if (!response.ok) {
+        showToast("Failed to download image", "error");
         return;
       }
 
-      // ✅ Download logic
-      const url = URL.createObjectURL(imageBlob);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${post.prompt?.slice(0, 30)?.replace(/\s+/g, "_") || "ai-image"}.${extension}`;
+      link.download = `post-${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
-      // Optional success toast
-      console.log(`✅ Downloaded as .${extension}`);
+      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      showToast("Image downloaded successfully! 📥");
+
     } catch (err) {
-      console.error("Download failed:", err);
-      alert("Failed to download image. Please try again.");
+      showToast("Failed to download image", "error");
     }
   };
-
-
-  // 🔗 Share handler
   const handleShare = async (post) => {
     if (navigator.share) {
       try {
         await navigator.share({
           title: "Check out this post",
-          text: post.aiOutput || "AI-generated content",
+          text: post.description || "AI-generated content",
+          url: post.aiOutput,
         });
       } catch (err) {
-        console.error("Share cancelled or failed", err);
+        console.error("Share failed", err);
       }
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(post.aiOutput || "").then(() => {
-        alert("Post content copied to clipboard!");
-      });
+      navigator.clipboard.writeText(post.aiOutput || "");
+      showToast("Link copied to clipboard! 📋");
     }
   };
 
   useEffect(() => {
-    fetchPosts(activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    fetchPosts("total");
+    fetchPosts();
   }, []);
 
+  useEffect(() => {
+    fetchPosts();
+  }, []);
   const filteredPosts = activeTab === "total" ? posts : posts.filter((post) => post.status === activeTab);
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <style jsx>{`
-        @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-        .animate-shimmer {
-          animation: shimmer 2s infinite;
-        }
-      `}</style>
+      {/* Back button for mobile view */}
+      <div className="sm:hidden fixed top-4 left-4 z-50">
+        <Link href="/dashboard" passHref>
+          <button
+            aria-label="Go back to dashboard"
+            className="bg-white/80 backdrop-blur-sm p-2.5 rounded-full shadow-lg border border-gray-200 hover:scale-110 transition-transform"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-800" />
+          </button>
+        </Link>
+      </div>
 
-      <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
+      <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 space-y-8">
         {toast && <Toast message={toast.message} type={toast.type} />}
-        {isGenerating && <LoadingOverlay />}
+        {isGenerating && <LoadingOverlay countdown={countdown} />}
+        {showLocationModal && (
+          <LocationSelectionModal
+            locations={availableLocations} // Show all available locations for posting
+            onClose={() => setShowLocationModal(false)}
+            onConfirm={handleLocationConfirm}
+            title="Select Locations to Post"
+            confirmText="Post"
+          />
+        )}
+        {showDeleteLocationModal && (
+          <LocationSelectionModal
+            locations={postToAction?.locations || []} // Show only posted locations for deleting
+            onClose={() => setShowDeleteLocationModal(false)}
+            onConfirm={handleDeleteLocationConfirm}
+            title="Select Locations to Delete From"
+            confirmText="Delete"
+          />
+        )}
+        {showInsufficientBalance && (
+          <InsufficientBalanceModal
+            walletBalance={userWallet}
+            required={requiredCoins}
+            onClose={() => setShowInsufficientBalance(false)}
+            onRecharge={() => {
+              setShowInsufficientBalance(false);
+              window.location.href = "/wallet";
+            }}
+          />
+        )}
+        {isScheduleModalOpen && (
+          <ScheduleModal
+            isOpen={isScheduleModalOpen}
+            onClose={() => setIsScheduleModalOpen(false)}
+            post={postToSchedule} // Pass the post to the modal
+            onConfirm={handleScheduleDateConfirmed} // New handler for date confirmation
+            />
+        )}
+        {showRejectModal && (
+          <RejectReasonModal
+            onClose={() => setShowRejectModal(false)}
+            onSubmit={submitRejection}
+            reason={rejectReason}
+            setReason={setRejectReason}
+          />
+        )}
+        {isPosting && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-lg z-50 flex items-center justify-center p-4">
+            <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-10 flex flex-col items-center space-y-4 sm:space-y-6 max-w-md w-full border-4 border-white/30">
+              <div className="relative">
+                <div className="absolute inset-0 bg-orange-300/40 rounded-full blur-2xl animate-pulse"></div>
+                <div className="text-6xl sm:text-8xl animate-bounce-slow">🚀</div>
+              </div>
+              <div className="text-center space-y-2 sm:space-y-3">
+                <h3 className="text-2xl sm:text-3xl font-black text-white">Publishing Post...</h3>
+                <p className="text-blue-100 text-xs sm:text-sm">Sending to Google My Business</p>
+              </div>
+              <div className="w-full bg-white/30 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-gradient-to-r from-orange-300 via-yellow-300 to-green-300 h-full rounded-full animate-shimmer"></div>
+              </div>
+            </div>
+          </div>
+        )}
+        {showSuccess && <SuccessOverlay onComplete={() => setShowSuccess(false)} postsCount={postsGeneratedCount} />}
 
-        {/* Header */}
-        <div className="rounded-2xl p-6 md:p-8 mt-16 sm:mt-8 shadow-xl border-4 border-indigo-400 relative">
-          {/* <div className="rounded-xl p-6 md:p-8 border-2 border-pink-400 bg-white"> */}
-          <h1 className="text-3xl md:text-4xl font-black text-black mb-2">✨ Post Management</h1>
-          <p className="text-gray-600 text-sm md:text-base">Create stunning GMB posts with AI in seconds</p>
-          {/* </div> */}
-        </div>
+{/* <div className="marquee-container w-full max-w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 text-black font-bold overflow-hidden overflow-x-hidden whitespace-nowrap rounded-lg shadow-lg py-3">
+
+  <div className="marquee-content flex gap-16 whitespace-nowrap animate-marquee">
+    <span>Create post charges are now 80 — previously it was 200.</span>
+    <span>Posting on GMB now costs only 20 coins — earlier it was 50.</span>
+
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+    <span>🎄 Flat 50% Off — Merry Christmas & Happy New Year! 🎁</span>
+
+    <span>Create post charges are now 80 — previously it was 200.</span>
+    <span>Posting on GMB now costs only 20 coins — earlier it was 50.</span>
+  </div>
+
+</div> */}
+
+        <div className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 
+rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl border-4 border-white text-center">
+
+  <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 sm:mb-3 
+  flex items-center justify-center gap-2 sm:gap-3">
+    <Sparkles className="w-8 h-8" />
+    Post Management
+  </h1>
+
+  <p className="text-white/90 text-sm sm:text-base font-medium">
+    Create stunning GMB posts with AI in seconds ✨
+  </p>
+
+</div>
 
 
-        {/* Post Input */}
         <PostInput
           prompt={prompt}
           setPrompt={setPrompt}
+          onGenerate={handleGenerateClick}
+          loading={isGenerating}
           logo={logo}
           setLogo={setLogo}
-          onGenerate={handleAiAgent}
-          loading={isGenerating}
+          assets={userAssets}
+          setUserAssets={setUserAssets}
+          fetchUserAssets={fetchUserAssets}
+          assetId={assetId}
+          showToast={showToast}
+          selectedAssets={selectedAssets}
+          setSelectedAssets={setSelectedAssets}
         />
 
-        {/* Tabs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {tabs.map((tab) => (
             <TabButton
               key={tab.id}
@@ -839,14 +1325,12 @@ export default function PostManagement() {
           ))}
         </div>
 
-        {/* Posts Grid */}
         {filteredPosts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredPosts.map((post) => (
               <PostCard
                 key={post._id}
                 post={post}
-                aiResponse={aiResponse}
                 scheduleDates={scheduleDates}
                 onDateChange={handleDateChange}
                 handleDownload={handleDownload}
@@ -854,18 +1338,20 @@ export default function PostManagement() {
                 onUpdateStatus={handleUpdateStatus}
                 onReject={handleReject}
                 handlePost={handlePost}
-                setShowFull={setShowFull}
-                showFull={showFull}
-                isEditing={isEditing}
-                setIsEditing={setIsEditing}
+                onEditDescription={handleEditDescription}
+                handleDeleteFromGMB={handleDeleteFromGMB}
               />
             ))}
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-sm p-12 md:p-16 text-center border-2 border-dashed border-gray-300 rounded-2xl">
-            <div className="text-6xl mb-4">📭</div>
-            <p className="text-gray-600 text-lg font-medium">No posts found in this category</p>
-            <p className="text-gray-500 text-sm mt-2">Create your first AI-powered post above!</p>
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-10 sm:p-16 text-center border-3 border-dashed border-gray-300 shadow-xl">
+            <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">📭</div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">No posts found</h3>
+            <p className="text-gray-600 text-base">
+              {activeTab === "total"
+                ? "Create your first AI-powered post above!"
+                : `No ${activeTab} posts yet`}
+            </p>
           </div>
         )}
       </div>

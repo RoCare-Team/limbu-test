@@ -117,7 +117,6 @@ export default function DashboardPage() {
           ...(pageToken && { pageToken })
         };
 
-        console.log("Request body:", JSON.stringify(requestBody, null, 2));
 
         const res = await fetch("https://n8n.srv968758.hstgr.cloud/webhook/b3f4dda4-aef1-4e87-a426-b503cee3612b", {
           method: "POST",
@@ -127,7 +126,6 @@ export default function DashboardPage() {
           body: JSON.stringify(requestBody),
         });
 
-        console.log("Response status:", res.status);
         
         if (!res.ok) {
           const errorText = await res.text();

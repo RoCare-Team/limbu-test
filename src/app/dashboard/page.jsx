@@ -673,6 +673,11 @@ export default function DashboardPage() {
   const maxAccounts = userPlan === "" ? 1 : 0;
 
 const navItems = [
+   {
+    href: "/checkHealth",
+    icon: <PlusSquare className="h-6 w-6" />,
+    label: "Check Health",
+  },
   {
     href: "/post-management",
     icon: <PlusSquare className="h-6 w-6" />,
