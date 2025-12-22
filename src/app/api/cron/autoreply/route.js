@@ -51,6 +51,11 @@ export async function GET() {
           continue;
         }
 
+        if (!user.locations || user.locations.length === 0) {
+          console.log(`[CRON] User ${user._id} has no locations, skipping.`);
+          continue;
+        }
+
         const newAccessToken = await getFreshAccessToken(user.refreshToken);
 
         // 1) Fetch reviews from n8n

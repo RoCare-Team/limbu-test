@@ -8,10 +8,16 @@ export async function POST(req) {
 
   const { userId, refreshToken, locations, autoReply } = body;
 
+  // Construct update object to avoid overwriting refreshToken with null if not provided
+  const updateData = { locations, autoReply, updatedAt: new Date() };
+  if (refreshToken) {
+    updateData.refreshToken = refreshToken;
+  }
+
   await AutoReply.findOneAndUpdate(
     { userId },
-    { refreshToken, locations, autoReply, updatedAt: new Date() },
-    { upsert: true }
+    { $set: updateData },
+    { upsert: true, new: true }
   );
 
   return NextResponse.json({ success: true });

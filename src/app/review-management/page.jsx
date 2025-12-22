@@ -250,17 +250,23 @@ export default function DashboardPage() {
     console.log("User plan detected:", normalizedPlan);
   }, []);
 
+  console.log("sessionsession",session);
+  
+
 const handleReplyModeToggle = async () => {  
   const newMode = replyMode === "manual" ? "auto" : "manual";
   setReplyMode(newMode);
   localStorage.setItem("reviewReplyMode", newMode);
+
+  // Check if we have a refresh token to save (crucial for offline auto-reply)
+  const tokenToSave = session?.refreshToken;
 
   await fetch("/api/saveAutoReply", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       userId: session?.user?.id,
-      refreshToken: session?.refreshToken,
+      refreshToken: tokenToSave,
       locations: JSON.parse(localStorage.getItem("locationDetails")),
       autoReply: newMode === "auto"
     })
