@@ -41,6 +41,7 @@ export async function GET() {
 
     // Get all users who enabled auto reply
     const users = await AutoReply.find({ autoReply: true });
+    
 
     console.log("[CRON] Auto users found:", users.length);
 
