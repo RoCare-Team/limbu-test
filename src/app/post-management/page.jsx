@@ -286,47 +286,38 @@ const PreviewSection = ({
             </div>
         )}
 
-        {status === "approved" && (
-            <div className="space-y-3">
-               <div className="flex items-center justify-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
-                    <input
-                      type="checkbox"
-                      checked={previewData.checkmark === "both" || previewData.checkmark === "post" || !previewData.checkmark}
-                      onChange={() => onToggleCheckmark(previewData._id, 'post')}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Post</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
-                    <input
-                      type="checkbox"
-                      checked={previewData.checkmark === "both" || previewData.checkmark === "photo"}
-                      onChange={() => onToggleCheckmark(previewData._id, 'photo')}
-                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span>Photo</span>
-                  </label>
-              </div>
+       {status === "approved" && (
+  <div className="flex gap-2">
+    
+    <button
+      onClick={() => handlePost(previewData)}
+      className="flex-1 flex items-center justify-center gap-1.5
+        bg-gradient-to-r from-blue-100 to-indigo-100
+        hover:from-blue-200 hover:to-indigo-200
+        text-blue-700 border border-blue-200
+        px-3 py-2.5 rounded-lg
+        text-sm font-semibold
+        transition-all duration-200 shadow-sm"
+    >
+      <Send className="w-4 h-4" />
+      Post Now
+    </button>
 
-              <button
-                onClick={() => handlePost(previewData)}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 border border-blue-200 px-4 py-4 rounded-xl text-base font-bold transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <Send className="w-5 h-5" />
-                Post Now
-              </button>
-              
-              <button
-                onClick={() => onUpdateStatus(previewData)}
-                className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm"
-              >
-                <Calendar className="w-5 h-5" />
-                Schedule
-              </button>
-            </div>
-        )}
+    <button
+      onClick={() => onUpdateStatus(previewData)}
+      className="flex-1 flex items-center justify-center gap-1.5
+        bg-white text-gray-700 border border-gray-200
+        hover:bg-gray-50 hover:border-gray-300
+        px-3 py-2.5 rounded-lg
+        text-sm font-semibold
+        transition-all duration-200 shadow-sm"
+    >
+      <Calendar className="w-4 h-4" />
+      Schedule
+    </button>
 
+  </div>
+)}
         {status === "scheduled" && (
             <div className="space-y-3">
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
@@ -571,7 +562,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
           {post.status === "approved" && (
             <div className="space-y-3">
                <div className="flex items-center justify-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                  {/* <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
                     <input
                       type="checkbox"
                       checked={post.checkmark === "both" || post.checkmark === "post" || !post.checkmark}
@@ -588,7 +579,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                       className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
                     />
                     <span>Photo</span>
-                  </label>
+                  </label> */}
               </div>
 
               <button
@@ -845,7 +836,7 @@ export default function PostManagementPage() {
           { name: "Background", url: "" },
           { name: "Logo", url: "" },
           { name: "Size", url: "3:4" }, // Default aspect ratio
-          { name: "Color", url: "warm, yellow, orange, red" }, // Default color palette
+          { name: "Color", url: "" }, // Default color palette
         ]);
       }
     } catch (error) {
@@ -1096,7 +1087,7 @@ export default function PostManagementPage() {
         topic: prompt,
         bussiness_name: businessName || "",
         keywords: keywords || "",
-        colourPalette: userAssets.find(a => a.name === 'Color')?.url || "",
+        colourPalette: userAssets.find(a => a.name === 'Color')?.url || "none",
         size: userAssets.find(a => a.name === 'Size')?.url || "1:1",
         characterImage: selectedAssets.find(a => a.name === 'Character')?.url || "",
         uniformImage: selectedAssets.find(a => a.name === 'Uniform')?.url || "",

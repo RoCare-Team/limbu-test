@@ -260,7 +260,7 @@ const handleReplyModeToggle = async () => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       userId: session?.user?.id,
-      accessToken: session?.accessToken,
+      refreshToken: session?.refreshToken,
       locations: JSON.parse(localStorage.getItem("locationDetails")),
       autoReply: newMode === "auto"
     })

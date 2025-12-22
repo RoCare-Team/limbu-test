@@ -8,6 +8,31 @@ export const runtime = "nodejs";
 // Optional: increase timeout if needed (Vercel Pro/Team)
 export const maxDuration = 60;
 
+async function getFreshAccessToken(refreshToken) {
+  console.log("🔄 Refreshing access token for cron auto-reply");
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    console.error("❌ Token refresh failed for cron auto-reply", data);
+    throw new Error(data.error_description || "Token refresh failed");
+  }
+
+  console.log("✅ Access token refreshed for cron auto-reply");
+  return data.access_token;
+}
+
 export async function GET() {
   console.log("[CRON] /api/cron/autoreply triggered at", new Date().toISOString());
 
@@ -21,6 +46,13 @@ export async function GET() {
 
     for (const user of users) {
       try {
+        if (!user.refreshToken) {
+          console.log(`[CRON] User ${user._id} has no refresh token, skipping.`);
+          continue;
+        }
+
+        const newAccessToken = await getFreshAccessToken(user.refreshToken);
+
         // 1) Fetch reviews from n8n
         const res = await fetch(
           "https://n8n.srv968758.hstgr.cloud/webhook/b3f4dda4-aef1-4e87-a426-b503cee3612b",
@@ -28,15 +60,20 @@ export async function GET() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              acc_id: user.locations[0].accountId,
+              acc_id: user.locations[0]?.accountId,
               locationIds: user.locations.map((l) => l.locationId),
-              access_token: user.accessToken,
+              access_token: newAccessToken,
             }),
           }
         );
 
         if (!res.ok) {
-          console.error("[CRON] Failed to fetch reviews for user", user._id, "status:", res.status);
+          const errorBody = await res.text();
+          console.error("[CRON] Failed to fetch reviews for user", user._id, "status:", res.status, "body:", errorBody);
+          if (res.status === 401 || res.status === 403) {
+            await AutoReply.updateOne({ _id: user._id }, { autoReply: false, error: 'Invalid refresh token. Disabled auto-reply.' });
+            console.log(`[CRON] Disabled auto-reply for user ${user._id} due to auth error.`);
+          }
           continue;
         }
 
@@ -61,7 +98,7 @@ export async function GET() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  access_token: user.accessToken,
+                  access_token: newAccessToken,
                   acc_id,
                   locationIds: locationId,
                   Reviewer_Name: r.reviewer?.displayName || "Customer",
@@ -71,12 +108,17 @@ export async function GET() {
                 }),
               }
             );
+            console.log(`[CRON] Sent review ${r.reviewId} for user ${user._id} to auto-reply webhook.`);
           } catch (err) {
             console.error("[CRON] Error replying to review", r.reviewId, "user", user._id, err);
           }
         }
       } catch (err) {
         console.error("[CRON] Error in user loop for user", user._id, err);
+        if (err.message.includes("Token refresh failed")) {
+            await AutoReply.updateOne({ _id: user._id }, { autoReply: false, error: 'Invalid refresh token. Disabled auto-reply.' });
+            console.log(`[CRON] Disabled auto-reply for user ${user._id} due to token refresh failure.`);
+        }
       }
     }
 

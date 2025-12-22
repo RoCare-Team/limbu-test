@@ -30,6 +30,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
 
 
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [updatingAsset, setUpdatingAsset] = useState(null);
   const sizeOptions = [
     { label: "1:1", value: "1:1" },
@@ -338,113 +339,189 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
           )}
 
           {/* Assets Section - Compact List */}
-          {assets && showAssets && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-gray-700">Your Assets</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {assets.map((asset, index) => {
-                  const isSelected = selectedAssets.some(a => a.name === asset.name && a.url === asset.url);
-                  const isImageField = asset.name !== "Size" && asset.name !== "Color";
+       {assets && showAssets && (
+  <div className="space-y-1.5">
+    <p className="text-xs font-semibold text-gray-700">Your Assets</p>
 
-                  return (
-                    <div key={index} className="border border-gray-200 rounded-lg overflow-hidden flex flex-col bg-white group relative">
-                      {/* Asset Header */}
-                      <div className="p-2 flex justify-between items-center bg-gray-50 border-b border-gray-100">
-                        <span className="text-xs font-bold text-gray-700 truncate">{asset.name}</span>
-                        {/* Checkbox for selection */}
-                        {asset.url && isImageField && (
-                          <div
-                            onClick={() => handleAssetToggle(asset)}
-                            className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-all ${
-                              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300 hover:border-blue-400'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3 h-3 text-white" />}
-                          </div>
-                        )}
-                      </div>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {assets.map((asset, index) => {
+        const isSelected = selectedAssets.some(
+          (a) => a.name === asset.name && a.url === asset.url
+        );
+        const isImageField = asset.name !== "Size" && asset.name !== "Color";
 
-                      {/* Asset Content */}
-                      <div className="p-2 flex-1 flex flex-col justify-center">
-                        {updatingAsset === asset.name ? (
-                          <div className="flex flex-col items-center justify-center h-24 text-gray-500">
-                            <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                            <span className="text-xs">Updating...</span>
-                          </div>
-                        ) : isImageField ? (
-                          // IMAGE ASSET UI
-                          <div className="relative w-full aspect-square bg-gray-100 rounded-md overflow-hidden border border-gray-200 group/image">
-                            {asset.url ? (
-                              <>
-                                <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
-                                {/* Hover Actions */}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                  <label className="p-1.5 bg-white rounded-full cursor-pointer hover:bg-blue-50 text-blue-600 shadow-sm transition-transform hover:scale-110" title="Replace">
-                                    <Edit2 className="w-4 h-4" />
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) => handleAssetUpload(e, asset)}
-                                    />
-                                  </label>
-                                  <button 
-                                    onClick={() => handleAssetDelete(asset)}
-                                    className="p-1.5 bg-white rounded-full hover:bg-red-50 text-red-600 shadow-sm transition-transform hover:scale-110"
-                                    title="Remove"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-200 transition-colors">
-                                <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                                <span className="text-[10px] text-gray-500 font-medium">Upload</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => handleAssetUpload(e, asset)}
-                                />
-                              </label>
-                            )}
-                          </div>
-                        ) : (
-                          // DROPDOWN ASSET UI (Size/Color)
-                          <div className="h-full flex items-center">
-                            {asset.name === "Size" && (
-                              <select
-                                value={asset.url}
-                                onChange={(e) => handleAssetChange(asset, e.target.value)}
-                                className="w-full p-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
-                              >
-                                {sizeOptions.map((option) => (
-                                  <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                              </select>
-                            )}
-                            {asset.name === "Color" && (
-                              <select
-                                value={asset.url}
-                                onChange={(e) => handleAssetChange(asset, e.target.value)}
-                                className="w-full p-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
-                              >
-                                <option value="" disabled>Select palette</option>
-                                {colorPalettes.map((palette) => (
-                                  <option key={palette.value} value={palette.value}>{palette.label}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        return (
+          <div
+            key={index}
+            className={`border border-gray-200 rounded-md flex flex-col bg-white relative ${
+              activeDropdown === asset.name ? "z-20" : ""
+            }`}
+          >
+            {/* ---------------- Header ---------------- */}
+            <div className="px-2 py-1 flex justify-between items-center bg-gray-50 border-b border-gray-100 rounded-t-md">
+              <span className="text-[11px] font-semibold text-gray-700 truncate">
+                {asset.name}
+              </span>
+
+              {asset.url && isImageField && (
+                <div
+                  onClick={() => handleAssetToggle(asset)}
+                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center cursor-pointer transition ${
+                    isSelected
+                      ? "bg-blue-500 border-blue-500"
+                      : "border-gray-300 hover:border-blue-400"
+                  }`}
+                >
+                  {isSelected && (
+                    <Check className="w-2.5 h-2.5 text-white" />
+                  )}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* ---------------- Content ---------------- */}
+            <div className="p-1.5 flex-1 flex items-center justify-center">
+              {updatingAsset === asset.name ? (
+                <div className="flex flex-col items-center justify-center h-16 text-gray-500">
+                  <Loader2 className="w-5 h-5 animate-spin mb-1" />
+                  <span className="text-[10px]">Updating...</span>
+                </div>
+              ) : isImageField ? (
+                /* ---------- IMAGE ASSET ---------- */
+                <div className="relative w-full h-24 bg-gray-100 rounded-md overflow-hidden border border-gray-200 group">
+                  {asset.url ? (
+                    <>
+                      <img
+                        src={asset.url}
+                        alt={asset.name}
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Hover Actions */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                        <label
+                          title="Replace"
+                          className="p-1 bg-white rounded-full cursor-pointer hover:bg-blue-50 text-blue-600 shadow-sm"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleAssetUpload(e, asset)
+                            }
+                          />
+                        </label>
+
+                        <button
+                          onClick={() => handleAssetDelete(asset)}
+                          title="Remove"
+                          className="p-1 bg-white rounded-full hover:bg-red-50 text-red-600 shadow-sm"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-200 transition">
+                      <Upload className="w-5 h-5 text-gray-400 mb-0.5" />
+                      <span className="text-[9px] text-gray-500 font-medium">
+                        Upload
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleAssetUpload(e, asset)
+                        }
+                      />
+                    </label>
+                  )}
+                </div>
+              ) : (
+                /* ---------- DROPDOWN (SIZE / COLOR) ---------- */
+                <div className="w-full">
+                  {asset.name === "Size" && (
+                    <select
+                      value={asset.url}
+                      onChange={(e) =>
+                        handleAssetChange(asset, e.target.value)
+                      }
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-[11px] focus:ring-1 focus:ring-blue-500 outline-none"
+                    >
+                      {sizeOptions.map((option) => (
+                        <option
+                          key={option.value}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {asset.name === "Color" && (
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setActiveDropdown(
+                            activeDropdown === "Color" ? null : "Color"
+                          )
+                        }
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-[11px] text-left flex items-center justify-between bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                      >
+                        <span
+                          className={!asset.url ? "text-gray-400" : "text-gray-700"}
+                        >
+                          {asset.url
+                            ? colorPalettes.find((p) => p.value === asset.url)
+                                ?.label || asset.url
+                            : "Select palette"}
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-gray-400" />
+                      </button>
+
+                      {activeDropdown === "Color" && (
+                        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+                          {colorPalettes.map((palette) => (
+                            <div
+                              key={palette.value}
+                              onClick={() => {
+                                handleAssetChange(asset, palette.value);
+                                setActiveDropdown(null);
+                              }}
+                              className="px-2 py-1.5 hover:bg-blue-50 cursor-pointer flex flex-col gap-1 border-b border-gray-50 last:border-0"
+                            >
+                              <span className="text-[11px] font-medium text-gray-700">
+                                {palette.label}
+                              </span>
+                              <div className="flex gap-1">
+                                {palette.colors.map((color, i) => (
+                                  <div
+                                    key={i}
+                                    className="w-3 h-3 rounded-full border border-gray-100"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
 
           {/* Generate Button */}
           <button

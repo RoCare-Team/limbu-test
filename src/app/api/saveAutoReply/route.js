@@ -6,11 +6,11 @@ export async function POST(req) {
   await dbConnect();
   const body = await req.json();
 
-  const { userId, accessToken, locations, autoReply } = body;
+  const { userId, refreshToken, locations, autoReply } = body;
 
   await AutoReply.findOneAndUpdate(
     { userId },
-    { accessToken, locations, autoReply, updatedAt: new Date() },
+    { refreshToken, locations, autoReply, updatedAt: new Date() },
     { upsert: true }
   );
 

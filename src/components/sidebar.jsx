@@ -40,7 +40,7 @@ import {
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import {  MenuIcon, Wand } from 'lucide-react';
+import { MenuIcon, Wand } from 'lucide-react';
 import logoDash from "../../public/images/bg-logo.png"
 import Image from 'next/image';
 import WebAssetIcon from '@mui/icons-material/WebAsset';
@@ -135,13 +135,13 @@ export default function Sidebar({ children, user }) {
   const [userName, setUserName] = React.useState('');
   const [userEmail, setUserEmail] = React.useState('');
   const [initialLoad, setInitialLoad] = React.useState(true);
-  const [locationCheck,setLocationCheck] = React.useState("")
+  const [locationCheck, setLocationCheck] = React.useState("")
   const [openDropdown, setOpenDropdown] = React.useState(null);
 
 
   const [notifications, setNotifications] = React.useState([]);
   const [notificationCount, setNotificationCount] = React.useState(0);
-    const [notifAnchorEl, setNotifAnchorEl] = React.useState(null); // renamed ✅
+  const [notifAnchorEl, setNotifAnchorEl] = React.useState(null); // renamed ✅
 
 
   // Get user info from props or localStorage
@@ -170,7 +170,7 @@ export default function Sidebar({ children, user }) {
     if (showLoader) {
       setSubscriptionLoading(true);
     }
-    
+
     try {
       const storedUserId = localStorage.getItem('userId');
       if (!storedUserId) {
@@ -187,18 +187,18 @@ export default function Sidebar({ children, user }) {
       if (response.ok) {
         const data = await response.json();
         setSubscriptionData(data);
-        
+
         // Extract user name correctly
         if (data.fullName) {
           setUserName(data.fullName);
           localStorage.setItem('userName', data.fullName);
         }
-        
+
         if (data.email) {
           setUserEmail(data.email);
           localStorage.setItem('userEmail', data.email);
         }
-        
+
         // Check subscription status
         if (data.subscription && data.subscription.status === 'active') {
           const newPlan = data.subscription.plan || 'Premium Plan';
@@ -230,7 +230,7 @@ export default function Sidebar({ children, user }) {
     }
   };
 
-  
+
 
   // Fetch wallet balance from API
   const fetchWalletBalance = async () => {
@@ -262,28 +262,28 @@ export default function Sidebar({ children, user }) {
       const storedUserId = localStorage.getItem('userId');
       if (storedUserId) {
         setUserId(storedUserId);
-        
+
         // Load from localStorage first for instant display
         const storedPlan = localStorage.getItem('Plan');
         if (storedPlan) {
           setUserPlan(storedPlan);
         }
-        
+
         const storedBalance = localStorage.getItem('walletBalance');
         if (storedBalance) {
           setWalletBalance(parseInt(storedBalance));
         }
-        
+
         const storedName = localStorage.getItem('userName') || localStorage.getItem('fullName');
         if (storedName) {
           setUserName(storedName);
         }
-        
+
         const storedEmail = localStorage.getItem('userEmail') || localStorage.getItem('email');
         if (storedEmail) {
           setUserEmail(storedEmail);
         }
-        
+
         // Then fetch latest data
         fetchSubscriptionDetails(true);
         fetchWalletBalance();
@@ -360,7 +360,7 @@ export default function Sidebar({ children, user }) {
 
 
 
-const fetchNotifications = async () => {
+  const fetchNotifications = async () => {
     try {
       const res = await fetch("/api/admin/notification");
       const data = await res.json();
@@ -378,39 +378,38 @@ const fetchNotifications = async () => {
   React.useEffect(() => {
     fetchNotifications();
     const locationDetailsStr = localStorage.getItem("locationDetails");
-      console.log("locationDetailsStr",locationDetailsStr);
 
-      const locationDetails = JSON.parse(locationDetailsStr);
+    const locationDetails = JSON.parse(locationDetailsStr);
 
-            
-            
-            const bussinessLocation = locationDetails &&  locationDetails[0]?.title;
-            setLocationCheck(bussinessLocation)
-          }, []);
-          
+
+
+    const bussinessLocation = locationDetails && locationDetails[0]?.title;
+    setLocationCheck(bussinessLocation)
+  }, []);
+
   // ✅ Handle open/close
   const handleNotifOpen = (event) => setNotifAnchorEl(event.currentTarget);
   const handleNotifClose = () => setNotifAnchorEl(null);
 
- const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: 'Post Management', icon: <AccountIcon />, path: '/post-management' },
-  // { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
-  { text: 'Review Management', icon: <PostIcon />, path: '/review-management' },
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Post Management', icon: <AccountIcon />, path: '/post-management' },
+    // { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
+    { text: 'Review Management', icon: <PostIcon />, path: '/review-management' },
 
 
-  {
-    text: 'Get Magic QR',
-    icon: <Wand />,
-    children: [
-      { text: 'Get Magic QR', path: '/get-magic-qr' },
-      { text: 'Get Customer Review', path: '/reviews/get-customer-review' }
-    ]
-  },
-    { text: 'Assets Management', icon: <WebAssetIcon/>, path: '/assets-management' },
+    {
+      text: 'Get Magic QR',
+      icon: <Wand />,
+      children: [
+        { text: 'Get Magic QR', path: '/get-magic-qr' },
+        { text: 'Get Customer Review', path: '/reviews/get-customer-review' }
+      ]
+    },
+    { text: 'Assets Management', icon: <WebAssetIcon />, path: '/assets-management' },
 
 
-];
+  ];
 
   // const getPlanConfig = (plan) => {
   //   const planLower = plan?.toLowerCase() || 'free';
@@ -470,18 +469,18 @@ const fetchNotifications = async () => {
           </Box>
           {open && (
             <Link href="/">
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-0.5px',
-              }}
-            >
-              Manager
-            </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '-0.5px',
+                }}
+              >
+                Manager
+              </Typography>
             </Link>
           )}
         </Box>
@@ -495,115 +494,115 @@ const fetchNotifications = async () => {
       <Divider sx={{ borderColor: 'rgba(102, 126, 234, 0.1)' }} />
 
       <List sx={{ flex: 1, overflowY: 'auto', px: 1.5, pt: 2 }}>
-{menuItems.map((item, index) => {
-  const isDropdown = !!item.children;
-  const isOpen = openDropdown === index;
+        {menuItems.map((item, index) => {
+          const isDropdown = !!item.children;
+          const isOpen = openDropdown === index;
 
-  const navigateTo = (path) => {
-    let finalPath = path;
+          const navigateTo = (path) => {
+            let finalPath = path;
 
-    if (path.includes("[bussiness]")) {
-      const slug = locationCheck && locationCheck.trim().replace(/\s+/g, "-").toLowerCase();
-      finalPath = path.replace("[bussiness]", slug);
-    }
-
-    if (isMobile) handleDrawerToggle();
-    router.push(finalPath);
-  };
-
-  return (
-    <div key={index}>
-      {/* MAIN BUTTON */}
-      <ListItem disablePadding sx={{ display: 'block', mb: 0.5 }}>
-        <ListItemButton
-          onClick={() => {
-            if (isDropdown) {
-              setOpenDropdown(isOpen ? null : index);
-            } else {
-              navigateTo(item.path);
+            if (path.includes("[bussiness]")) {
+              const slug = locationCheck && locationCheck.trim().replace(/\s+/g, "-").toLowerCase();
+              finalPath = path.replace("[bussiness]", slug);
             }
-          }}
-          sx={{
-            minHeight: 48,
-            justifyContent: open ? 'initial' : 'center',
-            px: 2,
-            borderRadius: 2,
-            transition: 'all 0.3s',
-            '&:hover': {
-              background:
-                'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-              transform: 'translateX(4px)',
-            },
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              minWidth: 0,
-              mr: open ? 2 : 'auto',
-              justifyContent: 'center',
-              color: '#667eea',
-            }}
-          >
-            {item.icon}
-          </ListItemIcon>
 
-          <ListItemText
-            primary={item.text}
-            sx={{
-              opacity: open ? 1 : 0,
-              '& .MuiTypography-root': { fontWeight: 500, fontSize: '0.95rem' },
-            }}
-          />
+            if (isMobile) handleDrawerToggle();
+            router.push(finalPath);
+          };
 
-          {isDropdown && open && (
-            <span>{isOpen ? "▲" : "▼"}</span>
-          )}
-        </ListItemButton>
-      </ListItem>
+          return (
+            <div key={index}>
+              {/* MAIN BUTTON */}
+              <ListItem disablePadding sx={{ display: 'block', mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => {
+                    if (isDropdown) {
+                      setOpenDropdown(isOpen ? null : index);
+                    } else {
+                      navigateTo(item.path);
+                    }
+                  }}
+                  sx={{
+                    minHeight: 48,
+                    justifyContent: open ? 'initial' : 'center',
+                    px: 2,
+                    borderRadius: 2,
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      background:
+                        'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                      transform: 'translateX(4px)',
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 2 : 'auto',
+                      justifyContent: 'center',
+                      color: '#667eea',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
 
-      {/* DROPDOWN CHILDREN */}
-      {isDropdown && isOpen && open && (
-        <div className="ml-10 mt-1 space-y-1">
-          {item.children.map((sub, i) => (
-            <ListItemButton
-              key={i}
-              onClick={() => navigateTo(sub.path)}
-              sx={{
-                pl: 2,
-                py: 1,
-                borderRadius: 2,
-                transition: '0.2s',
-                '&:hover': { background: 'rgba(102,126,234,0.1)' },
-              }}
-            >
-              <ListItemText 
-                primary={sub.text} 
-                sx={{ '& .MuiTypography-root': { fontSize: '0.85rem' } }} 
-              />
-            </ListItemButton>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-})}
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      opacity: open ? 1 : 0,
+                      '& .MuiTypography-root': { fontWeight: 500, fontSize: '0.95rem' },
+                    }}
+                  />
+
+                  {isDropdown && open && (
+                    <span>{isOpen ? "▲" : "▼"}</span>
+                  )}
+                </ListItemButton>
+              </ListItem>
+
+              {/* DROPDOWN CHILDREN */}
+              {isDropdown && isOpen && open && (
+                <div className="ml-10 mt-1 space-y-1">
+                  {item.children.map((sub, i) => (
+                    <ListItemButton
+                      key={i}
+                      onClick={() => navigateTo(sub.path)}
+                      sx={{
+                        pl: 2,
+                        py: 1,
+                        borderRadius: 2,
+                        transition: '0.2s',
+                        '&:hover': { background: 'rgba(102,126,234,0.1)' },
+                      }}
+                    >
+                      <ListItemText
+                        primary={sub.text}
+                        sx={{ '& .MuiTypography-root': { fontSize: '0.85rem' } }}
+                      />
+                    </ListItemButton>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
 
       </List>
     </Box>
-  );  
+  );
 
 
   // Open dropdown by default (for the first dropdown menu)
-React.useEffect(() => {
-  const firstDropdownIndex = menuItems.findIndex(item => item.children);
-  if (firstDropdownIndex !== -1) {
-    setOpenDropdown(firstDropdownIndex);
-  }
-}, []);
+  React.useEffect(() => {
+    const firstDropdownIndex = menuItems.findIndex(item => item.children);
+    if (firstDropdownIndex !== -1) {
+      setOpenDropdown(firstDropdownIndex);
+    }
+  }, []);
 
 
-  
+
   return (
     <>
       <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -614,9 +613,9 @@ React.useEffect(() => {
           <Toolbar sx={{ justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {!open && (
-                <IconButton 
-                  color="inherit" 
-                  onClick={handleDrawerToggle} 
+                <IconButton
+                  color="inherit"
+                  onClick={handleDrawerToggle}
                   edge="start"
                   sx={{
                     background: 'rgba(255, 255, 255, 0.1)',
@@ -629,23 +628,23 @@ React.useEffect(() => {
                 </IconButton>
               )}
               <Typography
-  variant="h6"
-  sx={{
-    fontWeight: 700,
-    display: { xs: "none", sm: "flex" },
-    alignItems: "center",     // <== keeps logo + text on same line
-    gap: 1,                   // <== spacing between logo & text
-  }}
->
-  <Image
-    src={logoDash}
-    width={40}       // <== increase/decrease size
-    height={80}
-    alt="Logo"
-    style={{ marginRight: 6 }}
-  />
-  Limbu.AI
-</Typography>
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  display: { xs: "none", sm: "flex" },
+                  alignItems: "center",     // <== keeps logo + text on same line
+                  gap: 1,                   // <== spacing between logo & text
+                }}
+              >
+                <Image
+                  src={logoDash}
+                  width={40}       // <== increase/decrease size
+                  height={80}
+                  alt="Logo"
+                  style={{ marginRight: 6 }}
+                />
+                Limbu.AI
+              </Typography>
               <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <Typography
                   variant="h6"
@@ -664,7 +663,7 @@ React.useEffect(() => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
               {/* Notifications Icon */}
-      
+
 
               {/* Wallet Chip */}
               <Chip
@@ -691,7 +690,7 @@ React.useEffect(() => {
                 }}
               />
 
-              
+
 
               {/* User Menu */}
               <Box
@@ -721,8 +720,8 @@ React.useEffect(() => {
                   <Avatar
                     alt={userName || 'User'}
                     src={user?.image || user?.avatar}
-                    sx={{ 
-                      width: { xs: 32, sm: 36 }, 
+                    sx={{
+                      width: { xs: 32, sm: 36 },
                       height: { xs: 32, sm: 36 },
                       bgcolor: '#667eea',
                       fontWeight: 600,
@@ -774,8 +773,8 @@ React.useEffect(() => {
               <Avatar
                 alt={userName || 'User'}
                 src={user?.image || user?.avatar}
-                sx={{ 
-                  width: 40, 
+                sx={{
+                  width: 40,
                   height: 40,
                   bgcolor: '#667eea',
                   fontWeight: 600,
@@ -827,7 +826,7 @@ React.useEffect(() => {
               router.push('/settings');
             }}
           >
-            
+
           </MenuItem>
           <Divider />
           <MenuItem
