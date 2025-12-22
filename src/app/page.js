@@ -51,7 +51,7 @@ export default function LimbuAILanding() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [serviceForm, setServiceForm] = useState({ name: '', phone: '', email: '', gstNumber: '' });
   const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [billingCycle, setBillingCycle] = useState("half-yearly");
+  const [billingCycle, setBillingCycle] = useState("monthly");
 
   const now = new Date();
   const isAfter4PM = now.getHours() >= 16; // 4 PM

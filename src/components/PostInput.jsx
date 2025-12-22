@@ -46,6 +46,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
   ];
 
   const colorPalettes = [
+    { label: "None", value: "none" },
     { label: "Warm Sunset", value: "warm, yellow, orange, red", colors: ["#FFC700", "#FF8C00", "#FF4500", "#D2691E"] },
     { label: "Cool Ocean", value: "cool, blue, teal, cyan", colors: ["#00BFFF", "#48D1CC", "#20B2AA", "#4682B4"] },
     { label: "Nature Green", value: "fresh, green, lime, mint", colors: ["#32CD32", "#98FB98", "#2E8B57", "#ADFF2F"] },
@@ -239,6 +240,31 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     setSelectedAssets(newSelectedAssets);
   };
 
+
+  const handleGenerateClick = () => {
+    // Prepare assets to send
+    let assetsToSend = [...selectedAssets];
+
+    // Handle Color: Default to "none" if empty or missing
+    const colorAsset = assets?.find(a => a.name === "Color");
+    if (colorAsset) {
+      // Ensure we don't have duplicates if it was somehow in selectedAssets
+      assetsToSend = assetsToSend.filter(a => a.name !== "Color");
+      assetsToSend.push({
+        ...colorAsset,
+        url: colorAsset.url || "none"
+      });
+    }
+
+    // Handle Size: Include if present
+    const sizeAsset = assets?.find(a => a.name === "Size");
+    if (sizeAsset && sizeAsset.url) {
+      assetsToSend = assetsToSend.filter(a => a.name !== "Size");
+      assetsToSend.push(sizeAsset);
+    }
+
+    onGenerate(assetsToSend, showAssets, businessName, keywords);
+  };
 
   console.log("businessNamebusinessName111111111111111111111111",businessName);
   
@@ -473,12 +499,11 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                         className="w-full px-2 py-1.5 border border-gray-300 rounded text-[11px] text-left flex items-center justify-between bg-white focus:ring-1 focus:ring-blue-500 outline-none"
                       >
                         <span
-                          className={!asset.url ? "text-gray-400" : "text-gray-700"}
+                          className="text-gray-700"
                         >
-                          {asset.url
-                            ? colorPalettes.find((p) => p.value === asset.url)
-                                ?.label || asset.url
-                            : "Select palette"}
+                          {(asset.url && asset.url !== "")
+                            ? (colorPalettes.find((p) => p.value === asset.url)?.label || asset.url)
+                            : "None"}
                         </span>
                         <ChevronDown className="w-3 h-3 text-gray-400" />
                       </button>
@@ -498,7 +523,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                                 {palette.label}
                               </span>
                               <div className="flex gap-1">
-                                {palette.colors.map((color, i) => (
+                                {palette.colors?.map((color, i) => (
                                   <div
                                     key={i}
                                     className="w-3 h-3 rounded-full border border-gray-100"
@@ -525,7 +550,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
 
           {/* Generate Button */}
           <button
-            onClick={() => onGenerate(selectedAssets, showAssets, businessName, keywords)}
+            onClick={handleGenerateClick}
             disabled={loading || !prompt.trim()}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-semibold text-sm"
           >

@@ -24,6 +24,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 
+const TOAST_POSITION = "top-center";
+
 export default function DashboardPage() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -191,12 +193,12 @@ export default function DashboardPage() {
       if (sortedReviews.length === 0 && !isAutoMode) {
         toast.success("No reviews found for your locations", {
           duration: 3000,
-          position: "top-center",
+          position: TOAST_POSITION,
         });
       } else if (!isAutoMode) {
         toast.success(`Successfully loaded ${sortedReviews.length} reviews`, {
           duration: 3000,
-          position: "top-center",
+          position: TOAST_POSITION,
         });
       }
 
@@ -206,7 +208,7 @@ export default function DashboardPage() {
       setHasLoadedReviews(true);
       toast.error(`Error: ${err.message}`, {
         duration: 5000,
-        position: "top-center",
+        position: TOAST_POSITION,
       });
     } finally {
       setLoading(false);
@@ -255,24 +257,49 @@ export default function DashboardPage() {
 
 const handleReplyModeToggle = async () => {  
   const newMode = replyMode === "manual" ? "auto" : "manual";
-  setReplyMode(newMode);
-  localStorage.setItem("reviewReplyMode", newMode);
+  
+  // Get locations first to validate
+  const locationsStr = localStorage.getItem("locationDetails");
+  const locations = locationsStr ? JSON.parse(locationsStr) : null;
+
+  if (!locations || locations.length === 0) {
+    toast.error("No business locations found. Cannot enable Auto Reply.");
+    return;
+  }
 
   // Check if we have a refresh token to save (crucial for offline auto-reply)
   const tokenToSave = session?.refreshToken;
 
-  await fetch("/api/saveAutoReply", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId: session?.user?.id,
-      refreshToken: tokenToSave,
-      locations: JSON.parse(localStorage.getItem("locationDetails")),
-      autoReply: newMode === "auto"
-    })
-  });
+  // Optimistic update
+  setReplyMode(newMode);
+  localStorage.setItem("reviewReplyMode", newMode);
 
-  toast.success(`Auto Reply is now ${newMode.toUpperCase()}`);
+  try {
+    const res = await fetch("/api/saveAutoReply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: session?.user?.id || session?.user?.email,
+        refreshToken: tokenToSave,
+        locations: locations,
+        autoReply: newMode === "auto"
+      })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to save settings");
+    }
+
+    toast.success(`Auto Reply is now ${newMode.toUpperCase()}`);
+  } catch (error) {
+    console.error("Auto reply save error:", error);
+    toast.error(error.message);
+    // Revert state on error
+    const revertedMode = newMode === "manual" ? "auto" : "manual";
+    setReplyMode(revertedMode);
+    localStorage.setItem("reviewReplyMode", revertedMode);
+  }
 };
 
 
@@ -346,26 +373,27 @@ const handleReplyModeToggle = async () => {
       
       if (data.status === true) {
         if (!isAuto) {
-          setLocalReply(data.reply);
-          setShowReplyInput(true);
-          toast.success("AI reply generated successfully!", {
+          toast.success("AI reply sent successfully!", {
             duration: 3000,
-            position: "top-center",
+            position: TOAST_POSITION,
           });
+          if (setShowReplyInput) setShowReplyInput(false);
+          if (setLocalReply) setLocalReply("");
+          await fetchReviews();
         }
         
         // The refresh is now handled in the fetchReviews function after the loop completes
       } else {
         toast.error("Failed to generate AI reply. Please try manual reply.", {
           duration: 3000,
-          position: "top-center",
+          position: TOAST_POSITION,
         });
       }
     } catch (err) {
       console.error("AI Reply Error:", err);
       toast.error("Error generating AI reply. Please try manual reply.", {
         duration: 3000,
-        position: "top-center",
+        position: TOAST_POSITION,
       });
     } finally {
       setGeneratingAI(false);
@@ -435,7 +463,7 @@ const handleReplyModeToggle = async () => {
         if (res.ok && data.status === true) {
           toast.success("Reply posted successfully!", {
             duration: 3000,
-            position: "top-center",
+            position: TOAST_POSITION,
           });
           await fetchReviews();
           setShowReplyInput(false);
@@ -443,14 +471,14 @@ const handleReplyModeToggle = async () => {
         } else {
           toast.error("Failed to post reply. Please try again.", {
             duration: 3000,
-            position: "top-center",
+            position: TOAST_POSITION,
           });
         }
       } catch (err) {
         console.error(err);
         toast.error("Error posting reply. Please try again.", {
           duration: 3000,
-          position: "top-center",
+          position: TOAST_POSITION,
         });
       } finally {
         setReplyingTo(null);
