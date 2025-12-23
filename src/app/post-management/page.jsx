@@ -817,11 +817,11 @@ export default function PostManagementPage() {
             : [];
 
         const imageAssets = [
+          { name: "Logo", url: latestAssets.logoImage || "" },
           { name: "Character", url: latestAssets.characterImage || "" },
           { name: "Product", url: latestAssets.productImage || "" },
           { name: "Uniform", url: latestAssets.uniformImage || "" },
           { name: "Background", url: latestAssets.backgroundImage || "" },
-          { name: "Logo", url: latestAssets.logoImage || "" },
           { name: "Size", url: latestAssets.size || "" },
           { name: "Color", url: latestAssets.colourPalette || "" },
         ];

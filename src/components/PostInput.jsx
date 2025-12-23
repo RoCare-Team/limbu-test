@@ -15,14 +15,14 @@ import {
 } from "lucide-react";
 
 const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo, assetId, fetchUserAssets, setUserAssets, showToast, selectedAssets, setSelectedAssets, bussinessTitle, availableLocations = [] }) => {
-  console.log("bussinessTitlebussinessTitle",bussinessTitle);
   
 
   const removeImage = () => setLogo(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState([]);
   const [showAssets, setShowAssets] = useState(true);
   const [businessName, setBusinessName] = useState(bussinessTitle);
-  const [keywords, setKeywords] = useState("");
+  const [keywordInput, setKeywordInput] = useState("");
+  const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [savedKeywords, setSavedKeywords] = useState([]);
   const [showBusinessDropdown, setShowBusinessDropdown] = useState(false);
   const [showKeywordDropdown, setShowKeywordDropdown] = useState(false);
@@ -290,7 +290,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
       assetsToSend.push(sizeAsset);
     }
 
-    onGenerate(assetsToSend, showAssets, businessName, keywords);
+    onGenerate(assetsToSend, showAssets, businessName, selectedKeywords);
   };
 
   const handleManualSubmit = async () => {
@@ -412,30 +412,43 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
             </div>
             <div className="space-y-1 relative">
               <label className="text-xs font-semibold text-gray-700">Keywords</label>
+              
               <div className="relative">
                 <input
                   type="text"
-                  value={keywords}
+                  value={keywordInput}
                   onChange={(e) => {
-                    setKeywords(e.target.value);
+                    setKeywordInput(e.target.value);
                     setShowKeywordDropdown(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && keywordInput.trim()) {
+                      e.preventDefault();
+                      if (!selectedKeywords.includes(keywordInput.trim())) {
+                        setSelectedKeywords([...selectedKeywords, keywordInput.trim()]);
+                      }
+                      setKeywordInput("");
+                    }
                   }}
                   onFocus={() => setShowKeywordDropdown(true)}
                   onBlur={() => setTimeout(() => setShowKeywordDropdown(false), 200)}
                   className="w-full p-2 pr-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                  placeholder="Enter keywords"
+                  placeholder={selectedKeywords.length > 0 ? "Add more keywords..." : "Enter keywords"}
                 />
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
               {showKeywordDropdown && savedKeywords.length > 0 && (
                 <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-[160px] overflow-y-auto">
                   {savedKeywords
-                    .filter((k) => k.keyword.toLowerCase().includes(keywords.toLowerCase()))
+                    .filter((k) => k.keyword.toLowerCase().includes(keywordInput.toLowerCase()))
                     .map((k, i) => (
                       <div
                         key={i}
                         onClick={() => {
-                          setKeywords(k.keyword);
+                          if (!selectedKeywords.includes(k.keyword)) {
+                            setSelectedKeywords([...selectedKeywords, k.keyword]);
+                          }
+                          setKeywordInput("");
                           setShowKeywordDropdown(false);
                         }}
                         className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer transition-colors flex items-center gap-2"
@@ -444,6 +457,23 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                         {k.keyword}
                       </div>
                     ))}
+                </div>
+              )}
+
+              {/* Selected Keywords Tags */}
+              {selectedKeywords.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {selectedKeywords.map((k, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-100">
+                      {k}
+                      <button
+                        onClick={() => setSelectedKeywords(prev => prev.filter((_, i) => i !== idx))}
+                        className="hover:text-blue-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
