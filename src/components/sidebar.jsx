@@ -40,7 +40,7 @@ import {
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { MenuIcon, SquarePlus, Wand } from 'lucide-react';
+import { Home, MenuIcon, Package, SquarePlus, Wand } from 'lucide-react';
 import logoDash from "../../public/images/bg-logo.png"
 import Image from 'next/image';
 import WebAssetIcon from '@mui/icons-material/WebAsset';
@@ -392,6 +392,7 @@ export default function Sidebar({ children, user }) {
   const handleNotifClose = () => setNotifAnchorEl(null);
 
   const menuItems = [
+    { text: 'Home', icon: <Home />, path: '/' },
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Post Management', icon: <AccountIcon />, path: '/post-management' },
     // { text: 'Video  Management', icon: <CassetteTape/>, path: '/video-management' },
@@ -408,6 +409,14 @@ export default function Sidebar({ children, user }) {
     },
     { text: 'Assets Management', icon: <WebAssetIcon />, path: '/assets-management' },
     { text: 'Keyword Management', icon: <SquarePlus />, path: '/keyword-planner' },
+    {
+      text: 'Services & Packages',
+      icon: <Package />,
+      children: [
+        { text: 'Our Services', path: '/#services' },
+        { text: 'Our Packages', path: '/#subscription-plans' }
+      ]
+    },
 
 
   ];
@@ -454,20 +463,12 @@ export default function Sidebar({ children, user }) {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <DrawerHeader>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #f2f3f7ff 0%, #f7f5faff 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-            }}
-          >
-            <MenuIcon sx={{ color: 'white', fontSize: '1.5rem' }} />
-          </Box>
+          {/* <Image
+            src={logoDash}
+            width={40}
+            height={40}
+            alt="Limbu.AI"
+          /> */}
           {open && (
             <Link href="/">
               <Typography
@@ -480,7 +481,7 @@ export default function Sidebar({ children, user }) {
                   letterSpacing: '-0.5px',
                 }}
               >
-                Manager
+                {/* Limbu.AI */}
               </Typography>
             </Link>
           )}
@@ -596,9 +597,9 @@ export default function Sidebar({ children, user }) {
 
   // Open dropdown by default (for the first dropdown menu)
   React.useEffect(() => {
-    const firstDropdownIndex = menuItems.findIndex(item => item.children);
-    if (firstDropdownIndex !== -1) {
-      setOpenDropdown(firstDropdownIndex);
+    const targetIndex = menuItems.findIndex(item => item.text === 'Services & Packages');
+    if (targetIndex !== -1) {
+      setOpenDropdown(targetIndex);
     }
   }, []);
 
@@ -628,6 +629,7 @@ export default function Sidebar({ children, user }) {
                   <MenuIcon />
                 </IconButton>
               )}
+             <Link href="/">
               <Typography
                 variant="h6"
                 sx={{
@@ -645,7 +647,7 @@ export default function Sidebar({ children, user }) {
                   style={{ marginRight: 6 }}
                 />
                 Limbu.AI
-              </Typography>
+              </Typography></Link>
               <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <Typography
                   variant="h6"
@@ -653,9 +655,16 @@ export default function Sidebar({ children, user }) {
                     fontWeight: 700,
                     display: { xs: "flex", sm: "none" },
                     alignItems: "center",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    gap: 1
                   }}
                 >
+                  <Image
+                    src={logoDash}
+                    width={32}
+                    height={32}
+                    alt="Logo"
+                  />
                   Limbu.AI
                 </Typography>
               </Link>
