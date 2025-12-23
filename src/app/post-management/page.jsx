@@ -11,6 +11,7 @@ import {
   updatePostStatusAction, postToGmbAction,
 } from "@/app/actions/postActions";
 import { deleteAssetAction, loadAssetsFromServerAction } from "@/app/actions/assetActions";
+import { getCloudinarySignatureAction } from "@/app/actions/uploadCloudinary";
 import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Loader2,
@@ -112,6 +113,15 @@ const PreviewSection = ({
   onToggleCheckmark,
   onEditDescription
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDesc, setEditedDesc] = useState("");
+
+  useEffect(() => {
+    if (previewData) {
+      setEditedDesc(previewData.description || "");
+    }
+  }, [previewData]);
+
   if (isGenerating) {
     return (
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 w-full min-h-[400px] flex flex-col items-center justify-center p-8 text-center space-y-6">
@@ -149,16 +159,6 @@ const PreviewSection = ({
   }
 
   const status = previewData.status || 'pending';
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedDesc, setEditedDesc] = useState("");
-
-  useEffect(() => {
-    if (previewData) {
-      setEditedDesc(previewData.description || "");
-    }
-  }, [previewData]);
-
   const handleSaveDescription = () => {
     onEditDescription(previewData._id, editedDesc);
     setIsEditing(false);
@@ -265,7 +265,7 @@ const PreviewSection = ({
 
 
 
-      <div className="p-6 space-y-5 flex-1 flex flex-col bg-white">
+      <div className="p-4 space-y-3 flex-1 flex flex-col bg-white">
     
         {status === "pending" && (
             <div className="grid grid-cols-2 gap-3">
@@ -918,11 +918,84 @@ export default function PostManagementPage() {
       previewRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
+    if (useAssetsFlow === "manual") {
+      await handleManualPost(selectedAssets);
+      return;
+    }
+
     setLastUsedAssetsFlow(useAssetsFlow);
     if (useAssetsFlow) {
       await handleImageGenerateWithAssets(selectedAssets, businessName, keywords);
     } else {
       await handleAiAgent(selectedAssets);
+    }
+  };
+
+  const handleManualPost = async ({ image, description }) => {
+    const userId = localStorage.getItem("userId");
+    try {
+      setIsGenerating(true);
+
+      let imageUrl = image;
+
+      if ((typeof image === "string" && image.startsWith("data:")) || (typeof image === "object" && image !== null)) {
+        // 1. Get Secure Signature from Server
+        const sigData = await getCloudinarySignatureAction();
+        if (!sigData.success) {
+          throw new Error(sigData.error || "Failed to get upload signature");
+        }
+
+        // 2. Upload directly to Cloudinary using the signature
+        const formData = new FormData();
+        formData.append("file", image);
+        formData.append("api_key", sigData.apiKey);
+        formData.append("timestamp", sigData.timestamp);
+        formData.append("signature", sigData.signature);
+        formData.append("folder", sigData.folder);
+
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/image/upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error?.message || "Failed to upload image to Cloudinary");
+        }
+
+        const data = await res.json();
+        imageUrl = data.secure_url;
+      }
+      
+      // Save Post
+      const savedPostResponse = await savePostAction({
+        userId,
+        aiOutput: imageUrl,
+        description: description,
+        logoUrl: null,
+        status: "pending",
+        promat: "Manual Upload",
+        locations: [],
+      });
+
+      if (!savedPostResponse.success) {
+        throw new Error(savedPostResponse.error || "Failed to save post.");
+      }
+
+      const savedPost = savedPostResponse.data;
+      setPosts((prev) => [savedPost, ...prev]);
+      setAllCounts((prev) => ({ ...prev, total: prev.total + 1, pending: prev.pending + 1 }));
+      setPreviewData(savedPost);
+      showToast("Manual Post Created Successfully! 🎉");
+
+    } catch (error) {
+      console.error("Manual Post Error:", error);
+      showToast(error.message || "Failed to create post!", "error");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -1714,20 +1787,36 @@ export default function PostManagementPage() {
   };
 
 
-  useEffect(() => {
+useEffect(() => {
   const locationDetailsData = localStorage.getItem("locationDetails");
 
-  if (locationDetailsData) {
-    try {
-      const parsedData = JSON.parse(locationDetailsData);
-      if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0]?.title) {
-        setBussinessTitle(parsedData[0].title);
+  if (!locationDetailsData) return;
+
+  try {
+    const parsedData = JSON.parse(locationDetailsData);
+
+    if (!Array.isArray(parsedData)) return;
+
+    // Get unique business titles
+    const uniqueBusinesses = [];
+    const seenTitles = new Set();
+
+    parsedData.forEach((item) => {
+      if (item?.title && !seenTitles.has(item.title)) {
+        seenTitles.add(item.title);
+        uniqueBusinesses.push(item);
       }
-    } catch (error) {
-      console.error("Failed to parse locationDetails from localStorage:", error);
+    });
+
+    // Use first unique business title
+    if (uniqueBusinesses.length > 0) {
+      setBussinessTitle(uniqueBusinesses[0].title);
     }
+  } catch (error) {
+    console.error("Failed to parse locationDetails:", error);
   }
 }, []);
+
 
   useEffect(() => {
     fetchPosts();
@@ -1752,7 +1841,7 @@ export default function PostManagementPage() {
         </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-2 py-2">
         {toast && <Toast message={toast.message} type={toast.type} />}
         {showLocationModal && (
           <LocationSelectionModal
@@ -1834,8 +1923,8 @@ export default function PostManagementPage() {
   <div
     className="
       inline-flex items-center gap-2
-      px-3 sm:px-5 py-2
-      rounded-2xl
+      px-3 sm:px-5 py-1
+      rounded-xl
       bg-white
       shadow-md
       border border-blue-100
@@ -1849,6 +1938,8 @@ export default function PostManagementPage() {
       Post Management
     </span>
   </div>
+
+  {/* 5000 > 2 video 2500  > 1 */}
 
   {/* Preview Button */}
   <a href={previewData?.aiOutput} target="_blank" rel="noopener noreferrer"
@@ -1879,7 +1970,7 @@ export default function PostManagementPage() {
 </div>
 
         {/* Main Content Area - Two Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
           {/* Left Column: Input Form */}
           <div className="lg:col-span-7">
             <PostInput
@@ -1897,6 +1988,7 @@ export default function PostManagementPage() {
               selectedAssets={selectedAssets}
               setSelectedAssets={setSelectedAssets}
               bussinessTitle={bussinessTitle}
+              availableLocations={availableLocations}
             />
           </div>
 

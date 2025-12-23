@@ -103,12 +103,12 @@ export async function postToGmbAction(payload) {
             body: JSON.stringify(payload),
         }
     );
-    // Handle non-json responses from webhook
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-        return { ok: response.ok, data: await response.json() };
-    } else {
-        return { ok: response.ok, data: await response.text() };
+    const text = await response.text();
+    try {
+        const data = text ? JSON.parse(text) : {};
+        return { ok: response.ok, data };
+    } catch (error) {
+        return { ok: response.ok, data: text };
     }
 }
 

@@ -9,10 +9,12 @@ import {
   ChevronDown,
   Check,
   Trash2,
-  Edit2
+  Edit2,
+  UploadCloud,
+  Building2
 } from "lucide-react";
 
-const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo, assetId, fetchUserAssets, setUserAssets, showToast, selectedAssets, setSelectedAssets,bussinessTitle }) => {
+const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLogo, assetId, fetchUserAssets, setUserAssets, showToast, selectedAssets, setSelectedAssets, bussinessTitle, availableLocations = [] }) => {
   console.log("bussinessTitlebussinessTitle",bussinessTitle);
   
 
@@ -21,13 +23,38 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
   const [showAssets, setShowAssets] = useState(true);
   const [businessName, setBusinessName] = useState(bussinessTitle);
   const [keywords, setKeywords] = useState("");
+  const [savedKeywords, setSavedKeywords] = useState([]);
+  const [showBusinessDropdown, setShowBusinessDropdown] = useState(false);
+  const [showKeywordDropdown, setShowKeywordDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState("ai");
+  const [manualImage, setManualImage] = useState(null);
+  const [manualDescription, setManualDescription] = useState("");
 
-  console.log("businessNamebusinessName",businessName);
   
   useEffect(() => {
     setBusinessName(bussinessTitle);
   }, [bussinessTitle]);
 
+  // Extract unique business names for the dropdown
+  const uniqueBusinessNames = React.useMemo(() => {
+    if (!availableLocations) return [];
+    return [...new Set(availableLocations.map(loc => loc.name || loc.title).filter(Boolean))];
+  }, [availableLocations]);
+
+  useEffect(() => {
+    const fetchSavedKeywords = async () => {
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+      try {
+        const res = await fetch(`/api/keyword-research?userId=${userId}`);
+        const data = await res.json();
+        if (data.success) setSavedKeywords(data.data);
+      } catch (error) {
+        console.error("Error fetching saved keywords:", error);
+      }
+    };
+    fetchSavedKeywords();
+  }, []);
 
 
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -266,15 +293,62 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     onGenerate(assetsToSend, showAssets, businessName, keywords);
   };
 
-  console.log("businessNamebusinessName111111111111111111111111",businessName);
+  const handleManualSubmit = async () => {
+    if (!manualImage) {
+      showToast("Please upload an image", "error");
+      return;
+    }
+    if (!manualDescription.trim()) {
+      showToast("Please enter a description", "error");
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(manualImage);
+      onGenerate({ image: base64, description: manualDescription }, "manual");
+      setManualImage(null);
+      setManualDescription("");
+    } catch (e) {
+      console.error(e);
+      showToast("Error processing image", "error");
+    }
+  };
+
   
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6">
-        <div className="space-y-4">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-2 sm:p-3">
+        {/* Tabs */}
+        <div className="flex p-1 bg-gray-100 rounded-lg mb-2">
+          <button
+            onClick={() => setActiveTab("ai")}
+            className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${
+              activeTab === "ai" ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Auto Post
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("manual")}
+            className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${
+              activeTab === "manual" ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Upload className="w-4 h-4" />
+              Manual Post
+            </div>
+          </button>
+        </div>
+
+        {activeTab === "ai" ? (
+        <div className="space-y-2">
           {/* Prompt Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-gray-700 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-500" />
               What would you like to create?
             </label>
@@ -282,7 +356,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
               placeholder="Describe your post idea..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all min-h-[90px] resize-none placeholder:text-gray-400"
+              className="w-full p-2 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all min-h-[40px] resize-none placeholder:text-gray-400"
               disabled={loading}
             />
             {suggestedKeywords.length > 0 && (
@@ -301,26 +375,77 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
           </div>
 
           {/* Business Name & Keywords */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Business Name</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1 relative">
+              <label className="text-xs font-semibold text-gray-700">Business Name</label>
               <input
                 type="text"
                 value={businessName || ''}
-                onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                onChange={(e) => {
+                  setBusinessName(e.target.value);
+                  setShowBusinessDropdown(true);
+                }}
+                onFocus={() => setShowBusinessDropdown(true)}
+                onBlur={() => setTimeout(() => setShowBusinessDropdown(false), 200)}
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                 placeholder="Enter business name"
               />
+              {showBusinessDropdown && uniqueBusinessNames.length > 0 && (
+                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-[160px] overflow-y-auto">
+                  {uniqueBusinessNames
+                    .filter(name => name.toLowerCase().includes((businessName || '').toLowerCase()))
+                    .map((name, i) => (
+                      <div
+                        key={i}
+                        onClick={() => {
+                          setBusinessName(name);
+                          setShowBusinessDropdown(false);
+                        }}
+                        className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer transition-colors flex items-center gap-2"
+                      >
+                        <Building2 className="w-3 h-3 text-blue-400" />
+                        {name}
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Keywords</label>
-              <input
-                type="text"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                placeholder="Enter keywords"
-              />
+            <div className="space-y-1 relative">
+              <label className="text-xs font-semibold text-gray-700">Keywords</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={keywords}
+                  onChange={(e) => {
+                    setKeywords(e.target.value);
+                    setShowKeywordDropdown(true);
+                  }}
+                  onFocus={() => setShowKeywordDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowKeywordDropdown(false), 200)}
+                  className="w-full p-2 pr-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  placeholder="Enter keywords"
+                />
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+              {showKeywordDropdown && savedKeywords.length > 0 && (
+                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-[160px] overflow-y-auto">
+                  {savedKeywords
+                    .filter((k) => k.keyword.toLowerCase().includes(keywords.toLowerCase()))
+                    .map((k, i) => (
+                      <div
+                        key={i}
+                        onClick={() => {
+                          setKeywords(k.keyword);
+                          setShowKeywordDropdown(false);
+                        }}
+                        className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer transition-colors flex items-center gap-2"
+                      >
+                        <Sparkles className="w-3 h-3 text-blue-400" />
+                        {k.keyword}
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -414,7 +539,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                 </div>
               ) : isImageField ? (
                 /* ---------- IMAGE ASSET ---------- */
-                <div className="relative w-full h-24 bg-gray-100 rounded-md overflow-hidden border border-gray-200 group">
+                <div className="relative w-full h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-200 group">
                   {asset.url ? (
                     <>
                       <img
@@ -568,13 +693,57 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
           </button>
 
           {/* Pro Tip */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
             <p className="text-xs text-amber-900 flex items-start gap-2">
               <span className="text-base">💡</span>
               <span><strong>Tip:</strong> Be specific about details for best results!</span>
             </p>
           </div>
         </div>
+        ) : (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-700">Post Image</label>
+              {!manualImage ? (
+                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 font-medium">Click to upload image</p>
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setManualImage(e.target.files[0])} />
+                </label>
+              ) : (
+                <div className="relative h-48 bg-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+                  <img src={URL.createObjectURL(manualImage)} alt="Preview" className="w-full h-full object-contain" />
+                  <button onClick={() => setManualImage(null)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-700">Caption / Description</label>
+              <textarea
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                placeholder="Write your post caption here..."
+                className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none min-h-[120px] resize-none"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={handleManualSubmit}
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Create Post"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

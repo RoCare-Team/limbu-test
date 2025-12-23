@@ -40,7 +40,7 @@ import {
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { MenuIcon, Wand } from 'lucide-react';
+import { MenuIcon, SquarePlus, Wand } from 'lucide-react';
 import logoDash from "../../public/images/bg-logo.png"
 import Image from 'next/image';
 import WebAssetIcon from '@mui/icons-material/WebAsset';
@@ -407,6 +407,7 @@ export default function Sidebar({ children, user }) {
       ]
     },
     { text: 'Assets Management', icon: <WebAssetIcon />, path: '/assets-management' },
+    { text: 'Keyword Management', icon: <SquarePlus />, path: '/keyword-planner' },
 
 
   ];

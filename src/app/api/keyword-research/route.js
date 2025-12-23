@@ -1,56 +1,151 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import dbConnect from "@/lib/dbConnect";
 
+/* -------------------- SCHEMA (INLINE) -------------------- */
+const KeywordSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    keyword: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    source: {
+      type: String,
+      default: "google",
+    },
+  },
+  { timestamps: true }
+);
+
+// Prevent duplicate keyword per user
+KeywordSchema.index({ userId: 1, keyword: 1 }, { unique: true });
+
+const Keyword =
+  mongoose.models.Keyword || mongoose.model("Keyword", KeywordSchema);
+
+/* -------------------- GET --------------------
+   ?query=RO Care   → Google related keywords
+   ?userId=xxxx     → Fetch user keywords
+------------------------------------------------ */
 export async function GET(req) {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("query");
+    const userId = searchParams.get("userId");
 
-    if (!query) {
-      return NextResponse.json({ error: "Query missing" }, { status: 400 });
+    /* -------- GOOGLE RELATED KEYWORDS -------- */
+    if (query) {
+      const autoURL = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(
+        query
+      )}`;
+
+      const autoRes = await fetch(autoURL);
+      const autoJson = await autoRes.json();
+      const suggestions = autoJson[1] || [];
+
+      return NextResponse.json({
+        success: true,
+        keywords: [...new Set(suggestions)],
+      });
     }
 
-    // 1️⃣ GOOGLE AUTOCOMPLETE
-    const autoURL = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(
-      query
-    )}`;
+    /* -------- FETCH USER SAVED KEYWORDS -------- */
+    if (userId) {
+      const saved = await Keyword.find({ userId }).sort({
+        createdAt: -1,
+      });
 
-    const autoRes = await fetch(autoURL);
-    const autoJson = await autoRes.json();
-    const suggestions = autoJson[1] || [];
-
-    // 2️⃣ GOOGLE TRENDS + RELATED KEYWORDS (SERPAPI)
-    const serpURL = `https://serpapi.com/search.json?engine=google_trends&q=${encodeURIComponent(
-      query
-    )}&geo=IN&api_key=${process.env.SERPAPI_KEY}`;
-
-    const serpRes = await fetch(serpURL);
-    const serpJson = await serpRes.json();
-
-    // Extract volume score
-    let volumeScore = 0;
-
-    if (
-      serpJson.interest_over_time &&
-      serpJson.interest_over_time.timeline_data
-    ) {
-      const tl = serpJson.interest_over_time.timeline_data;
-      volumeScore = tl[tl.length - 1]?.values[0]?.value || 0;
+      return NextResponse.json({
+        success: true,
+        data: saved,
+      });
     }
 
-    // Extract related keywords
-    const related = serpJson.related_queries?.rising || [];
-    const related_keywords = related.map((r) => r.query);
+    return NextResponse.json(
+      { error: "query or userId required" },
+      { status: 400 }
+    );
+  } catch (err) {
+    return NextResponse.json(
+      { error: err.message },
+      { status: 500 }
+    );
+  }
+}
+
+/* -------------------- POST --------------------
+   Add keyword (user-wise)
+------------------------------------------------ */
+export async function POST(req) {
+  try {
+    await dbConnect();
+    const { userId, keyword } = await req.json();
+
+    if (!userId || !keyword) {
+      return NextResponse.json(
+        { error: "userId and keyword are required" },
+        { status: 400 }
+      );
+    }
+
+    const saved = await Keyword.create({
+      userId,
+      keyword,
+      source: "google",
+    });
 
     return NextResponse.json({
-      query,
-      suggestions,
-      volume_score: volumeScore,
-      related_keywords,
+      success: true,
+      data: saved,
     });
   } catch (err) {
-    console.error("API ERROR:", err);
+    if (err.code === 11000) {
+      return NextResponse.json(
+        { error: "Keyword already added" },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: err.message },
+      { status: 500 }
+    );
+  }
+}
+
+/* -------------------- DELETE --------------------
+   Delete keyword by _id
+   ?id=KEYWORD_ID
+------------------------------------------------ */
+export async function DELETE(req) {
+  try {
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "keyword id is required" },
+        { status: 400 }
+      );
+    }
+
+    await Keyword.findByIdAndDelete(id);
+
+    return NextResponse.json({
+      success: true,
+      message: "Keyword deleted successfully",
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err.message },
       { status: 500 }
     );
   }
