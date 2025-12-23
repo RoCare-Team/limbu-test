@@ -12,9 +12,11 @@ const inter = Inter({
 
 export const metadata = {
   title: "AI-Powered GMB Auto Management System | Smart Business Growth",
-  description: "Automate and optimize your Google My Business profile with our AI-powered dashboard. Manage reviews, posts, and insights from one easy-to-use platform.",
+  description:
+    "Automate and optimize your Google My Business profile with our AI-powered dashboard. Manage reviews, posts, and insights from one easy-to-use platform.",
   other: {
-    "google-site-verification": "U-FQQqXrb89Al4Gqx8KsuzMRa2kxeW8uxB4etX5-sqU",
+    "google-site-verification":
+      "U-FQQqXrb89Al4Gqx8KsuzMRa2kxeW8uxB4etX5-sqU",
   },
 };
 
@@ -22,6 +24,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.variable}>
       <head>
+        {/* ---------------- Google Tag Manager ---------------- */}
+        <Script id="gtm-script" strategy="afterInteractive">
+          {`
+            (function(w,d,s,l,i){w[l]=w[l]||[];
+            w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+            var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+            j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;
+            f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-WTLTD58F');
+          `}
+        </Script>
+
+        {/* ---------------- Facebook Pixel ---------------- */}
         <Script id="fb-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
@@ -36,17 +53,30 @@ export default function RootLayout({ children }) {
             fbq('track', 'PageView');
           `}
         </Script>
+      </head>
+
+      <body className={`${inter.variable} antialiased`}>
+        {/* ---------------- GTM (noscript) ---------------- */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-WTLTD58F"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+
+        {/* ---------------- Facebook Pixel (noscript) ---------------- */}
         <noscript>
           <img
             height="1"
             width="1"
             style={{ display: "none" }}
             src="https://www.facebook.com/tr?id=1388988219494781&ev=PageView&noscript=1"
+            alt=""
           />
         </noscript>
-      </head>
 
-      <body className={`${inter.variable} antialiased`}>
         <SessionProviderWrapper>
           <ClientLayout>
             <AuthGuard>{children}</AuthGuard>
