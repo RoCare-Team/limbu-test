@@ -40,7 +40,7 @@ import {
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { Home, MenuIcon, Package, Proportions, SquarePlus, Wand } from 'lucide-react';
+import { Activity, Home, MenuIcon, Package, Proportions, SquarePlus, Wand } from 'lucide-react';
 import logoDash from "../../public/images/bg-logo.png"
 import Image from 'next/image';
 import WebAssetIcon from '@mui/icons-material/WebAsset';
@@ -418,7 +418,7 @@ export default function Sidebar({ children, user }) {
       ]
     },
  
-        { text: 'Report Card', icon: <Proportions />, path: '/reportCardLocations' },
+        { text: 'Score Card', icon: <Activity />, path: '/reportCardLocations' },
 
 
   ];

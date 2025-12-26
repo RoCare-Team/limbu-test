@@ -1,14 +1,19 @@
 "use client";
 
-import { CheckCircle, XCircle, MapPin, Calendar, Download, FileText } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Calendar, Download, FileText, Phone, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function GBPAuditCard({ audit }) {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
   
   // Handle potential nested structure from input (audit[""] or direct audit)
+  const router = useRouter();
   const auditData = audit[""] || audit;
   const guidanceText = audit.output?.[0]?.content?.[0]?.text || "";
 
@@ -90,6 +95,53 @@ export default function GBPAuditCard({ audit }) {
     }
   };
 
+  // Process Recommendation Signals for "Action Required"
+  const actionItems = [];
+  if (recommendationSignals) {
+    Object.entries(recommendationSignals).forEach(([key, data]) => {
+      if (data && data.reason) {
+        actionItems.push({
+          text: data.reason,
+          subtext: data.impact,
+          severity: data.severity || 'medium',
+          signalKey: key
+        });
+      }
+    });
+  }
+  
+  // Sort by severity: High -> Medium -> Low
+  const severityRank = { high: 1, medium: 2, low: 3 };
+  actionItems.sort((a, b) => (severityRank[a.severity?.toLowerCase()] || 99) - (severityRank[b.severity?.toLowerCase()] || 99));
+
+  // Process Successes for "What You're Doing Right"
+  const successItems = [];
+  if (scoreBreakdown) {
+    scoreBreakdown.forEach(item => {
+      // If score is perfect or high (>= 80%)
+      if (item.outOf > 0 && (item.score / item.outOf) >= 0.8) {
+        successItems.push(item.factor);
+      }
+    });
+  }
+
+  const categories = [
+    dataSnapshot.primaryCategory,
+    ...(dataSnapshot.additionalCategories || [])
+  ].filter(Boolean);
+
+  const services = dataSnapshot.services || [];
+
+  const handleRedirect = (key) => {
+    const routes = {
+      reviews: "/review-management",
+      posts: "/post-management",
+      media: "/post-management",
+      services: "#services",
+    };
+    if (routes[key]) router.push(routes[key]);
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div 
@@ -104,6 +156,16 @@ export default function GBPAuditCard({ audit }) {
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             <span className="font-medium">{dataSnapshot.businessName}</span>
+          </div>
+          <br/>
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            <span className="font-medium">{dataSnapshot.phone}</span>
+          </div>
+          <br/>
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            <span className="font-medium">{dataSnapshot.website}</span>
           </div>
           <div className="flex items-center gap-2 bg-blue-800/30 px-3 py-1 rounded-full">
             <span>{date}</span>
@@ -140,6 +202,50 @@ export default function GBPAuditCard({ audit }) {
         <StatCard icon="📝" title="Posts (30 Days)" value={dataSnapshot.totalPosts} />
         <StatCard icon="🖼️" title="Photos & Media" value={dataSnapshot.totalMedia} />
       </div>
+
+      {/* Categories Section */}
+      {categories.length > 0 && (
+        <div className="px-6 pb-6">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Business Categories</h3>
+            <div className="flex flex-wrap gap-2">
+                {categories.slice(0, 5).map((cat, i) => (
+                    <span key={i} className={`px-3 py-1 rounded-full text-xs font-medium border ${i === 0 ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        {cat} {i === 0 && <span className="opacity-75 ml-1 text-[10px]">(Primary)</span>}
+                    </span>
+                ))}
+                {categories.length > 5 && (
+                    <button 
+                        onClick={() => setShowCategoryModal(true)}
+                        className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition-colors"
+                    >
+                        +{categories.length - 5} More
+                    </button>
+                )}
+            </div>
+        </div>
+      )}
+
+      {/* Services Section */}
+      {services.length > 0 && (
+        <div className="px-6 pb-6">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Services</h3>
+            <div className="flex flex-wrap gap-2">
+                {services.slice(0, 5).map((service, i) => (
+                    <span key={i} className="px-3 py-1 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">
+                        {typeof service === 'string' ? service : service.displayName || service}
+                    </span>
+                ))}
+                {services.length > 5 && (
+                    <button 
+                        onClick={() => setShowServiceModal(true)}
+                        className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition-colors"
+                    >
+                        +{services.length - 5} More
+                    </button>
+                )}
+            </div>
+        </div>
+      )}
 
       {/* Score Breakdown */}
       <div className="px-6 pb-6">
@@ -242,30 +348,24 @@ export default function GBPAuditCard({ audit }) {
         <ActionBox
           title="Action Required"
           danger
-          items={[
-            recommendationSignals.noServices && "No services added",
-            recommendationSignals.lowReviews && "Review count is too Low",
-            recommendationSignals.lowReplyRate && "No review replies",
-          ]}
+          items={actionItems}
+          onRedirect={handleRedirect}
         />
 
         <ActionBox
           title="What You're Doing Right"
-          items={[
-            !recommendationSignals.missingPhone && "Complete business details",
-            !recommendationSignals.weakDescription && "Strong description",
-            !recommendationSignals.inactivePosts && "Consistent posting",
-            !recommendationSignals.lowMedia && "Good media presence",
-          ]}
+          items={successItems}
         />
       </div>
       </div>
 
       {/* CTA Buttons */}
       <div className="flex flex-col sm:flex-row justify-center gap-4 pb-8 px-6 mb-8">
+        <Link href="/dashboard" target="_blank">
         <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
           Improve My Google Ranking
         </button>
+        </Link>
         <button 
           onClick={handleDownloadPDF}
           className="border-2 border-gray-300 hover:border-blue-600 hover:text-blue-600 px-8 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
@@ -274,6 +374,52 @@ export default function GBPAuditCard({ audit }) {
           Download PDF Report
         </button>
       </div>
+
+      {/* Category Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowCategoryModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 className="font-bold text-gray-800">All Business Categories</h3>
+                    <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <XCircle className="w-6 h-6" />
+                    </button>
+                </div>
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                    <div className="flex flex-wrap gap-2">
+                        {categories.map((cat, i) => (
+                            <span key={i} className={`px-3 py-1.5 rounded-full text-sm font-medium border ${i === 0 ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                                {cat} {i === 0 && <span className="opacity-75 ml-1 text-xs">(Primary)</span>}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Service Modal */}
+      {showServiceModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowServiceModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 className="font-bold text-gray-800">All Services</h3>
+                    <button onClick={() => setShowServiceModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <XCircle className="w-6 h-6" />
+                    </button>
+                </div>
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                    <div className="flex flex-wrap gap-2">
+                        {services.map((service, i) => (
+                            <span key={i} className="px-3 py-1.5 rounded-full text-sm font-medium border bg-green-50 text-green-700 border-green-200">
+                                {typeof service === 'string' ? service : service.displayName || service}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -400,7 +546,7 @@ function StatCard({ icon, title, value }) {
 }
 
 /* Action Box */
-function ActionBox({ title, items, danger }) {
+function ActionBox({ title, items, danger, onRedirect }) {
   const bgStyle = danger 
     ? { background: "linear-gradient(to bottom right, #fef2f2, #fff7ed)", borderColor: "#fecaca" }
     : { background: "linear-gradient(to bottom right, #f0fdf4, #ecfdf5)", borderColor: "#bbf7d0" };
@@ -416,16 +562,52 @@ function ActionBox({ title, items, danger }) {
         {danger ? "❌" : "✓"} {title}
       </h4>
       <ul className="space-y-3 text-sm">
-        {items.filter(Boolean).map((text, i) => (
-          <li key={i} className="flex gap-3 items-start">
+        {items.filter(Boolean).map((item, i) => {
+          const isObj = typeof item === 'object';
+          const text = isObj ? item.text : item;
+          const subtext = isObj ? item.subtext : null;
+          const severity = isObj ? item.severity : null;
+          const signalKey = isObj ? item.signalKey : null;
+
+          let severityBadge = null;
+          if (danger && severity) {
+             const badgeColors = {
+                 high: "bg-red-100 text-red-700 border-red-200",
+                 medium: "bg-orange-100 text-orange-700 border-orange-200",
+                 low: "bg-yellow-100 text-yellow-700 border-yellow-200"
+             };
+             severityBadge = (
+                 <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${badgeColors[severity.toLowerCase()] || badgeColors.low}`}>
+                     {severity}
+                 </span>
+             );
+          }
+
+          return (
+          <li 
+            key={i} 
+            className={`flex gap-3 items-start ${danger && signalKey ? "cursor-pointer hover:bg-red-100 p-1.5 -mx-1.5 rounded-lg transition-colors" : ""}`}
+            onClick={() => {
+              if (danger && signalKey && onRedirect) onRedirect(signalKey);
+            }}
+          >
             {danger ? (
               <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#dc2626" }} />
             ) : (
               <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#16a34a" }} />
             )}
-            <span className="font-medium" style={{ color: "#374151" }}>{text}</span>
+            <div className="flex flex-col gap-1 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="font-medium" style={{ color: "#374151" }}>{text}</span>
+                    {severityBadge}
+                </div>
+                {subtext && (
+                    <span className="text-xs text-gray-500">{subtext}</span>
+                )}
+            </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
       {danger && (
         <p className="text-xs mt-4 italic" style={{ color: "#4b5563" }}>
