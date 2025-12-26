@@ -1296,31 +1296,40 @@ export default function PostManagementPage() {
     setPostToSchedule(postOrId);
     setIsScheduleModalOpen(true);
     return;
-  }
-
-  console.log("newStatusnewStatus",newStatus);
-  
+  }  
 
   const userId = localStorage.getItem("userId");
 
   // When scheduling, we must have a refresh token to pass to the backend.
-  if (!session?.refreshToken) {
-    showToast("Your session is invalid. Please log in again to schedule posts.", "error");
+  if (newStatus === "scheduled" && !session?.refreshToken) {
+    showToast("Please connect first Bussiness Account or  log in again to schedule posts.", "error");
     return;
   }
 
 
   try {
     // 🔹 NORMALIZED PAYLOAD
-    const payload = {
+    let payload = {
       id: postId,
       userId,
       status: newStatus,
       scheduledDate: scheduleDate || null,
-      locations: Array.isArray(locations) ? locations : [],
       checkmark: checkmark,
       refreshToken: newStatus === "scheduled" ? session?.refreshToken : undefined,
     };
+
+    if (newStatus === "scheduled") {
+      const locationData = Array.isArray(locations) ? locations.map((loc) => ({
+        city: loc.locationId,
+        cityName: loc.locality,
+        bookUrl: loc.websiteUrl || "",
+      })) : [];
+
+      payload.locationData = locationData;
+      payload.account = Array.isArray(locations) && locations.length > 0 ? locations[0].accountId : "";
+    } else {
+      payload.locations = Array.isArray(locations) ? locations : [];
+    }
 
 
     const res = await updatePostStatusAction(payload);
