@@ -418,7 +418,7 @@ export default function Sidebar({ children, user }) {
       ]
     },
  
-        { text: 'Score Card', icon: <Activity />, path: '/reportCardLocations' },
+        { text: 'GMB Health', icon: <Activity />, path: '/gmb-health' },
 
 
   ];
