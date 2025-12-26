@@ -31,6 +31,7 @@ import {
   RefreshCw,
   Rocket,
   Download,
+  Activity,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import FirstPostModal from "../../components/FirstPostModal";
@@ -893,6 +894,11 @@ const navItems = [
     href: "/wallet",
     icon: <Wallet className="h-6 w-6" />,
     label: "Wallet Recharge",
+  },
+  {
+    href: "/gmb-health",
+    icon: <Activity className="h-6 w-6" />,
+    label: "GMB Health",
   },
 ];
 
