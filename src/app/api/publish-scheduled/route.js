@@ -85,35 +85,41 @@ export async function GET() {
 
     const now = new Date();
 
-    const posts = await Post.find({
+    // 1. Find candidates (fetch IDs only first)
+    const candidates = await Post.find({
       status: "scheduled",
       scheduledDate: { $lte: now },
-    }).lean();
+    }).select("_id").lean();
 
-    log(`Found ${posts.length} posts to process.`);
+    log(`Found ${candidates.length} posts to process.`);
 
-    if (!posts.length) {
+    if (!candidates.length) {
       return NextResponse.json({ success: true, logs: debugLogs });
     }
 
     const stats = {
-      total: posts.length,
+      total: candidates.length,
       processed: 0,
       skipped: 0,
       failed: 0,
       posted: 0,
     };
 
-    for (const rawPost of posts) {
-      const postId = rawPost._id.toString();
-      const post = await Post.findById(postId);
+    for (const candidate of candidates) {
+      // 2. ATOMIC LOCK: Transition to 'processing' to prevent race conditions
+      const post = await Post.findOneAndUpdate(
+        { _id: candidate._id, status: "scheduled" },
+        { status: "processing" },
+        { new: true }
+      );
 
       if (!post) {
-        log(`- Post ${postId} not found in DB, skipping.`);
+        log(`- Post ${candidate._id} skipped (locked or status changed).`);
         stats.skipped++;
         continue;
       }
 
+      const postId = post._id.toString();
       log(`📝 Processing post ${post._id.toString()}`);
 
       if (!Array.isArray(post.locations) || !post.locations.length) {
@@ -149,10 +155,12 @@ export async function GET() {
       log("🔑 Using stored refreshToken from post document to get a fresh access token.");
       const accessToken = await getFreshAccessToken(refreshToken);
       let failed = false;
+      const processedLocIds = new Set();
 
       for (let i = 0; i < post.locations.length; i++) {
         const loc = post.locations[i];
-        if (!loc?.locationId || loc.isPosted) continue;
+        // Skip if invalid, already posted, or duplicate in this run
+        if (!loc?.locationId || loc.isPosted || processedLocIds.has(loc.locationId)) continue;
 
         try {
           const payload = {
@@ -189,15 +197,21 @@ export async function GET() {
           console.log("wallletDaat",walletData);
           
 
-          if (!walletData === "Wallet updated") {
+          if (walletData?.message !== "Wallet updated") {
             throw new Error("Wallet deduction failed");
           }
 
           log("🪙 20 coins deducted via wallet action");
 
-          post.locations[i].isPosted = true;
-          post.locations[i].postedAt = new Date();
-          post.locations[i].apiResponse = result;
+          // Mark this location and any duplicates as posted
+          post.locations.forEach(l => {
+            if (l.locationId === loc.locationId) {
+              l.isPosted = true;
+              l.postedAt = new Date();
+              l.apiResponse = result;
+            }
+          });
+          processedLocIds.add(loc.locationId);
 
         } catch (err) {
           log(`❌ Error posting to location ${loc.locationId}:`, err.message);
@@ -209,7 +223,7 @@ export async function GET() {
       }
 
       if (!failed) {
-        post.status = post.locations.every(l => l.isPosted) ? "posted" : "scheduled";
+        post.status = post.locations.every(l => l.isPosted) ? "posted" : "failed";
         post.error = null;
         stats.posted++;
       } else {

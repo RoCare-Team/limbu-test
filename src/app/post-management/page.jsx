@@ -1308,6 +1308,11 @@ export default function PostManagementPage() {
 
 
   try {
+    // Deduplicate locations based on locationId to ensure unique targets
+    const uniqueLocations = Array.isArray(locations) 
+      ? Array.from(new Map(locations.map(item => [item.locationId, item])).values()) 
+      : [];
+
     // 🔹 NORMALIZED PAYLOAD
     let payload = {
       id: postId,
@@ -1316,19 +1321,18 @@ export default function PostManagementPage() {
       scheduledDate: scheduleDate || null,
       checkmark: checkmark,
       refreshToken: newStatus === "scheduled" ? session?.refreshToken : undefined,
+      locations: uniqueLocations,
     };
 
     if (newStatus === "scheduled") {
-      const locationData = Array.isArray(locations) ? locations.map((loc) => ({
+      const locationData = uniqueLocations.map((loc) => ({
         city: loc.locationId,
         cityName: loc.locality,
         bookUrl: loc.websiteUrl || "",
-      })) : [];
+      }));
 
       payload.locationData = locationData;
-      payload.account = Array.isArray(locations) && locations.length > 0 ? locations[0].accountId : "";
-    } else {
-      payload.locations = Array.isArray(locations) ? locations : [];
+      payload.account = uniqueLocations.length > 0 ? uniqueLocations[0].accountId : "";
     }
 
 
@@ -1456,7 +1460,7 @@ export default function PostManagementPage() {
     }
 
     const userId = localStorage.getItem("userId");
-    const selectedLocations = availableLocations.filter(loc =>
+    let selectedLocations = availableLocations.filter(loc =>
       selectedLocationIds.includes(loc.id)
     ).map(loc => ({ ...loc, isPosted: false }));
 
@@ -1542,29 +1546,80 @@ export default function PostManagementPage() {
           city: loc.locationId,
           cityName: loc.locality,
           bookUrl: loc.websiteUrl || "",
+          originalLoc: loc,
         }));
 
-        // Send post to webhook
-        const { ok: responseOk, data } = await postToGmbAction({
-          account: selectedLocations[0]?.accountId || "",
-          locationData: locationData,
-          output: postToAction?.aiOutput || "",
-          description: postToAction?.description || "",
-          accessToken: session?.accessToken || "",
-          checkmark: checkmarkPayload,
-        });
-
+        // Batch processing to prevent timeouts
+        const BATCH_SIZE = 5;
+        const successfulLocations = [];
         
+        for (let i = 0; i < locationData.length; i += BATCH_SIZE) {
+          const batch = locationData.slice(i, i + BATCH_SIZE);
+          const batchPayload = batch.map(b => ({
+            city: b.city,
+            cityName: b.cityName,
+            bookUrl: b.bookUrl
+          }));
 
-        // If post success → Deduct coins
-        if (responseOk) {
-          showToast("Post successfully sent to all locations!", "success");
-          setShowSuccess(true);
+          try {
+            const { ok: batchOk, data: batchData } = await postToGmbAction({
+              account: selectedLocations[0]?.accountId || "",
+              locationData: batchPayload,
+              output: postToAction?.aiOutput || "",
+              description: postToAction?.description || "",
+              accessToken: session?.accessToken || "",
+              checkmark: checkmarkPayload,
+            });
 
-          // Update post with selected locations
+            if (batchOk) {
+              successfulLocations.push(...batch.map(b => b.originalLoc));
+
+              // Update isPosted status incrementally for real-time updates
+              const batchIds = batch.map(b => b.originalLoc.locationId);
+              selectedLocations = selectedLocations.map(loc => 
+                batchIds.includes(loc.locationId) ? { ...loc, isPosted: true } : loc
+              );
+
+              await updatePostStatusAction({
+                id: postToAction._id,
+                locations: selectedLocations,
+                status: "posted",
+                userId: userId,
+              });
+            } else {
+              console.error("Batch failed:", batchData);
+            }
+          } catch (err) {
+            console.error("Batch error:", err);
+          }
+        }
+
+        // Handle results
+        if (successfulLocations.length > 0) {
+          if (successfulLocations.length < selectedLocations.length) {
+            // Partial success - refund difference
+            const refundAmount = (selectedLocations.length - successfulLocations.length) * 20;
+            await deductFromWalletAction(userId, {
+              amount: refundAmount,
+              type: "credit",
+              reason: "Refund-Partial-Post-Failed",
+              metadata: { originalReason: "Post-on-GMB" }
+            });
+            
+            const userData = await getUserWalletAction(userId);
+            setUserWallet(userData.wallet);
+            localStorage.setItem("walletBalance", userData.wallet);
+            
+            showToast(`Posted to ${successfulLocations.length}/${selectedLocations.length} locations. Refunded failed ones.`, "warning");
+          } else {
+            showToast("Post successfully sent to all locations!", "success");
+            setShowSuccess(true);
+          }
+
+          // Update post with successful locations
           await updatePostStatusAction({
             id: postToAction._id,
-            locations: selectedLocations,
+            locations: successfulLocations.map(loc => ({ ...loc, isPosted: true })),
             status: "posted",
             userId: userId,
           });
@@ -1573,8 +1628,7 @@ export default function PostManagementPage() {
           await fetchPosts(activeTab);
 
         } else {
-          console.error("Webhook failed:", data);
-          throw new Error("Webhook failed");
+          throw new Error("All batches failed to post.");
         }
 
       } catch (error) {
