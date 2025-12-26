@@ -11,6 +11,7 @@ export default function BusinessQR({ slug }) {
   const [submittedRatings, setSubmittedRatings] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  
 
   // Generate QR
   const generateQR = (url) => {
