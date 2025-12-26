@@ -14,6 +14,25 @@ export const metadata = {
   title: "AI-Powered GMB Auto Management System | Smart Business Growth",
   description:
     "Automate and optimize your Google My Business profile with our AI-powered dashboard. Manage reviews, posts, and insights from one easy-to-use platform.",
+  keywords: [
+    "Google My Business automation",
+    "GMB management tool",
+    "AI GMB posts",
+    "Google Business Profile optimization",
+    "review management software",
+    "local SEO tools",
+    "auto-reply reviews",
+    "GMB insights dashboard",
+    "business growth automation",
+    "limbu.ai",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://www.limbu.ai",
+  },
   other: {
     "google-site-verification":
       "U-FQQqXrb89Al4Gqx8KsuzMRa2kxeW8uxB4etX5-sqU",
