@@ -30,12 +30,27 @@ import {
   Wallet,
   RefreshCw,
   Rocket,
+  Download,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import FirstPostModal from "../../components/FirstPostModal";
 
 import Link from "next/link";
 import { fetchAllPostsAction } from "../actions/postActions";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 
 // --- API Helpers ---
 export async function fetchGMBAccounts(accessToken) {
@@ -187,6 +202,86 @@ export async function fetchSearchKeywords(accessToken, locationId, startMonth, e
 function InsightsModal({ isOpen, onClose, insights, listingTitle, loading, startDate, endDate, onDateChange, searchKeywords, searchKeywordsLoading }) {
   if (!isOpen) return null;
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById("insights-modal-content");
+    if (!element) {
+      toast.error("Content not found for PDF generation.");
+      return;
+    }
+
+    toast.loading("Generating PDF...", { id: "pdf-toast" });
+
+    // Store original styles to restore later
+    const scrollContainer = document.getElementById("insights-scroll-container");
+    let originalScrollHeight = '';
+    let originalScrollOverflow = '';
+    let originalRootMaxHeight = '';
+    let originalRootOverflow = '';
+
+    try {
+      // Temporarily expand the container to capture full content
+      if (scrollContainer) {
+        originalScrollHeight = scrollContainer.style.height;
+        originalScrollOverflow = scrollContainer.style.overflow;
+        scrollContainer.style.height = 'auto';
+        scrollContainer.style.overflow = 'visible';
+      }
+      
+      originalRootMaxHeight = element.style.maxHeight;
+      originalRootOverflow = element.style.overflow;
+      element.style.maxHeight = 'none';
+      element.style.overflow = 'visible';
+
+      const dataUrl = await toPng(element, {
+        quality: 0.98,
+        backgroundColor: "#ffffff",
+        pixelRatio: 2, // For better resolution
+      });
+
+      // Restore styles
+      if (scrollContainer) {
+        scrollContainer.style.height = originalScrollHeight;
+        scrollContainer.style.overflow = originalScrollOverflow;
+      }
+      element.style.maxHeight = originalRootMaxHeight;
+      element.style.overflow = originalRootOverflow;
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(dataUrl, "PNG", 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position -= pdfHeight;
+        pdf.addPage();
+        pdf.addImage(dataUrl, "PNG", 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`GMB-Insights-${listingTitle.replace(/\s+/g, "-")}.pdf`);
+      toast.success("PDF Downloaded!", { id: "pdf-toast" });
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      toast.error("Failed to generate PDF.", { id: "pdf-toast" });
+      
+      // Restore styles in case of error
+      if (scrollContainer) {
+        scrollContainer.style.height = originalScrollHeight;
+        scrollContainer.style.overflow = originalScrollOverflow;
+      }
+      element.style.maxHeight = originalRootMaxHeight;
+      element.style.overflow = originalRootOverflow;
+    }
+  };
+
   const calculateTotal = (metricData) => {
     if (!metricData || !metricData.timeSeries || !metricData.timeSeries.datedValues) {
       return 0;
@@ -243,9 +338,45 @@ function InsightsModal({ isOpen, onClose, insights, listingTitle, loading, start
         .slice(0, 10)
     : [];
 
+  const chartData = React.useMemo(() => {
+    if (!insights) return [];
+    
+    const directions = getMetricByType("BUSINESS_DIRECTION_REQUESTS")?.timeSeries?.datedValues || [];
+    const calls = getMetricByType("CALL_CLICKS")?.timeSeries?.datedValues || [];
+    const website = getMetricByType("WEBSITE_CLICKS")?.timeSeries?.datedValues || [];
+    const maps = getMetricByType("BUSINESS_IMPRESSIONS_MOBILE_MAPS")?.timeSeries?.datedValues || [];
+    const search = getMetricByType("BUSINESS_IMPRESSIONS_MOBILE_SEARCH")?.timeSeries?.datedValues || [];
+
+    const dataMap = new Map();
+
+    const addData = (series, key) => {
+      if (!series) return;
+      series.forEach(d => {
+        const dateKey = `${d.date.year}-${d.date.month}-${d.date.day}`;
+        if (!dataMap.has(dateKey)) {
+          dataMap.set(dateKey, {
+            date: new Date(d.date.year, d.date.month - 1, d.date.day),
+            displayDate: `${d.date.day}/${d.date.month}`,
+          });
+        }
+        dataMap.get(dateKey)[key] = parseInt(d.value || 0);
+      });
+    };
+
+    addData(directions, 'Directions');
+    addData(calls, 'Calls');
+    addData(website, 'Website');
+    addData(maps, 'Maps');
+    addData(search, 'Search');
+
+    return Array.from(dataMap.values()).sort((a, b) => a.date - b.date);
+  }, [insights]);
+
   return (
 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center p-2 sm:p-4 animate-fadeIn mt-10 sm:mt-14">
-  <div className="
+  <div
+      id="insights-modal-content"
+      className="
       bg-white rounded-2xl shadow-2xl 
       w-full max-w-5xl 
       max-h-[92vh] 
@@ -269,16 +400,25 @@ function InsightsModal({ isOpen, onClose, insights, listingTitle, loading, start
         </div>
       </div>
 
-      <button
-        onClick={onClose}
-        className="hover:bg-white/20 p-2 rounded-lg transition"
-      >
-        <X className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleDownloadPDF}
+          className="hover:bg-white/20 p-2 rounded-lg transition"
+          title="Download as PDF"
+        >
+          <Download className="w-5 h-5 sm:w-6 sm:h-6" />
+        </button>
+        <button
+          onClick={onClose}
+          className="hover:bg-white/20 p-2 rounded-lg transition"
+        >
+          <X className="w-5 h-5 sm:w-6 sm:h-6" />
+        </button>
+      </div>
     </div>
 
     {/* BODY */}
-    <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+    <div id="insights-scroll-container" className="p-4 sm:p-6 overflow-y-auto flex-1">
 
       {/* DATE RANGE */}
       <div className="
@@ -439,6 +579,62 @@ function InsightsModal({ isOpen, onClose, insights, listingTitle, loading, start
               </h3>
 
               <p className="text-xs text-gray-600">Users requested directions</p>
+            </div>
+          </div>
+
+          {/* CHARTS SECTION */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Visibility Chart */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <Eye className="w-4 h-4 text-purple-600" />
+                Visibility Trends
+              </h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorMaps" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#9333ea" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#9333ea" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorSearch" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="displayDate" tick={{fontSize: 10, fill: '#9ca3af'}} tickLine={false} axisLine={false} minTickGap={30} />
+                    <YAxis tick={{fontSize: 10, fill: '#9ca3af'}} tickLine={false} axisLine={false} tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value} />
+                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} itemStyle={{fontSize: '12px'}} />
+                    <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}}/>
+                    <Area type="monotone" dataKey="Maps" stroke="#9333ea" fillOpacity={1} fill="url(#colorMaps)" name="Maps Views" />
+                    <Area type="monotone" dataKey="Search" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSearch)" name="Search Views" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Engagement Chart */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <MousePointer className="w-4 h-4 text-blue-600" />
+                Engagement Trends
+              </h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="displayDate" tick={{fontSize: 10, fill: '#9ca3af'}} tickLine={false} axisLine={false} minTickGap={30} />
+                    <YAxis tick={{fontSize: 10, fill: '#9ca3af'}} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} itemStyle={{fontSize: '12px'}} />
+                    <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}}/>
+                    <Line type="monotone" dataKey="Website" stroke="#2563eb" strokeWidth={2} dot={false} name="Website Clicks" />
+                    <Line type="monotone" dataKey="Calls" stroke="#16a34a" strokeWidth={2} dot={false} name="Calls" />
+                    <Line type="monotone" dataKey="Directions" stroke="#ea580c" strokeWidth={2} dot={false} name="Directions" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
