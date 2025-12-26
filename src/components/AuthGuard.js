@@ -22,6 +22,7 @@ export default function AuthGuard({ children }) {
       "/about",
       "/contact",
       "/privacy-policy",
+      "/franchise-opportunities",
       "/cancellation-policy",
       "/terms-and-conditions",
       "/refund-policy",
