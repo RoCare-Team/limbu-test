@@ -33,6 +33,9 @@ export const metadata = {
   alternates: {
     canonical: "https://www.limbu.ai",
   },
+  icons: {
+    icon: "/images/bg-logo.png",
+  },
   other: {
     "google-site-verification":
       "U-FQQqXrb89Al4Gqx8KsuzMRa2kxeW8uxB4etX5-sqU",
