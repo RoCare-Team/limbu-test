@@ -252,7 +252,7 @@ export default function LimbuAILanding() {
 
       // 2. Open Razorpay
       const options = {
-        key: process.env.RAZORPAY_KEY_ID || "rzp_live_RsJG57bAQtpLmm",
+        key: process.env.RAZORPAY_KEY_ID || "rzp_live_RwW59lDH6d9dB8",
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Limbu.ai",
@@ -640,7 +640,7 @@ export default function LimbuAILanding() {
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Booked Successfully!</h2>
                 <p className="text-slate-600">We will contact you shortly. The window will close automatically.</p>
               </div>
-              
+
             ) : isSunday ? (
               <div className="text-center py-8">
                 <Calendar className="w-16 h-16 text-red-500 mx-auto mb-4" />
