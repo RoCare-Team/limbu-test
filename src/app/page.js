@@ -640,6 +640,7 @@ export default function LimbuAILanding() {
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Booked Successfully!</h2>
                 <p className="text-slate-600">We will contact you shortly. The window will close automatically.</p>
               </div>
+              
             ) : isSunday ? (
               <div className="text-center py-8">
                 <Calendar className="w-16 h-16 text-red-500 mx-auto mb-4" />
