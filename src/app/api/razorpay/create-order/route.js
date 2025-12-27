@@ -8,6 +8,7 @@ export async function POST(request) {
     if (!planId || !amount || !receipt) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
+    
 
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET;
