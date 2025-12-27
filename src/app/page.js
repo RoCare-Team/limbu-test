@@ -252,7 +252,7 @@ export default function LimbuAILanding() {
 
       // 2. Open Razorpay
       const options = {
-        key: process.env.RAZORPAY_KEY_ID || "rzp_live_RbCgJ3vKqQjFVE",
+        key: process.env.RAZORPAY_KEY_ID || "rzp_live_RsJG57bAQtpLmm",
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Limbu.ai",

@@ -11,10 +11,12 @@ export default function BusinessQR({ slug }) {
   const [submittedRatings, setSubmittedRatings] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  
+
 
   // Generate QR
   const generateQR = (url) => {
+    console.log("urlurl",url);
+    
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(
       url
     )}`;
@@ -29,7 +31,9 @@ export default function BusinessQR({ slug }) {
 
       const finalURL = `https://limbu.ai/qr-management/${slug}`;
       generateQR(finalURL);
+      console.log("finalURLfinalURL",finalURL);
     }
+    
 
     const savedRatings = JSON.parse(sessionStorage.getItem("ratings") || "[]");
     setSubmittedRatings(savedRatings);
