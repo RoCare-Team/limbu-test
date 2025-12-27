@@ -102,7 +102,7 @@ export default function FranchisePage() {
 
       // 2. Open Razorpay
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_RbCgJ3vKqQjFVE",
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_RwX1nRfZbVyVwT",
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Limbu.ai Franchise",
