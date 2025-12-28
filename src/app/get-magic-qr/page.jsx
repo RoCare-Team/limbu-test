@@ -6,6 +6,8 @@ import {
   MessageSquare, Share2, Printer, ArrowLeft
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import PowerRedLogo from "../../../public/images/bg-logo.png"
 
 export default function BusinessQR() {
   const [business, setBusiness] = useState("");
@@ -384,9 +386,20 @@ export default function BusinessQR() {
       </p>
 
       {/* Footer */}
-      <p className="text-xs text-gray-600 mt-4">
-        Powered by <span className="font-bold text-indigo-600">LimbuAI</span>
-      </p>
+      <p className="mt-4 flex items-center justify-center gap-1 text-xs text-gray-600">
+  Powered by
+  <span className="flex items-center gap-1 font-bold text-indigo-600">
+    <Image
+      src={PowerRedLogo}
+      alt="LimbuAI"
+      width={25}
+      height={25}
+      className="inline-block"
+    />
+    LimbuAI
+  </span>
+</p>
+
     </div>
   </div>
 </div>
