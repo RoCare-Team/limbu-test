@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { toPng } from "html-to-image";
 import { 
   Star, Download, Copy, Check, Sparkles, QrCode, 
   MessageSquare, Share2, Printer, ArrowLeft
@@ -17,6 +18,7 @@ export default function BusinessQR() {
   
   const [allLocations, setAllLocations] = useState([]);
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const qrCardRef = useRef(null);
 
   // Get all locations from localStorage
   const getAllLocations = () => {
@@ -130,222 +132,90 @@ export default function BusinessQR() {
   };
 
   // Download QR with branding
-const downloadQR = () => {
-  if (!qrImage) return;
+  const downloadQR = async () => {
+    if (qrCardRef.current === null) {
+      return;
+    }
 
-  const qrImg = new Image();
-  qrImg.crossOrigin = "Anonymous";
-  qrImg.src = qrImage;
-
-  qrImg.onload = () => {
-    const logo = new Image();
-    logo.crossOrigin = "Anonymous";
-    logo.src = "/images/bg-logo.png"; // PUBLIC FOLDER
-
-    logo.onload = () => {
-      const canvas = document.createElement("canvas");
-      const padding = 80;
-      const qrSize = 600;
-
-      const titleHeight = 140;
-      const urlHeight = 60;
-      const poweredByHeight = 100; // Increased for clean spacing
-      const spacing = 40;
-
-      canvas.width = qrSize + padding * 2;
-      canvas.height =
-        padding +
-        titleHeight +
-        qrSize +
-        urlHeight +
-        poweredByHeight +
-        spacing * 3 +
-        padding;
-
-      const ctx = canvas.getContext("2d");
-
-      // Background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      let currentY = padding;
-
-      // -------------------------------------------
-      //  BUSINESS NAME (AUTO 2–3 LINES)
-      // -------------------------------------------
-
-      const maxWidth = canvas.width - padding * 2;
-      let fontSize = 48;
-      ctx.font = `bold ${fontSize}px Arial`;
-
-      while (ctx.measureText(business).width > maxWidth && fontSize > 20) {
-        fontSize--;
-        ctx.font = `bold ${fontSize}px Arial`;
-      }
-
-      const words = business.split(" ");
-      let lines = [];
-      let line = "";
-
-      words.forEach((word) => {
-        const test = line + word + " ";
-        if (ctx.measureText(test).width > maxWidth) {
-          lines.push(line.trim());
-          line = word + " ";
-        } else {
-          line = test;
-        }
-      });
-
-      lines.push(line.trim());
-
-      if (lines.length > 3) {
-        lines = [lines[0], lines[1], lines.slice(2).join(" ")];
-      }
-
-      ctx.fillStyle = "#1f2937";
-      ctx.textAlign = "center";
-      const lineHeight = fontSize + 12;
-
-      lines.forEach((text, i) => {
-        ctx.fillText(text, canvas.width / 2, currentY + lineHeight * (i + 1));
-      });
-
-      currentY += lineHeight * lines.length + spacing;
-
-      // -------------------------------------------
-      //  QR CODE
-      // -------------------------------------------
-      ctx.drawImage(qrImg, padding, currentY, qrSize, qrSize);
-      currentY += qrSize + spacing;
-
-      // -------------------------------------------
-      //  URL TEXT
-      // -------------------------------------------
-      ctx.fillStyle = "#4b5563";
-      ctx.font = "28px Arial";
-      ctx.textAlign = "center";
-
-      const urlText =
-        reviewUrl.length > 50 ? reviewUrl.substring(0, 47) + "..." : reviewUrl;
-
-      ctx.fillText(urlText, canvas.width / 2, currentY + 20);
-      currentY += urlHeight + spacing;
-
-      // -------------------------------------------
-      //  LOGO + "Powered by LimbuAI"
-      // -------------------------------------------
-
-      const text = "Powered by LimbuAI";
-      ctx.font = "bold 32px Arial";
-
-      const textWidth = ctx.measureText(text).width;
-      const logoSize = 55;
-      const gap = 15;
-
-      const totalContentWidth = logoSize + gap + textWidth;
-
-      const startX = (canvas.width - totalContentWidth) / 2;
-      const centerY = currentY + 40;
-
-      // Draw logo
-      ctx.drawImage(logo, startX, centerY - logoSize / 2, logoSize, logoSize);
-
-      // Draw text
-      ctx.fillStyle = "#1f2937";
-      ctx.textAlign = "left";
-      ctx.fillText(text, startX + logoSize + gap, centerY + 10);
-
-      // -------------------------------------------
-      //  BORDER & DOWNLOAD
-      // -------------------------------------------
-      ctx.strokeStyle = "#e5e7eb";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-
-      const pngUrl = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = pngUrl;
-      a.download = `${business}-qr-review.png`;
-      a.click();
-    };
+    try {
+      const dataUrl = await toPng(qrCardRef.current, { cacheBust: true, pixelRatio: 3 });
+      const link = document.createElement('a');
+      link.download = `${business}-qr-review.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error(err);
+    }
   };
-};
 
+  const printQR = async () => {
+    if (qrCardRef.current === null) {
+      return;
+    }
 
-  const printQR = () => {
-    if (!qrImage) return;
-
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Print QR - ${business}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: Arial, sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 100vh;
-              background: white;
-            }
-            .print-container {
-              text-align: center;
-              padding: 40px;
-              border: 2px solid #e5e7eb;
-              max-width: 600px;
-            }
-            .business-name {
-              font-size: 32px;
-              font-weight: bold;
-              color: #1f2937;
-              margin-bottom: 30px;
-            }
-            .qr-image {
-              width: 400px;
-              height: 400px;
-              margin: 0 auto 30px;
-              display: block;
-            }
-            .review-url {
-              font-size: 16px;
-              color: #4b5563;
-              margin-bottom: 30px;
-              word-break: break-all;
-            }
-            .powered-by {
-              font-size: 18px;
-              color: #1f2937;
-              font-weight: bold;
-              margin-top: 20px;
-            }
-            @media print {
-              body { background: white; }
-              .print-container { border: 1px solid #ccc; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="print-container">
-            <div class="business-name">${business}</div>
-            <img src="${qrImage}" class="qr-image" alt="QR Code" />
-            <div class="review-url">${reviewUrl}</div>
-            <div class="powered-by">Powered by LimbuAI</div>
-          </div>
-          <script>
-            window.onload = () => {
-              setTimeout(() => {
-                window.print();
-              }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    try {
+      const dataUrl = await toPng(qrCardRef.current, { cacheBust: true, pixelRatio: 3 });
+      const printWindow = window.open("", "_blank");
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print QR - ${business}</title>
+            <style>
+              @media print {
+                @page {
+                  size: auto;
+                  margin: 0;
+                }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  height: 100vh;
+                  width: 100vw;
+                }
+                img {
+                  max-width: 100%;
+                  max-height: 100vh;
+                  object-fit: contain;
+                }
+              }
+              body {
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background-color: #fff;
+              }
+              img {
+                max-width: 100%;
+                max-height: 100vh;
+                object-fit: contain;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                border-radius: 1.5rem;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${dataUrl}" />
+            <script>
+              window.onload = () => {
+                setTimeout(() => {
+                  window.print();
+                  window.close();
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const copyToClipboard = () => {
@@ -450,25 +320,77 @@ const downloadQR = () => {
               <h2 className="text-2xl font-bold text-gray-800">Your QR Code</h2>
             </div>
 
-            <div className="mb-8">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl shadow-inner">
-                <div className="bg-white rounded-xl p-6 shadow-sm text-center">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">{business}</h3>
-                  
-                  {qrImage && (
-                    <img
-                      src={qrImage}
-                      className="w-full max-w-xs mx-auto rounded-xl mb-4"
-                      alt="QR Code"
-                    />
-                  )}
-                  
-                  <p className="text-sm text-gray-600 mb-4 break-all px-2">{reviewUrl}</p>
-                  
-                  <p className="text-base text-gray-700 font-bold">Powered by LimbuAI</p>
-                </div>
-              </div>
-            </div>
+           <div className="mb-8 flex justify-center">
+  <div ref={qrCardRef} className="relative w-[340px] rounded-3xl overflow-hidden shadow-xl">
+
+    {/* Google Color Background */}
+    <div className="absolute inset-0">
+      <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-yellow-400 rounded-br-[120px]" />
+      <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-red-500 rounded-bl-[120px]" />
+      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-green-500 rounded-tr-[120px]" />
+      <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-blue-500 rounded-tl-[120px]" />
+    </div>
+
+    {/* White Card */}
+    <div className="relative bg-white m-4 rounded-2xl p-6 text-center">
+
+      {/* Google Logo */}
+      <div className="flex justify-center mb-2">
+        <span className="text-4xl font-extrabold">
+          <span className="text-blue-500">G</span>
+          <span className="text-red-500">o</span>
+          <span className="text-yellow-500">o</span>
+          <span className="text-blue-500">g</span>
+          <span className="text-green-500">l</span>
+          <span className="text-red-500">e</span>
+        </span>
+      </div>
+
+      {/* Stars */}
+      <div className="flex justify-center gap-1 text-yellow-400 mb-2">
+        ★ ★ ★ ★ ★
+      </div>
+
+      {/* Heading */}
+      <p className="text-sm font-semibold text-gray-700">
+        Scan to Rate Us on <span className="font-bold">Google</span>
+      </p>
+
+      {/* Business Name */}
+      <h3 className="text-base font-bold text-gray-900 mt-2 mb-4">
+        {business}
+      </h3>
+
+      {/* QR Code Box */}
+      {qrImage && (
+        <div className="relative inline-block bg-white p-4 rounded-xl shadow-md">
+          <img
+            src={qrImage}
+            alt="Google Review QR"
+            className="w-52 h-52 mx-auto"
+          />
+
+          {/* Corner Accents */}
+          <span className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-red-500 rounded-tl-lg" />
+          <span className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-500 rounded-tr-lg" />
+          <span className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg" />
+          <span className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-500 rounded-br-lg" />
+        </div>
+      )}
+
+      {/* Review URL (Optional) */}
+      <p className="text-[11px] text-gray-500 mt-3 break-all px-2">
+        {reviewUrl}
+      </p>
+
+      {/* Footer */}
+      <p className="text-xs text-gray-600 mt-4">
+        Powered by <span className="font-bold text-indigo-600">LimbuAI</span>
+      </p>
+    </div>
+  </div>
+</div>
+
 
             <div className="grid grid-cols-2 gap-3 mb-8">
               <button
