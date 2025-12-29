@@ -12,6 +12,7 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
           : [...prev, option]
       );
     };
+    
   
     const getPayload = () => {
       const hasPost = checkmark.includes('post');
