@@ -5,6 +5,7 @@ import User from "@/models/User";
 
 export async function POST(req) {
   await dbConnect();
+  
 
   try {
     const { userId, plan, payment } = await req.json();
