@@ -44,7 +44,7 @@ export async function GET(req) {
 export async function PUT(req) {
   try {
     const body = await req.json();
-    const { userId, gst } = body;
+    const { userId, gst, coins } = body;
 
     if (!userId) {
       return NextResponse.json(
@@ -56,16 +56,39 @@ export async function PUT(req) {
     await client.connect();
     const db = client.db("test");
 
-    const updated = await db.collection("users").findOneAndUpdate(
-      { userId },
-      { $set: { gst } },
-      { returnDocument: "after" }
-    );
+    /* ---------- UPDATE GST ---------- */
+    if (gst) {
+      await db.collection("users").updateOne(
+        { userId },
+        { $set: { gst } }
+      );
+    }
+
+    let walletUpdateResult = null;
+
+    /* ---------- ADD WALLET COINS ---------- */
+    if (coins && Number(coins) > 0) {
+      // 1. Update wallet balance
+      walletUpdateResult = await db.collection("users").findOneAndUpdate(
+        { userId },
+        { $inc: { wallet: Number(coins) } },
+        { returnDocument: "after" }
+      );
+
+      // 2. Insert wallet transaction log
+      await db.collection("wallet_transactions").insertOne({
+        userId,
+        amount: Number(coins),
+        type: "add",
+        reason: "wallet Recharge",
+        createdAt: new Date(),
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: "GST updated successfully",
-      updatedUser: updated,
+      message: "GST & Wallet updated successfully",
+      wallet: walletUpdateResult?.value?.wallet,
     });
 
   } catch (error) {
