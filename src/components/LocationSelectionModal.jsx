@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CheckCircle, MapPin, XCircle } from 'lucide-react';
 
-const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select Locations", confirmText = "Confirm" }) => {
-    const [selectedLocations, setSelectedLocations] = useState([]);
+const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select Locations", confirmText = "Confirm", initialSelected = [], walletBalance = 0 }) => {
+    const [selectedLocations, setSelectedLocations] = useState(initialSelected);
     const [checkmark, setCheckmark] = useState(['post', 'photo']); // Default to both selected
   
     const handleCheckmarkChange = (option) => {
@@ -42,6 +42,10 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
     };
     const verifiedLocations = locations.filter(loc => loc.isVerified);
     const unverifiedLocations = locations.filter(loc => !loc.isVerified);
+
+    const isPostAction = title.toLowerCase().includes("post");
+    const totalCost = selectedLocations.length * 20;
+    const insufficientFunds = isPostAction && (walletBalance < totalCost);
 
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -112,17 +116,42 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
             </div>
             
             {/* Summary Card */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-xl p-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-blue-200 pb-2">
                 <div>
                   <p className="text-sm text-gray-600">Selected Locations</p>
-                  <p className="text-2xl font-black text-blue-700">{selectedLocations.length}</p>
+                  <p className="text-xl font-black text-blue-700">{selectedLocations.length}</p>
                 </div>
-                <div>
+                <div className="text-right">
                   <p className="text-sm text-gray-600 text-right">Cost per Location</p>
-                  <p className="text-2xl font-black text-green-600">20 coins</p>
+                  <p className="text-xl font-black text-blue-600">20 coins</p>
                 </div>
               </div>
+              
+              {isPostAction && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Your Wallet</p>
+                    <p className={`text-xl font-black ${insufficientFunds ? 'text-red-500' : 'text-green-600'}`}>
+                      {walletBalance} coins
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Total Cost</p>
+                    <p className={`text-xl font-black ${insufficientFunds ? 'text-red-600' : 'text-purple-600'}`}>
+                      {totalCost} coins
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {isPostAction && insufficientFunds && (
+                 <div className="bg-red-100 border border-red-300 rounded-lg p-2 text-center">
+                    <p className="text-red-700 text-sm font-bold">
+                       Insufficient Balance! You need {totalCost - walletBalance} more coins.
+                    </p>
+                 </div>
+              )}
             </div>
             
             <div className="max-h-[300px] sm:max-h-[400px] overflow-y-auto space-y-3">
@@ -201,10 +230,10 @@ const LocationSelectionModal = ({ locations, onClose, onConfirm, title = "Select
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => onConfirm(selectedLocations, getPayload())}
-                disabled={selectedLocations.length === 0}
+                disabled={selectedLocations.length === 0 || insufficientFunds}
                 className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 sm:py-4 rounded-xl font-bold hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
-                {confirmText} to {selectedLocations.length} Location{selectedLocations.length !== 1 ? 's' : ''}
+                {insufficientFunds ? "Recharge to Post" : `${confirmText} to ${selectedLocations.length} Location${selectedLocations.length !== 1 ? 's' : ''}`}
               </button>
               <button
                 onClick={onClose} // Close button

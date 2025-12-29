@@ -32,6 +32,8 @@ import {
   EyeOff,
   RefreshCw,
   FileText,
+  ChevronDown,
+  MapPin,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -53,18 +55,48 @@ import animationData from "@/assets/animation/Loading.json"; // if not using pub
 
 // Scheduling Modal Component
 const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [date, setDate] = useState(() => {
     const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
+    return now.toISOString().split('T')[0];
   });
+
+  const [slot, setSlot] = useState(() => {
+    const now = new Date();
+    return now.getHours() + 1;
+  });
+
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
 
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    const date = new Date(selectedDate);
-    onConfirm(post._id, "scheduled", date.toISOString());
+    const scheduledTime = new Date(date);
+    scheduledTime.setHours(parseInt(slot), 0, 0, 0);
+    onConfirm(post._id, "scheduled", scheduledTime.toISOString());
     onClose();
+  };
+
+  // Generate time slots (00:00 - 01:00, etc.)
+  const timeSlots = Array.from({ length: 24 }, (_, i) => {
+    const formatTime = (hour) => {
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const h = hour % 12 || 12;
+      return `${h}:00 ${ampm}`;
+    };
+    
+    const label = `${formatTime(i)} - ${formatTime((i + 1) % 24)}`;
+    return { value: i, label };
+  });
+
+  const isSlotDisabled = (slotValue) => {
+    const now = new Date();
+    const [y, m, d] = date.split('-').map(Number);
+    const isToday = y === now.getFullYear() && (m - 1) === now.getMonth() && d === now.getDate();
+
+    if (isToday) {
+      return slotValue <= now.getHours();
+    }
+    return false;
   };
 
   return (
@@ -76,18 +108,57 @@ const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
-        <p className="text-gray-600 mb-4">Select a date and time to schedule this post.</p>
-        <input
-          type="datetime-local"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          min={(() => {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            return now.toISOString().slice(0, 16);
-          })()}
-          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
+        <p className="text-gray-600 mb-4">Select a date and time slot.</p>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Time Slot</label>
+            <div className="relative">
+              <button
+                onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-left flex justify-between items-center"
+              >
+                <span className="text-gray-700">
+                  {timeSlots.find((s) => s.value === parseInt(slot))?.label || "Select Time"}
+                </span>
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              </button>
+              
+              {showTimeDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  {timeSlots.map((s) => {
+                    const disabled = isSlotDisabled(s.value);
+                    return (
+                    <div
+                      key={s.value}
+                      onClick={() => {
+                        if (!disabled) {
+                          setSlot(s.value);
+                          setShowTimeDropdown(false);
+                        }
+                      }}
+                      className={`p-3 text-sm ${parseInt(slot) === s.value ? 'bg-blue-50 text-blue-700 font-medium' : disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50 cursor-pointer'}`}
+                    >
+                      {s.label}
+                    </div>
+                  )})}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-300">
             Cancel
@@ -612,8 +683,12 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
 
           {post.status === "scheduled" && (
             <div className="space-y-3">
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
+              <div 
+                className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3 cursor-pointer hover:bg-blue-100 transition-all group/schedule"
+                onClick={() => onUpdateStatus(post)}
+                title="Click to Edit Schedule & Locations"
+              >
+                <div className="bg-blue-100 p-2 rounded-lg group-hover/schedule:bg-blue-200 transition-colors">
                   <Calendar className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
@@ -628,6 +703,17 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                         })
                       : "Date not set"}
                   </p>
+                  {post.locations?.length > 0 && (
+                    <p className="text-xs text-blue-700 mt-1.5 font-medium flex items-center gap-1 bg-blue-100/50 px-2 py-0.5 rounded-md w-fit">
+                      <MapPin className="w-3 h-3" />
+                      {post.locations.length === 1
+                        ? `${post.locations[0].name || post.locations[0].title || "1 Location"} ${
+                            post.locations[0].locality ? `(${post.locations[0].locality})` : ""
+                          }`
+                        : `${post.locations.length} Locations`
+                      }
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -1415,8 +1501,7 @@ export default function PostManagementPage() {
       const data = await updatePostStatusAction({
         id,
         description: newDescription,
-        userId: userId,
-        status: "pending"
+        userId: userId
       });
       if (!data.success) {
         showToast(data.error || "Failed to update description", "error");
@@ -1885,6 +1970,14 @@ useEffect(() => {
     fetchPosts();
   }, []);
 
+  // Load wallet balance on mount
+  useEffect(() => {
+    const storedBalance = localStorage.getItem("walletBalance");
+    if (storedBalance) {
+      setUserWallet(parseInt(storedBalance, 10));
+    }
+  }, []);
+
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -1913,6 +2006,13 @@ useEffect(() => {
             onConfirm={handleLocationConfirm}
             title="Select Locations to Post"
             confirmText="Post"
+            walletBalance={userWallet}
+            initialSelected={
+              postToAction?.locations?.map((l) => {
+                const match = availableLocations.find((al) => al.locationId === l.locationId);
+                return match ? match.id : l.id;
+              }) || []
+            }
           />
         )}
         {showDeleteLocationModal && (

@@ -6,6 +6,14 @@ import User from "@/models/User";
 import { postToGmbAction } from "@/lib/gmb/postToGmb";
 import { deductFromWalletAction } from "@/app/actions/postActions";
 
+// Vercel & Next.js Config
+// --------------------------------------------------
+// Allow up to 5 minutes for execution (Vercel Pro plan limit).
+// We aim to finish much faster, but this prevents premature 504s.
+export const maxDuration = 300;
+// Ensure the route is never cached so cron always sees fresh data.
+export const dynamic = "force-dynamic";
+
 /* -------------------------------------------------- 
    DEBUG LOGGER
 -------------------------------------------------- */
@@ -24,7 +32,6 @@ const log = (...args) => {
    REFRESH ACCESS TOKEN
 -------------------------------------------------- */
 async function getFreshAccessToken(refreshToken) {
-  console.log("refreshTokenrefreshTokenrefreshToken",refreshToken);
   
   log("🔄 Refreshing access token");
 
@@ -51,25 +58,14 @@ async function getFreshAccessToken(refreshToken) {
 }
 
 /* -------------------------------------------------- 
-   GET REFRESH TOKEN FROM gmb_dashboard.users
+   TIMEOUT HELPER
 -------------------------------------------------- */
-async function getRefreshTokenByEmail(email) {
-  if (!email) return null;
-
-  const gmbDb = mongoose.connection.useDb("gmb_dashboard");
-  const gmbUsers = gmbDb.collection("users");
-
-  const user = await gmbUsers.findOne(
-    { email },
-    { projection: { projects: 1 } }
-  );
-
-  if (!user?.projects?.length) return null;
-
-  const latestProject = user.projects[user.projects.length - 1];
-  log("🔑 Refresh token found for", email);
-
-  return latestProject.refreshToken || null;
+async function fetchWithTimeout(promise, ms = 20000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 /* -------------------------------------------------- 
@@ -85,17 +81,24 @@ export async function GET() {
 
     const now = new Date();
 
-    // 1. Find candidates (fetch IDs only first)
+    // 1. Find candidates with LIMIT and SORT
+    // We limit to 25 posts per run to process batches efficiently.
+    // We sort by scheduledDate ASC to process the oldest pending posts first.
+    const BATCH_SIZE = 25;
     const candidates = await Post.find({
       status: "scheduled",
       scheduledDate: { $lte: now },
-    }).select("_id").lean();
-
-    log(`Found ${candidates.length} posts to process.`);
+    })
+    .sort({ scheduledDate: 1 })
+    .limit(BATCH_SIZE)
+    .select("_id")
+    .lean();
 
     if (!candidates.length) {
-      return NextResponse.json({ success: true, logs: debugLogs });
+      return NextResponse.json({ success: true, message: "No scheduled posts due.", logs: debugLogs });
     }
+
+    log(`Found ${candidates.length} posts to process (Batch Limit: ${BATCH_SIZE}).`);
 
     const stats = {
       total: candidates.length,
@@ -108,7 +111,7 @@ export async function GET() {
     for (const candidate of candidates) {
       // 2. ATOMIC LOCK: Transition to 'processing' to prevent race conditions
       const post = await Post.findOneAndUpdate(
-        { _id: candidate._id, status: "scheduled" },
+        { _id: candidate._id, status: "scheduled" }, // Ensure we only pick up scheduled ones
         { status: "processing" },
         { new: true }
       );
@@ -173,12 +176,14 @@ export async function GET() {
             output: post.aiOutput,
             description: post.description || "",
             accessToken,
-            checkmark: post.checkmark || "both",
+            checkmark: ["post", "photo", "both"].includes(post.checkmark) ? post.checkmark : "both",
           };
 
           log("📦 Payload:", payload);
 
-          const result = await postToGmbAction(payload);
+          // Wrap the GMB call in a timeout to prevent hanging
+          const result = await fetchWithTimeout(postToGmbAction(payload), 20000);
+
           if (!result?.ok) throw new Error("GMB post failed");
 
           // ✅ Wallet deduction ONLY after success
@@ -194,8 +199,6 @@ export async function GET() {
             },
           });
 
-          console.log("wallletDaat",walletData);
-          
 
           if (walletData?.message !== "Wallet updated") {
             throw new Error("Wallet deduction failed");
@@ -211,10 +214,14 @@ export async function GET() {
               l.apiResponse = result;
             }
           });
+
+          // IMMEDIATE SAVE: Persist isPosted status and wallet deduction
+          await post.save();
+
           processedLocIds.add(loc.locationId);
 
         } catch (err) {
-          log(`❌ Error posting to location ${loc.locationId}:`, err.message);
+          log(`❌ Error posting to location ${loc.locationId}:`, err.message || "Unknown error");
           post.status = "failed";
           post.error = err.message;
           failed = true;
@@ -234,6 +241,7 @@ export async function GET() {
       stats.processed++;
     }
 
+    log("✅ Batch processing complete", stats);
     return NextResponse.json({ success: true, stats, logs: debugLogs });
 
   } catch (err) {

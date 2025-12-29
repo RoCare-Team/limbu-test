@@ -17,7 +17,7 @@ const PostSchema = new mongoose.Schema(
     rejectReason: { type: String, default: "" },
     accessToken: { type: String }, // Store token at schedule time
     refreshToken: { type: String }, // Store refresh token for cron jobs
-    checkmark: { type: String, default: false }, // ✅ Added checkmark field
+    checkmark: { type: String, default: "post" }, // ✅ Added checkmark field
     
     locations: [
       {
