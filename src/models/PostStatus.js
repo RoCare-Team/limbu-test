@@ -9,7 +9,7 @@ const PostSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "approved", "scheduled","posted","rejected", "failed"],
+      enum: ["pending", "approved", "scheduled", "processing", "posted", "rejected", "failed"],
       default: "pending",
     },
     
