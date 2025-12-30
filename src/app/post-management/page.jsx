@@ -34,6 +34,7 @@ import {
   FileText,
   ChevronDown,
   MapPin,
+  Pencil,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -331,11 +332,8 @@ const PreviewSection = ({
       </>
     )}
   </div>
-
+  
 </div>
-
-
-
       <div className="p-4 space-y-3 flex-1 flex flex-col bg-white">
     
         {status === "pending" && (
@@ -606,7 +604,11 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
         {/* Date */}
         <div className="pt-3 border-t border-gray-100 flex items-center text-xs text-gray-400">
           <Calendar className="w-3 h-3 mr-1.5" />
-          {post.createdAt ? new Date(post.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : "Date unknown"}
+          {post.status === "posted"
+            ? `Posted: ${new Date(post.locations?.[0]?.postedAt || post.updatedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}`
+            : post.createdAt
+            ? new Date(post.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })
+            : "Date unknown"}
         </div>
 
         {/* Action Buttons Area */}
@@ -681,59 +683,80 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
             </div>
           )}
 
-          {post.status === "scheduled" && (
-            <div className="space-y-3">
-              <div 
-                className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3 cursor-pointer hover:bg-blue-100 transition-all group/schedule"
-                onClick={() => onUpdateStatus(post)}
-                title="Click to Edit Schedule & Locations"
-              >
-                <div className="bg-blue-100 p-2 rounded-lg group-hover/schedule:bg-blue-200 transition-colors">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Scheduled For</p>
-                  <p className="text-sm font-bold text-gray-800">
-                    {post.scheduledDate
-                      ? new Date(post.scheduledDate).toLocaleString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "Date not set"}
-                  </p>
-                  {post.locations?.length > 0 && (
-                    <p className="text-xs text-blue-700 mt-1.5 font-medium flex items-center gap-1 bg-blue-100/50 px-2 py-0.5 rounded-md w-fit">
-                      <MapPin className="w-3 h-3" />
-                      {post.locations.length === 1
-                        ? `${post.locations[0].name || post.locations[0].title || "1 Location"} ${
-                            post.locations[0].locality ? `(${post.locations[0].locality})` : ""
-                          }`
-                        : `${post.locations.length} Locations`
-                      }
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-  onClick={() => handlePost(post)}
-  className="
-    w-full flex items-center justify-center gap-2
-    bg-blue-50 text-blue-600
-    border border-blue-100
-    hover:bg-blue-100 hover:border-blue-200
-    px-4 py-2.5 rounded-xl
-    text-sm font-semibold
-    transition-all duration-200
-  "
->
-  <Send className="w-4 h-4" />
-  Post Now
-</button>
+         {post.status === "scheduled" && (
+  <div className="space-y-3">
+    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-3 transition-all">
+      
+      {/* Calendar Icon */}
+      <div className="bg-blue-100 p-2 rounded-lg">
+        <Calendar className="w-5 h-5 text-blue-600" />
+      </div>
 
-            </div>
-          )}
+      {/* Content */}
+      <div className="flex-1">
+        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">
+          Scheduled For
+        </p>
+
+        <p className="text-sm font-bold text-gray-800">
+          {post.scheduledDate
+            ? new Date(post.scheduledDate).toLocaleString("en-IN", {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Date not set"}
+        </p>
+
+        {post.locations?.length > 0 && (
+          <p className="text-xs text-blue-700 mt-1.5 font-medium flex items-center gap-1 bg-blue-100/50 px-2 py-0.5 rounded-md w-fit">
+            <MapPin className="w-3 h-3" />
+            {post.locations.length === 1
+              ? `${post.locations[0].name || post.locations[0].title || "1 Location"} ${
+                  post.locations[0].locality
+                    ? `(${post.locations[0].locality})`
+                    : ""
+                }`
+              : `${post.locations.length} Locations`}
+          </p>
+        )}
+      </div>
+
+      {/* ✏️ Edit Schedule Button */}
+      <button
+        onClick={() => onUpdateStatus(post)}
+        title="Edit Schedule"
+        className="
+          p-2 rounded-lg
+          bg-blue-100 text-blue-600
+          hover:bg-blue-200
+          transition-colors
+        "
+      >
+        <Pencil className="w-4 h-4" />
+      </button>
+    </div>
+
+    {/* Post Now Button */}
+    <button
+      onClick={() => handlePost(post)}
+      className="
+        w-full flex items-center justify-center gap-2
+        bg-blue-50 text-blue-600
+        border border-blue-100
+        hover:bg-blue-100 hover:border-blue-200
+        px-4 py-2.5 rounded-xl
+        text-sm font-semibold
+        transition-all duration-200
+      "
+    >
+      <Send className="w-4 h-4" />
+      Post Now
+    </button>
+  </div>
+)}
+
           {post.status === "failed" && (
             <div className="space-y-3">
               <div className="bg-red-50 border border-red-200 rounded-xl p-3">
@@ -1040,7 +1063,7 @@ export default function PostManagementPage() {
         formData.append("folder", sigData.folder);
 
         const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/image/upload`,
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
           {
             method: "POST",
             body: formData,
@@ -1501,6 +1524,7 @@ export default function PostManagementPage() {
       const data = await updatePostStatusAction({
         id,
         description: newDescription,
+        status: "pending",
         userId: userId
       });
       if (!data.success) {
