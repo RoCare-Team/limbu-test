@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, User, Settings, BarChart3, Users, ArrowUpLeft, UserSquare, CircleUser } from "lucide-react";
+import { Menu, X, User, Settings, BarChart3, Users, ArrowUpLeft, UserSquare, CircleUser, LucideHeadset, PanelLeftDashed } from "lucide-react";
 import { LeaderboardSharp } from "@mui/icons-material";
 
 export default function AdminLayout({ children }) {
@@ -18,6 +18,7 @@ export default function AdminLayout({ children }) {
     { name: "Leads From Contact Form", icon: <LeaderboardSharp size={18} />, href: "/admin/contact-form" },
     { name: "Demo", icon: <LeaderboardSharp size={18} />, href: "/admin/demoBook" },
     { name: "Franchise Opportunities", icon: <LeaderboardSharp size={18} />, href: "/admin/franchise-lead" },
+    { name: "FB Lead", icon: <PanelLeftDashed size={18} />, href: "/admin/fb-lead" },
     { name: "Settings", icon: <Settings size={18} />, href: "/admin/settings" },
     { name: "Visit Website", icon: <ArrowUpLeft  size={18} />, href: "/" },
   ];
