@@ -867,6 +867,14 @@ export default function PostManagementPage() {
   const previewRef = useRef(null);
   const [bussinessTitle,setBussinessTitle] = useState("")
 
+  // Helper to strip base64 prefix
+  const stripBase64 = (str) => {
+    if (typeof str === 'string' && str.includes('base64,')) {
+      return str.split('base64,')[1];
+    }
+    return str;
+  };
+
 
   // Load locations from localStorage
   const [availableLocations, setAvailableLocations] = useState([]);
@@ -1150,8 +1158,15 @@ export default function PostManagementPage() {
         logoBase64 = await fileToBase64(logo);
       }
 
+      // Prepare assets with stripped base64
+      const strippedLogo = stripBase64(logoBase64);
+      const strippedAssets = selectedAssets.map(asset => ({
+        ...asset,
+        url: stripBase64(asset.url)
+      }));
+
       // Call AI Agent API (single generation, not per location)
-      const apiResponse = await generateWithAiAgentAction(prompt, logoBase64, selectedAssets);
+      const apiResponse = await generateWithAiAgentAction(prompt, strippedLogo, strippedAssets);
 
       clearInterval(timer);
 
@@ -1223,7 +1238,6 @@ export default function PostManagementPage() {
       return;
     }
 
-    console.log("businessNamebusinessName",businessName);
     
 
     const userId = localStorage.getItem("userId");
@@ -1271,15 +1285,17 @@ export default function PostManagementPage() {
         keywords: keywords || "",
         colourPalette: userAssets.find(a => a.name === 'Color')?.url || "none",
         size: userAssets.find(a => a.name === 'Size')?.url || "1:1",
-        characterImage: selectedAssets.find(a => a.name === 'Character')?.url || "",
-        uniformImage: selectedAssets.find(a => a.name === 'Uniform')?.url || "",
-        productImage: selectedAssets.find(a => a.name.startsWith('Product'))?.url || "",
-        backgroundImage: selectedAssets.find(a => a.name === 'Background')?.url || "",
-        logoImage: selectedAssets.find(a => a.name === 'Logo')?.url || logoBase64 || "",
+        characterImage: stripBase64(selectedAssets.find(a => a.name === 'Character')?.url || ""),
+        uniformImage: stripBase64(selectedAssets.find(a => a.name === 'Uniform')?.url || ""),
+        productImage: stripBase64(selectedAssets.find(a => a.name.startsWith('Product'))?.url || ""),
+        backgroundImage: stripBase64(selectedAssets.find(a => a.name === 'Background')?.url || ""),
+        logoImage: stripBase64(selectedAssets.find(a => a.name === 'Logo')?.url || logoBase64 || ""),
         platform: "gmb"
       });
 
       clearInterval(timer);
+
+      
 
 
       // The direct response from n8n is now the data we need

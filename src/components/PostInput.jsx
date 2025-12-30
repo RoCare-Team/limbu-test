@@ -98,6 +98,13 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
     });
   };
 
+  // Helper to ensure image displays even if stored without prefix
+  const getDisplayUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("data:") || url.startsWith("http")) return url;
+    return `data:image/png;base64,${url}`;
+  };
+
   const handleAssetUpload = async (e, asset) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -131,7 +138,10 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
       setUserAssets(prev => prev.map(a => a.name === asset.name ? { ...a, url: base64Image } : a));
 
       const userId = localStorage.getItem("userId");
-      const payload = { [fieldName]: base64Image };
+      
+      // Strip base64 prefix (data:image/xyz;base64,)
+      const base64Data = base64Image.split('base64,')[1] || base64Image;
+      const payload = { [fieldName]: base64Data };
       if (!assetId && userId) payload.userId = userId;
 
       const result = await saveAssetsToServerAction(payload, assetId);
@@ -495,7 +505,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                   </div>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.ico,.heic,.heif,.avif"
                     onChange={(e) => setLogo(e.target.files[0])}
                     className="hidden"
                     disabled={loading}
@@ -504,7 +514,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
               ) : (
                 <div className="relative h-24 bg-gray-50 rounded-lg border border-gray-300 p-2">
                   <img
-                    src={URL.createObjectURL(logo)}
+                    src={typeof logo === 'string' ? getDisplayUrl(logo) : URL.createObjectURL(logo)}
                     alt="Logo Preview"
                     className="w-full h-full object-contain rounded"
                   />
@@ -573,7 +583,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                   {asset.url ? (
                     <>
                       <img
-                        src={asset.url}
+                        src={getDisplayUrl(asset.url)}
                         alt={asset.name}
                         className="w-full h-full object-cover"
                       />
@@ -587,7 +597,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                           <Edit2 className="w-3.5 h-3.5" />
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.ico,.heic,.heif,.avif"
                             className="hidden"
                             onChange={(e) =>
                               handleAssetUpload(e, asset)
@@ -612,7 +622,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                       </span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.ico,.heic,.heif,.avif"
                         className="hidden"
                         onChange={(e) =>
                           handleAssetUpload(e, asset)
@@ -741,7 +751,7 @@ const PostInput = ({ prompt, setPrompt, onGenerate, loading, assets, logo, setLo
                     <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                     <p className="text-sm text-gray-500 font-medium">Click to upload image</p>
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setManualImage(e.target.files[0])} />
+                  <input type="file" accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.ico,.heic,.heif,.avif" className="hidden" onChange={(e) => setManualImage(e.target.files[0])} />
                 </label>
               ) : (
                 <div className="relative h-48 bg-gray-100 rounded-xl border border-gray-200 overflow-hidden">
