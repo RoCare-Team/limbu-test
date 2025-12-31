@@ -1019,6 +1019,7 @@ export default function FranchisePage() {
               {
                 name: "Business Champion",
                 investment: "₹50,000",
+                originalPrice: "₹1,00,000",
                 commission: "30%",
                 features: [
                   "City-level franchise rights",
@@ -1036,6 +1037,7 @@ export default function FranchisePage() {
               {
                 name: "Business Growth Plan",
                 investment: "₹1,00,000",
+                originalPrice: "₹2,00,000",
                 commission: "40% on revenue + 10% Business Champion",
                 features: [
                   "Multi-city franchise rights",
@@ -1055,6 +1057,7 @@ export default function FranchisePage() {
               {
                 name: "Business Excellence Plan",
                 investment: "₹2,00,000",
+                originalPrice: "₹5,00,000",
                 commission: "50% on revenue + 10% Business Growth Plan + 20% Business Champion",
                 features: [
                   "Regional franchise rights",
@@ -1081,6 +1084,16 @@ export default function FranchisePage() {
                 
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                  {plan.originalPrice && (
+                    <div className="inline-block bg-red-100 text-red-600 text-xs font-bold px-3 py-1 rounded-full mb-2 animate-pulse">
+                      🎉 New Year Offer
+                    </div>
+                  )}
+                  {plan.originalPrice && (
+                    <div className="text-lg text-gray-400 line-through font-bold decoration-red-500 decoration-2">
+                      {plan.originalPrice}
+                    </div>
+                  )}
                   <div className="text-4xl font-bold text-blue-600 mb-2">{plan.investment}</div>
                   <div className="text-sm text-gray-600">One-time investment</div>
                 </div>
