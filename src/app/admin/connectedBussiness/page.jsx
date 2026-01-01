@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 export default function ConnectedBusinessPage() {
   const [users, setUsers] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
