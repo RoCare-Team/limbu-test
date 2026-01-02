@@ -1,21 +1,15 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
-import FacebookPage from "@/models/FacebookPage";
+import FacebookPage from "@/models/FacebookPage"; // model neeche diya hai
 
 export async function GET(req) {
   try {
     await dbConnect();
 
-    const url = new URL(req.url);
-    const code = url.searchParams.get("code");
-    const userId = url.searchParams.get("state"); // 🔥 FROM LOGIN
+    const code = new URL(req.url).searchParams.get("code");
 
-    if (!code || !userId) {
-      throw new Error("Missing code or userId");
-    }
-
-    // 1️⃣ Exchange code → user token
+    // 1️⃣ Get user access token
     const tokenRes = await axios.get(
       "https://graph.facebook.com/v24.0/oauth/access_token",
       {
@@ -28,37 +22,29 @@ export async function GET(req) {
       }
     );
 
-    console.log("tokenRestokenRes",tokenRes);
-    
-
     const userToken = tokenRes.data.access_token;
-    console.log("userTokenuserToken",userToken);
-    
 
     // 2️⃣ Fetch pages
     const pagesRes = await axios.get(
       "https://graph.facebook.com/v24.0/me/accounts",
-      { params: { access_token: userToken } }
+      {
+        params: { access_token: userToken },
+      }
     );
+     console.log("FB PAGES RAW:", pagesRes.data);
 
-    console.log("pagesRespagesRes",pagesRes);
-    
-
-    // 3️⃣ Clear old pages
-    await FacebookPage.deleteMany({
-      userId,
-      platform: "facebook",
-    });
-
-    // 4️⃣ Save pages
+    // 3️⃣ SAVE EACH PAGE
     for (const page of pagesRes.data.data) {
-      await FacebookPage.create({
-        userId,
-        pageId: page.id,
-        pageName: page.name,
-        pageAccessToken: page.access_token,
-        platform: "facebook",
-      });
+      await FacebookPage.findOneAndUpdate(
+        { pageId: page.id },
+        {
+          pageId: page.id,
+          pageName: page.name,
+          pageAccessToken: page.access_token,
+          platform: "facebook",
+        },
+        { upsert: true, new: true }
+      );
     }
 
     return NextResponse.redirect(
@@ -66,7 +52,6 @@ export async function GET(req) {
     );
 
   } catch (err) {
-    console.error("FB CALLBACK ERROR:", err.message);
     return NextResponse.redirect(
       `${process.env.BASE_URL}/dashboard?fb=error`
     );
