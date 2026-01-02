@@ -1485,18 +1485,32 @@ const NavLinks = ({ isAuthenticated }) => {
  {/* Facebook */}
 {facebookPages.length === 0 ? (
   /* 👉 CONNECT FACEBOOK (DEFAULT) */
-  <button
-    onClick={() => (window.location.href = "/api/facebook/login")}
-    className="bg-white border border-blue-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-2 group"
-  >
-    <div className="bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
-      <Facebook className="w-6 h-6 text-[#1877F2]" />
-    </div>
-    <span className="text-sm font-bold text-gray-800 leading-tight">
-      Facebook Page
-    </span>
-    <span className="text-[10px] text-gray-500">Connect</span>
-  </button>
+ <button
+  onClick={() => {
+    const userId = localStorage.getItem("userId");
+
+    if (!userId) {
+      alert("Please login first");
+      return;
+    }
+
+    window.location.href = `/api/facebook/login?userId=${userId}`;
+  }}
+  className="bg-white border border-blue-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-2 group"
+>
+  <div className="bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
+    <Facebook className="w-6 h-6 text-[#1877F2]" />
+  </div>
+
+  <span className="text-sm font-bold text-gray-800 leading-tight">
+    Facebook Page
+  </span>
+
+  <span className="text-[10px] text-gray-500">
+    Connect
+  </span>
+</button>
+
 ) : (
   /* 👉 FACEBOOK CONNECTED → SHOW PAGENAME IN SAME SLOT */
   <div className="relative bg-white border border-blue-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group">
@@ -1546,17 +1560,30 @@ const NavLinks = ({ isAuthenticated }) => {
 
   {/* Instagram */}
   <button
-    onClick={() => (window.location.href = "/api/meta/login")}
-    className="bg-white border border-pink-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-pink-300 transition-all flex flex-col items-center gap-2 group"
-  >
-    <div className="bg-pink-50 p-2 rounded-full group-hover:bg-pink-100 transition-colors">
-      <Instagram className="w-6 h-6 text-[#E4405F]" />
-    </div>
-    <span className="text-sm font-bold text-gray-800 leading-tight">
-      Instagram Biz
-    </span>
-    <span className="text-[10px] text-gray-500">Connect</span>
-  </button>
+  onClick={() => {
+    const userId = localStorage.getItem("userId");
+
+    if (!userId) {
+      alert("Please login first");
+      return;
+    }
+
+    window.location.href = `/api/instagram/login?userId=${userId}`;
+  }}
+  className="bg-white border border-pink-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-pink-300 transition-all flex flex-col items-center gap-2 group"
+>
+  <div className="bg-pink-50 p-2 rounded-full group-hover:bg-pink-100 transition-colors">
+    <Instagram className="w-6 h-6 text-[#E1306C]" />
+  </div>
+
+  <span className="text-sm font-bold text-gray-800 leading-tight">
+    Instagram
+  </span>
+
+  <span className="text-[10px] text-gray-500">
+    Connect
+  </span>
+</button>
 
   {/* WhatsApp */}
   <button
