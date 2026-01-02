@@ -9,17 +9,12 @@ export async function POST(req) {
   console.log("📌 Facebook Post API called");
 
   try {
-    // 1️⃣ DB CONNECT
-    console.log("🔌 Connecting to DB...");
+    // 1️⃣ CONNECT DB
     await dbConnect();
-    console.log("✅ DB connected");
 
-    // 2️⃣ SESSION CHECK
+    // 2️⃣ CHECK SESSION
     const session = await getServerSession(authOptions);
-    console.log("👤 Session:", session);
-
-    if (!session || !session.user?.id) {
-      console.error("❌ No valid session");
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -27,65 +22,56 @@ export async function POST(req) {
     }
 
     const userId = session.user.id;
-    console.log("🆔 User ID:", userId);
 
-    // 3️⃣ REQUEST BODY
-    const body = await req.json();
-    console.log("📦 Request Body:", body);
-
-    const { pageId, message } = body;
+    // 3️⃣ READ REQUEST BODY
+    const { pageId, message } = await req.json();
 
     if (!pageId || !message) {
-      console.error("❌ Missing pageId or message");
       return NextResponse.json(
         { success: false, error: "pageId or message missing" },
         { status: 400 }
       );
     }
 
-    // 4️⃣ FETCH PAGE FROM DB
-    console.log("🔍 Fetching Facebook Page from DB...");
-    const page = await FacebookPage.findOne({ userId, pageId });
+    // 4️⃣ FETCH PAGE (USER-SPECIFIC)
+    const page = await FacebookPage.findOne({
+      userId,
+      pageId,
+      platform: "facebook",
+    });
 
-    console.log("📄 Page Found:", page);
-
-    if (!page) {
-      console.error("❌ Page not found for user");
+    if (!page || !page.pageAccessToken) {
       return NextResponse.json(
-        { success: false, error: "Page not found" },
+        { success: false, error: "Facebook page not connected" },
         { status: 403 }
       );
     }
 
-    // 5️⃣ POST TO FACEBOOK
-    console.log("🚀 Posting to Facebook...");
-    console.log("➡️ Page ID:", pageId);
-    console.log("➡️ Access Token Exists:", !!page.pageAccessToken);
-
+    // 5️⃣ POST TO FACEBOOK PAGE
     const fbResponse = await axios.post(
       `https://graph.facebook.com/v24.0/${pageId}/feed`,
       {
         message,
-        published: true, // REQUIRED for public post
-        access_token: "EAALZCcWoGmZCkBQUqSg2ncMPYMRB7dITF3L2bmV5hBvndNuCWoJbRM0skPomUS77gPvIPoZAqZB31CAU1Feq7Pj7DEAJl9b7vvAugfHjnhejAYPJDGkyVSeetAG5JqTLUqNCt0MaOzD7Lkq4z3zKnOliqmPTT1453j6dEOBIPn5KUQDYbQAe2piQUg0k7iHX8zGSJkuX",
+        published: true,
+        access_token: page.pageAccessToken, // ✅ CORRECT TOKEN
       }
     );
 
-    console.log("✅ Facebook Response:", fbResponse.data);
+    console.log("✅ Facebook Post Success:", fbResponse.data);
 
     return NextResponse.json({
       success: true,
-      facebookResponse: fbResponse.data,
+      postId: fbResponse.data.id,
     });
 
   } catch (err) {
     console.error("🔥 Facebook Post Error");
 
     if (err.response) {
-      console.error("❌ FB Error Status:", err.response.status);
-      console.error("❌ FB Error Data:", err.response.data);
+      console.error("FB STATUS:", err.response.status);
+      console.error("FB DATA:", err.response.data);
     } else {
-      console.error("❌ Error Message:", err.message);
+      console.error("ERROR:", err.message);
     }
 
     return NextResponse.json(

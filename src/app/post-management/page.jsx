@@ -1576,6 +1576,7 @@ export default function PostManagementPage() {
       const res = await fetch("/api/facebook/post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+          credentials: "include", // 🔥 VERY IMPORTANT
         body: JSON.stringify({
           pageId,
           published: true,

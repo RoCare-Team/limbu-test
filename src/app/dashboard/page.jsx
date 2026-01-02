@@ -1181,6 +1181,15 @@ const NavLinks = ({ isAuthenticated }) => {
   useEffect(()=>{
     fetchInitialData()
   },[])
+  
+
+
+  const disconnectFacebook = async () => {
+  await fetch("/api/facebook/disconnect", { method: "POST" });
+  setFacebookPages([]);
+  toast.success("Facebook Page disconnected");
+};
+
 
       useEffect(()=>{
         let timerId = null;
@@ -1504,7 +1513,7 @@ const NavLinks = ({ isAuthenticated }) => {
     {/* Logout Icon */}
     <button
         onClick={() => {
-            setFacebookPages([]);
+            disconnectFacebook()
             toast.success("Disconnected Facebook Page");
         }}
         className="absolute top-1.5 right-1.5 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"

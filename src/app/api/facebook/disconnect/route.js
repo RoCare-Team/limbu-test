@@ -4,7 +4,7 @@ import FacebookPage from "@/models/FacebookPage";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export async function GET() {
+export async function POST() {
   await dbConnect();
 
   const session = await getServerSession(authOptions);
@@ -12,10 +12,10 @@ export async function GET() {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 
-  const pages = await FacebookPage.find({
+  await FacebookPage.deleteMany({
     userId: session.user.id,
     platform: "facebook",
-  }).sort({ createdAt: -1 });
+  });
 
-  return NextResponse.json({ success: true, pages });
+  return NextResponse.json({ success: true });
 }
