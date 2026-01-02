@@ -1152,7 +1152,10 @@ const NavLinks = ({ isAuthenticated }) => {
   // --- Fetch Facebook Pages ---
   const fetchFacebookPages = useCallback(async () => {
     try {
-      const res = await fetch("/api/facebook/pages");
+const res = await fetch("/api/facebook/pages", {
+  method: "GET",
+  credentials: "include", // 🔥 MOST IMPORTANT LINE
+});
       const data = await res.json();
       console.log("datadata",data);
       
