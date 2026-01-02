@@ -858,6 +858,7 @@ export default function DashboardPage() {
   const [searchKeywordsData, setSearchKeywordsData] = useState(null);
   const [searchKeywordsLoading, setSearchKeywordsLoading] = useState(false);
   const [facebookPages, setFacebookPages] = useState([]);
+  const [instagramPages, setInstagramPages] = useState([]);
   const [cacheStatus, setCacheStatus] = useState(""); // For showing cache info
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);  
   const [showFirstPostModal, setShowFirstPostModal] = useState(false);
@@ -1176,6 +1177,26 @@ const NavLinks = ({ isAuthenticated }) => {
     }
   }, [fetchFacebookPages, searchParams, router]);
 
+  // --- Fetch Instagram Pages ---
+  const fetchInstagramPages = useCallback(async () => {
+    try {
+      const res = await fetch("/api/instagram/pages");
+      const data = await res.json();
+      if (data.success) {
+        setInstagramPages(data.pages);
+      }
+    } catch (error) {
+      console.error("Error fetching Instagram pages:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInstagramPages();
+    if (searchParams?.get("ig") === "connected") {
+      toast.success("Instagram Account connected successfully!");
+      router.replace("/dashboard");
+    }
+  }, [fetchInstagramPages, searchParams, router]);
 
 
   useEffect(()=>{
@@ -1548,42 +1569,65 @@ const NavLinks = ({ isAuthenticated }) => {
 </button>
 
         <button
-        onClick={() => (window.location.href = "/api/facebook/login")}
+        onClick={() => {
+          const userId = localStorage.getItem("userId");
+          if (!userId) {
+            alert("Please login first");
+            return;
+          }
+          window.location.href = `/api/facebook/login?userId=${userId}`;
+        }}
         className="flex-1 text-[10px] bg-gray-50 text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 transition font-medium whitespace-nowrap"
-        >
-        Add Page
-        </button>
+        >Add Page</button>
     </div>
   </div>
 )}
 
 
   {/* Instagram */}
-  <button
-  onClick={() => {
-    const userId = localStorage.getItem("userId");
-
-    if (!userId) {
-      alert("Please login first");
-      return;
-    }
-
-    window.location.href = `/api/instagram/login?userId=${userId}`;
-  }}
-  className="bg-white border border-pink-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-pink-300 transition-all flex flex-col items-center gap-2 group"
->
-  <div className="bg-pink-50 p-2 rounded-full group-hover:bg-pink-100 transition-colors">
-    <Instagram className="w-6 h-6 text-[#E1306C]" />
-  </div>
-
-  <span className="text-sm font-bold text-gray-800 leading-tight">
-    Instagram
-  </span>
-
-  <span className="text-[10px] text-gray-500">
-    Connect
-  </span>
-</button>
+  {instagramPages.length === 0 ? (
+    <button
+      onClick={() => {
+        const userId = localStorage.getItem("userId");
+        if (!userId) {
+          alert("Please login first");
+          return;
+        }
+        window.location.href = `/api/instagram/login?userId=${userId}`;
+      }}
+      className="bg-white border border-pink-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-pink-300 transition-all flex flex-col items-center gap-2 group"
+    >
+      <div className="bg-pink-50 p-2 rounded-full group-hover:bg-pink-100 transition-colors">
+        <Instagram className="w-6 h-6 text-[#E1306C]" />
+      </div>
+      <span className="text-sm font-bold text-gray-800 leading-tight">
+        Instagram
+      </span>
+      <span className="text-[10px] text-gray-500">
+        Connect
+      </span>
+    </button>
+  ) : (
+    <div className="relative bg-white border border-pink-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group">
+      <button onClick={() => { setInstagramPages([]); toast.success("Disconnected Instagram Account"); }} className="absolute top-1.5 right-1.5 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="Disconnect" >
+        <LogOut className="w-3.5 h-3.5" />
+      </button>
+      <div className="bg-pink-50 p-2 rounded-full">
+        <Instagram className="w-6 h-6 text-[#E1306C]" />
+      </div>
+      <span className="text-sm font-bold text-gray-900 text-center truncate w-full px-1">
+        {instagramPages[0].pageName}
+      </span>
+      <div className="flex gap-2 w-full mt-1">
+        <button onClick={() => router.push(`/post-management?pageId=${instagramPages[0].pageId}`)} className="text-[10px] bg-pink-600 text-white px-3 py-1 rounded-full hover:bg-pink-700 transition" >
+          Manage
+        </button>
+        <button onClick={() => { const userId = localStorage.getItem("userId"); if (!userId) { alert("Please login first"); return; } window.location.href = `/api/instagram/login?userId=${userId}`; }} className="flex-1 text-[10px] bg-gray-50 text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 transition font-medium whitespace-nowrap" >
+          Add Page
+        </button>
+      </div>
+    </div>
+  )}
 
   {/* WhatsApp */}
   <button
