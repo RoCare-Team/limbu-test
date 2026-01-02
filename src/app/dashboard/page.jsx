@@ -1152,10 +1152,7 @@ const NavLinks = ({ isAuthenticated }) => {
   // --- Fetch Facebook Pages ---
   const fetchFacebookPages = useCallback(async () => {
     try {
-const res = await fetch("/api/facebook/pages", {
-  method: "GET",
-  credentials: "include", // 🔥 MOST IMPORTANT LINE
-});
+      const res = await fetch("/api/facebook/pages");
       const data = await res.json();
       console.log("datadata",data);
       
@@ -1184,15 +1181,6 @@ const res = await fetch("/api/facebook/pages", {
   useEffect(()=>{
     fetchInitialData()
   },[])
-  
-
-
-  const disconnectFacebook = async () => {
-  await fetch("/api/facebook/disconnect", { method: "POST" });
-  setFacebookPages([]);
-  toast.success("Facebook Page disconnected");
-};
-
 
       useEffect(()=>{
         let timerId = null;
@@ -1516,7 +1504,7 @@ const res = await fetch("/api/facebook/pages", {
     {/* Logout Icon */}
     <button
         onClick={() => {
-            disconnectFacebook()
+            setFacebookPages([]);
             toast.success("Disconnected Facebook Page");
         }}
         className="absolute top-1.5 right-1.5 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"

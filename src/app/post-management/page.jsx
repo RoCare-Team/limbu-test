@@ -174,6 +174,106 @@ const ScheduleModal = ({ isOpen, onClose, onConfirm, post }) => {
   );
 };
 
+// Facebook Share Modal Component
+const FacebookShareModal = ({ isOpen, onClose, onConfirm, post, pages, loading }) => {
+  const [caption, setCaption] = useState("");
+  const [selectedPageId, setSelectedPageId] = useState("");
+
+  useEffect(() => {
+    if (post) {
+      setCaption(post.description || "");
+    }
+  }, [post]);
+
+  useEffect(() => {
+    if (pages && pages.length > 0 && !selectedPageId) {
+      setSelectedPageId(pages[0].pageId);
+    }
+  }, [pages, selectedPageId]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    const page = pages.find(p => p.pageId === selectedPageId);
+    if (page) {
+      onConfirm(post, page, caption);
+    } else if (pages.length > 0) {
+      onConfirm(post, pages[0], caption);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <Facebook className="w-6 h-6 text-[#1877F2]" />
+            Share to Facebook
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <p className="text-sm text-gray-500">Loading Facebook Pages...</p>
+          </div>
+        ) : pages.length === 0 ? (
+           <div className="text-center py-6">
+             <p className="text-gray-600 mb-4">No Facebook Pages connected.</p>
+             <button onClick={onClose} className="text-blue-600 hover:underline">Close</button>
+           </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Page</label>
+              <select
+                value={selectedPageId}
+                onChange={(e) => setSelectedPageId(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              >
+                {pages.map(page => (
+                  <option key={page.pageId} value={page.pageId}>
+                    {page.pageName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Caption</label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 bg-[#1877F2] text-white py-2.5 rounded-lg font-semibold hover:bg-[#166fe5] transition flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                Post Now
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Preview Section Component
 const PreviewSection = ({ 
   isGenerating, 
@@ -887,6 +987,11 @@ export default function PostManagementPage() {
   const [previewData, setPreviewData] = useState(null);
   const [lastUsedAssetsFlow, setLastUsedAssetsFlow] = useState(false);
 
+  const [showFacebookModal, setShowFacebookModal] = useState(false);
+  const [facebookPages, setFacebookPages] = useState([]);
+  const [loadingFbPages, setLoadingFbPages] = useState(false);
+  const [postToFacebook, setPostToFacebook] = useState(null);
+
   const [assetId, setAssetId] = useState(null);
   const [selectedAssets, setSelectedAssets] = useState([]);
   const previewRef = useRef(null);
@@ -1558,41 +1663,83 @@ export default function PostManagementPage() {
     }
   };
 
-  const handleFacebookPost = async (post) => {
-    if (!pageId) {
-      showToast("No Facebook Page connected. Please connect from Dashboard.", "error");
-      return;
+  const fetchFacebookPages = async () => {
+    if (facebookPages.length > 0) return;
+    setLoadingFbPages(true);
+    try {
+      const res = await fetch("/api/facebook/pages");
+      const data = await res.json();
+      if (data.success) {
+        setFacebookPages(data.pages);
+      } else {
+        showToast("Failed to fetch Facebook pages", "error");
+      }
+    } catch (err) {
+      console.error("Error fetching FB pages:", err);
+      showToast("Error fetching Facebook pages", "error");
+    } finally {
+      setLoadingFbPages(false);
     }
+  };
 
-    const message = post.description;
-    if (!message || !message.trim()) {
-      showToast("Post description is empty.", "error");
+  const handleFacebookPost = (post) => {
+    setPostToFacebook(post);
+    setShowFacebookModal(true);
+    fetchFacebookPages();
+  };
+
+  const submitFacebookPost = async (post, pageData, caption) => {
+    setShowFacebookModal(false);
+    
+    if (!caption && !post.aiOutput) {
+      showToast("Post content is empty.", "error");
       return;
     }
 
     try {
       showToast("Publishing to Facebook...", "success");
+      
+      const imageUrl = post.aiOutput;
+      const pageId = pageData.pageId;
+      const accessToken = pageData.pageAccessToken;
 
-      const res = await fetch("/api/facebook/post", {
+      let graphUrl = "";
+      let payload = {};
+
+      if (imageUrl) {
+        // Direct call to Facebook Graph API for Photos
+        graphUrl = `https://graph.facebook.com/v24.0/${pageId}/photos`;
+        payload = {
+          url: imageUrl,
+          caption: caption || "",
+          access_token: accessToken,
+        };
+      } else {
+        // Direct call to Facebook Graph API for Feed
+        graphUrl = `https://graph.facebook.com/v24.0/${pageId}/feed`;
+        payload = {
+          message: caption || "",
+          access_token: accessToken,
+        };
+      }
+
+      const res = await fetch(graphUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-          credentials: "include", // 🔥 VERY IMPORTANT
-        body: JSON.stringify({
-          pageId,
-          published: true,
-          is_published: true,
-          message,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
-      if (data.success) {
-        showToast("Post published on Facebook 🎉", "success");
+      if (data.id || data.post_id) {
+         showToast("Post published on Facebook 🎉", "success");
       } else {
-        showToast(data.error || "Failed to post to Facebook", "error");
+         console.error("Facebook API Error:", data);
+         showToast(data.error?.message || "Failed to post to Facebook", "error");
       }
+
     } catch (err) {
+      console.error("Facebook post error:", err);
       showToast("Something went wrong posting to Facebook", "error");
     }
   };
@@ -2153,6 +2300,16 @@ useEffect(() => {
             onSubmit={submitRejection}
             reason={rejectReason}
             setReason={setRejectReason}
+          />
+        )}
+        {showFacebookModal && (
+          <FacebookShareModal
+            isOpen={showFacebookModal}
+            onClose={() => setShowFacebookModal(false)}
+            onConfirm={submitFacebookPost}
+            post={postToFacebook}
+            pages={facebookPages}
+            loading={loadingFbPages}
           />
         )}
         {showFirstPostModal && (

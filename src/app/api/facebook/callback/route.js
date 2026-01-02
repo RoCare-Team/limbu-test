@@ -2,20 +2,18 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import FacebookPage from "@/models/FacebookPage";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 
 export async function GET(req) {
   try {
     await dbConnect();
 
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.redirect(`${process.env.BASE_URL}/login`);
-    }
+    const url = new URL(req.url);
+    const code = url.searchParams.get("code");
+    const userId = url.searchParams.get("state"); // 🔥 FROM LOGIN
 
-    const userId = session.user.id;
-    const code = new URL(req.url).searchParams.get("code");
+    if (!code || !userId) {
+      throw new Error("Missing code or userId");
+    }
 
     // 1️⃣ Exchange code → user token
     const tokenRes = await axios.get(
@@ -30,7 +28,12 @@ export async function GET(req) {
       }
     );
 
+    console.log("tokenRestokenRes",tokenRes);
+    
+
     const userToken = tokenRes.data.access_token;
+    console.log("userTokenuserToken",userToken);
+    
 
     // 2️⃣ Fetch pages
     const pagesRes = await axios.get(
@@ -38,13 +41,16 @@ export async function GET(req) {
       { params: { access_token: userToken } }
     );
 
-    // ❗ Remove old Facebook pages for this user
+    console.log("pagesRespagesRes",pagesRes);
+    
+
+    // 3️⃣ Clear old pages
     await FacebookPage.deleteMany({
       userId,
       platform: "facebook",
     });
 
-    // 3️⃣ Save ALL pages (user-specific)
+    // 4️⃣ Save pages
     for (const page of pagesRes.data.data) {
       await FacebookPage.create({
         userId,
@@ -58,8 +64,9 @@ export async function GET(req) {
     return NextResponse.redirect(
       `${process.env.BASE_URL}/dashboard?fb=connected`
     );
+
   } catch (err) {
-    console.error("FB CALLBACK ERROR:", err.response?.data || err.message);
+    console.error("FB CALLBACK ERROR:", err.message);
     return NextResponse.redirect(
       `${process.env.BASE_URL}/dashboard?fb=error`
     );

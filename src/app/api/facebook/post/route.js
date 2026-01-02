@@ -14,6 +14,8 @@ export async function POST(req) {
 
     // 2️⃣ CHECK SESSION
     const session = await getServerSession(authOptions);
+    console.log("session",session);
+    
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -22,6 +24,9 @@ export async function POST(req) {
     }
 
     const userId = session.user.id;
+    console.log("userId",userId);
+    
+
 
     // 3️⃣ READ REQUEST BODY
     const { pageId, message } = await req.json();
@@ -40,6 +45,9 @@ export async function POST(req) {
       platform: "facebook",
     });
 
+    console.log("pagepagepagepagepagepagepage",page);
+    
+
     if (!page || !page.pageAccessToken) {
       return NextResponse.json(
         { success: false, error: "Facebook page not connected" },
@@ -56,6 +64,9 @@ export async function POST(req) {
         access_token: page.pageAccessToken, // ✅ CORRECT TOKEN
       }
     );
+
+    console.log("fbResponsefbResponse",fbResponse);
+    
 
     console.log("✅ Facebook Post Success:", fbResponse.data);
 
