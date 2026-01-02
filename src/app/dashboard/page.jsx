@@ -1616,10 +1616,10 @@ const NavLinks = ({ isAuthenticated }) => {
         <Instagram className="w-6 h-6 text-[#E1306C]" />
       </div>
       <span className="text-sm font-bold text-gray-900 text-center truncate w-full px-1">
-        {instagramPages[0].pageName}
+        {instagramPages[0].igUsername}
       </span>
       <div className="flex gap-2 w-full mt-1">
-        <button onClick={() => router.push(`/post-management?pageId=${instagramPages[0].pageId}`)} className="text-[10px] bg-pink-600 text-white px-3 py-1 rounded-full hover:bg-pink-700 transition" >
+        <button onClick={() => router.push(`/post-management?pageId=${instagramPages[0].igId}`)} className="text-[10px] bg-pink-600 text-white px-3 py-1 rounded-full hover:bg-pink-700 transition" >
           Manage
         </button>
         <button onClick={() => { const userId = localStorage.getItem("userId"); if (!userId) { alert("Please login first"); return; } window.location.href = `/api/instagram/login?userId=${userId}`; }} className="flex-1 text-[10px] bg-gray-50 text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 transition font-medium whitespace-nowrap" >
