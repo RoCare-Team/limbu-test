@@ -67,7 +67,7 @@ export async function POST(req) {
       {
         message,
         published: true, // REQUIRED for public post
-        access_token: page.pageAccessToken,
+        access_token: "EAALZCcWoGmZCkBQUqSg2ncMPYMRB7dITF3L2bmV5hBvndNuCWoJbRM0skPomUS77gPvIPoZAqZB31CAU1Feq7Pj7DEAJl9b7vvAugfHjnhejAYPJDGkyVSeetAG5JqTLUqNCt0MaOzD7Lkq4z3zKnOliqmPTT1453j6dEOBIPn5KUQDYbQAe2piQUg0k7iHX8zGSJkuX",
       }
     );
 
