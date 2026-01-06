@@ -136,7 +136,6 @@ export default function DashboardPage() {
         }
 
         const data = await res.json();
-        console.log("API Response:", data);
 
         if (data.reviews && Array.isArray(data.reviews)) {
           console.log(`Received ${data.reviews.length} reviews on page ${pageCount}`);

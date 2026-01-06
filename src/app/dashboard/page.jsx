@@ -32,10 +32,10 @@ import {
   Rocket,
   Download,
   Activity,
+  LogOut,
   Facebook,
   Instagram,
   MessageCircle,
-  LogOut,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FirstPostModal from "../../components/FirstPostModal";
@@ -57,6 +57,7 @@ import {
   Area
 } from 'recharts';
 import MetaConnectCard from "../../components/MetaConnectCard";
+import SocialConnectCard from "../../components/SocialConnectCard";
 
 // --- API Helpers ---
 export async function fetchGMBAccounts(accessToken) {
@@ -128,6 +129,35 @@ export async function checkVoiceOfMerchant(accessToken, locationName) {
     return data;
   } catch (err) {
     return { hasVoiceOfMerchant: false, hasBusinessAuthority: false };
+  }
+}
+
+export async function fetchLocationLogo(accessToken, locationName) {
+  try {
+    const res = await fetch(
+      `https://mybusiness.googleapis.com/v4/${locationName}/media`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!res.ok) {
+      console.log("Media fetch failed:", res.status, res.statusText);
+      return null;
+    }
+
+    const data = await res.json();
+    // console.log(`[DEBUG] Media items for ${locationName}:`, data);
+
+    if (data.mediaItems && data.mediaItems.length > 0) {
+       const item = data.mediaItems.find(i => i.locationAssociation?.category === 'LOGO') 
+                 || data.mediaItems.find(i => i.locationAssociation?.category === 'PROFILE')
+                 || data.mediaItems[0];
+       
+      //  console.log(`[DEBUG] Selected media item for ${locationName}:`, item);
+       return item?.thumbnailUrl || item?.googleUrl || null;
+    }
+    return null;
+  } catch (err) {
+    return null;
   }
 }
 
@@ -935,7 +965,7 @@ const NavLinks = ({ isAuthenticated }) => {
             <div
               className={`
                 flex flex-col items-center justify-center 
-                space-y-1 p-1.5 sm:p-3 rounded-xl
+                space-y-1 p-1 sm:p-2 rounded-lg
                 cursor-pointer transition-all
                 ${pathname === item.href && isAuthenticated ? "scale-105" : ""}
               `}
@@ -947,7 +977,7 @@ const NavLinks = ({ isAuthenticated }) => {
             >
               <div
                 className={`
-                  p-2.5 sm:p-4 rounded-2xl transition
+                  p-2 sm:p-3 rounded-xl transition
                   ${
                     pathname === item.href && isAuthenticated
                       ? "bg-blue-600 text-white"
@@ -955,10 +985,10 @@ const NavLinks = ({ isAuthenticated }) => {
                   }
                 `}
               >
-                {item.icon}
+                {React.cloneElement(item.icon, { className: "h-5 w-5" })}
               </div>
 
-              <span className="text-[10px] sm:text-sm font-semibold text-gray-800 text-center leading-tight">
+              <span className="text-[9px] sm:text-xs font-semibold text-gray-800 text-center leading-tight">
                 {item.label}
               </span>
             </div>
@@ -1100,12 +1130,14 @@ const NavLinks = ({ isAuthenticated }) => {
             const locationsWithVoM = await Promise.all(
               locations.map(async (loc) => {
                 const vomStatus = await checkVoiceOfMerchant(token, loc.name);
+                const logoUrl = await fetchLocationLogo(token, `accounts/${accountId}/${loc.name}`);
                 return {
                   ...loc,
                   accountId,
                   accountName: accountName || account.name,
                   hasVoiceOfMerchant: vomStatus.hasVoiceOfMerchant,
                   hasBusinessAuthority: vomStatus.hasBusinessAuthority,
+                  logoUrl,
                 };
               })
             );
@@ -1420,6 +1452,161 @@ const NavLinks = ({ isAuthenticated }) => {
     }
   };
 
+  // --- Compact Header Social Icons ---
+  const renderCompactSocials = () => (
+    <div className="flex items-center gap-3 bg-gray-50/80 backdrop-blur-sm px-3 py-1.5 rounded-2xl border border-gray-200 shadow-sm overflow-x-auto max-w-full no-scrollbar">
+      {/* Google */}
+      <div
+  className="flex items-center gap-2 cursor-pointer"
+  onClick={() => !session && signIn("google")}
+>
+  {/* ICON */}
+  <div
+    className={`relative p-2.5 rounded-xl transition-all ${
+      session
+        ? "bg-blue-100 text-blue-600"
+        : "bg-gray-100 text-gray-400 grayscale"
+    }`}
+  >
+    <Building2 className="w-8 h-8" />
+
+    {/* STATUS DOT */}
+    <div
+      className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${
+        session ? "bg-green-500" : "bg-gray-300"
+      }`}
+    />
+  </div>
+
+  {/* EMAIL / ACCOUNT NAME (DIRECT) */}
+  {/* <span
+    className={`text-xs font-semibold truncate max-w-[180px] ${
+      session ? "text-blue-700" : "text-gray-400"
+    }`}
+  >
+    {session ? session.user.email : "Google"}
+  </span> */}
+</div>
+
+
+      {/* Facebook */}
+     <div
+      onClick={() => {
+        if (facebookPages.length > 0) {
+          router.push(`/post-management?pageId=${facebookPages[0]?.pageId}`);
+          return;
+        }
+        const userId = localStorage.getItem("userId");
+        if (!userId) return toast.error("Login first");
+        window.location.href = `/api/facebook/login?userId=${userId}`;
+      }}
+      className="flex items-center gap-2 cursor-pointer"
+    >
+      <div className={`p-2.5 rounded-xl ${
+        facebookPages.length > 0
+          ? "bg-[#1877F2]/10 text-[#1877F2]"
+          : "bg-gray-100 text-gray-400 grayscale"
+      }`}>
+        <Facebook className="w-6 h-6" />
+      </div>
+
+      <span className={`text-xs font-semibold truncate max-w-[140px] ${
+        facebookPages.length > 0 ? "text-[#1877F2]" : "text-gray-400"
+      }`}>
+        {facebookPages.length > 0
+          ? facebookPages[0].pageName
+          : "Facebook"}
+      </span>
+    </div>
+
+    {/* INSTAGRAM */}
+    <div
+      onClick={() => {
+        if (instagramPages.length > 0) {
+          router.push(`/post-management?pageId=${instagramPages[0]?.igId}`);
+          return;
+        }
+        const userId = localStorage.getItem("userId");
+        if (!userId) return toast.error("Login first");
+        window.location.href = `/api/instagram/login?userId=${userId}`;
+      }}
+      className="flex items-center gap-2 cursor-pointer"
+    >
+      <div className={`p-2.5 rounded-xl ${
+        instagramPages.length > 0
+          ? "bg-pink-100 text-[#E1306C]"
+          : "bg-gray-100 text-gray-400 grayscale"
+      }`}>
+        <Instagram className="w-6 h-6" />
+      </div>
+
+      <span className={`text-xs font-semibold truncate max-w-[140px] ${
+        instagramPages.length > 0 ? "text-[#E1306C]" : "text-gray-400"
+      }`}>
+        {instagramPages.length > 0
+          ? `@${instagramPages[0].igUsername}`
+          : "Instagram"}
+      </span>
+    </div>
+      
+       {/* WhatsApp */}
+      <div className="relative group cursor-pointer" onClick={() => toast("Coming Soon")}>
+        <div className={`p-2.5 rounded-xl transition-all bg-gray-100 text-gray-400 grayscale`}>
+          <MessageCircle className="w-8 h-8" />
+        </div>
+        <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full bg-gray-300`}></div>
+      </div>
+    </div>
+  );
+
+  // --- Social Grid Helper ---
+  const renderSocialGrid = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl mx-auto px-4 mb-8">
+
+      {/* Facebook */}
+      <SocialConnectCard
+        platform="facebook"
+        isConnected={facebookPages.length > 0}
+        identity={facebookPages[0]?.pageName}
+        onConnect={() => {
+          const userId = localStorage.getItem("userId");
+          if (!userId && status === "unauthenticated") {
+             signIn("google", { callbackUrl: "/dashboard" });
+             return;
+          }
+          if(!userId) return toast.error("Please login first");
+          window.location.href = `/api/facebook/login?userId=${userId}`;
+        }}
+        onDisconnect={() => {
+          setFacebookPages([]);
+          toast.success("Disconnected Facebook Page");
+        }}
+        onManage={() => router.push(`/post-management?pageId=${facebookPages[0]?.pageId}`)}
+      />
+
+      {/* Instagram */}
+      <SocialConnectCard
+        platform="instagram"
+        isConnected={instagramPages.length > 0}
+        identity={instagramPages[0]?.igUsername}
+        onConnect={() => {
+           const userId = localStorage.getItem("userId");
+          if (!userId && status === "unauthenticated") {
+               signIn("google", { callbackUrl: "/dashboard" });
+               return;
+          }
+          if(!userId) return toast.error("Please login first");
+          window.location.href = `/api/instagram/login?userId=${userId}`;
+        }}
+        onDisconnect={() => {
+          setInstagramPages([]);
+          toast.success("Disconnected Instagram Account");
+        }}
+        onManage={() => router.push(`/post-management?pageId=${instagramPages[0]?.igId}`)}
+      />
+    </div>
+  );
+
   // Filter Listings
   const getFilteredListings = (listings) => {
     if (filterStatus === "verified") {
@@ -1486,156 +1673,8 @@ const NavLinks = ({ isAuthenticated }) => {
               Connect your business platforms to automate management and boost your online presence.
             </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto px-4">
-
-  {/* Google Business */}
-  <button
-    onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-    className="bg-white border border-blue-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-2 group"
-  >
-    <div className="bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
-      <Building2 className="w-6 h-6 text-blue-600" />
-    </div>
-    <span className="text-sm font-bold text-gray-800 leading-tight">
-      Google Business
-    </span>
-    <span className="text-[10px] text-gray-500">Connect</span>
-  </button>
-
-  {/* Facebook */}
- {/* Facebook */}
-{facebookPages.length === 0 ? (
-  /* 👉 CONNECT FACEBOOK (DEFAULT) */
- <button
-  onClick={() => {
-    const userId = localStorage.getItem("userId");
-
-    if (!userId) {
-      alert("Please login first");
-      return;
-    }
-
-    window.location.href = `/api/facebook/login?userId=${userId}`;
-  }}
-  className="bg-white border border-blue-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-2 group"
->
-  <div className="bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
-    <Facebook className="w-6 h-6 text-[#1877F2]" />
-  </div>
-
-  <span className="text-sm font-bold text-gray-800 leading-tight">
-    Facebook Page
-  </span>
-
-  <span className="text-[10px] text-gray-500">
-    Connect
-  </span>
-</button>
-
-) : (
-  /* 👉 FACEBOOK CONNECTED → SHOW PAGENAME IN SAME SLOT */
-  <div className="relative bg-white border border-blue-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group">
-    
-    {/* Logout Icon */}
-    <button
-        onClick={() => {
-            setFacebookPages([]);
-            toast.success("Disconnected Facebook Page");
-        }}
-        className="absolute top-1.5 right-1.5 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-        title="Disconnect"
-    >
-        <LogOut className="w-3.5 h-3.5" />
-    </button>
-
-    <div className="bg-blue-50 p-2 rounded-full">
-      <Facebook className="w-6 h-6 text-[#1877F2]" />
-    </div>
-
-    <span className="text-sm font-bold text-gray-900 text-center truncate w-full px-1">
-      {facebookPages[0].pageName}
-    </span>
-
-  <div className="flex justify-center">
-  <button
-    onClick={() =>
-      router.push(
-        `/post-management?pageId=${facebookPages[0].pageId}`
-      )
-    }
-    className="text-[10px] bg-blue-600 text-white px-3 py-1 rounded-full hover:bg-blue-700 transition"
-  >
-    Manage
-  </button>
-</div>
-
-  </div>
-)}
-
-
-  {/* Instagram */}
-  {instagramPages.length === 0 ? (
-    <button
-      onClick={() => {
-        const userId = localStorage.getItem("userId");
-        if (!userId) {
-          alert("Please login first");
-          return;
-        }
-        window.location.href = `/api/instagram/login?userId=${userId}`;
-      }}
-      className="bg-white border border-pink-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-pink-300 transition-all flex flex-col items-center gap-2 group"
-    >
-      <div className="bg-pink-50 p-2 rounded-full group-hover:bg-pink-100 transition-colors">
-        <Instagram className="w-6 h-6 text-[#E1306C]" />
-      </div>
-      <span className="text-sm font-bold text-gray-800 leading-tight">
-        Instagram
-      </span>
-      <span className="text-[10px] text-gray-500">
-        Connect
-      </span>
-    </button>
-  ) : (
-    <div className="relative bg-white border border-pink-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group">
-      <button onClick={() => { setInstagramPages([]); toast.success("Disconnected Instagram Account"); }} className="absolute top-1.5 right-1.5 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="Disconnect" >
-        <LogOut className="w-3.5 h-3.5" />
-      </button>
-      <div className="bg-pink-50 p-2 rounded-full">
-        <Instagram className="w-6 h-6 text-[#E1306C]" />
-      </div>
-      <span className="text-sm font-bold text-gray-900 text-center truncate w-full px-1">
-        {instagramPages[0].igUsername}
-      </span>
-      <div className="flex justify-center w-full mt-1 text-center">
-  <button
-    onClick={() =>
-      router.push(`/post-management?pageId=${instagramPages[0].igId}`)
-    }
-    className="text-[10px] bg-pink-600 text-white px-3 py-1 rounded-full hover:bg-pink-700 transition"
-  >
-    Manage
-  </button>
-</div>
-
-    </div>
-  )}
-
-  {/* WhatsApp */}
-  <button
-    onClick={() => toast("WhatsApp integration coming soon!")}
-    className="bg-white border border-green-100 p-3 rounded-xl shadow-sm hover:shadow-md hover:border-green-300 transition-all flex flex-col items-center gap-2 group"
-  >
-    <div className="bg-green-50 p-2 rounded-full group-hover:bg-green-100 transition-colors">
-      <MessageCircle className="w-6 h-6 text-[#25D366]" />
-    </div>
-    <span className="text-sm font-bold text-gray-800 leading-tight">
-      WhatsApp Biz
-    </span>
-    <span className="text-[10px] text-gray-500">Coming Soon</span>
-  </button>
-
-</div>
+            {/* Render the unified social grid */}
+            {renderSocialGrid()}
 
           </div>
         </div>
@@ -1648,7 +1687,7 @@ const NavLinks = ({ isAuthenticated }) => {
   
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen md:h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50 md:overflow-hidden">
       <InsightsModal
         isOpen={showInsightsModal}
         onClose={() => setShowInsightsModal(false)}
@@ -1679,19 +1718,26 @@ const NavLinks = ({ isAuthenticated }) => {
             <NavLinks isAuthenticated={true} />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
-            {/* Left side: Title and Welcome Message */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
-                AI GMB Auto Management
-              </h1>
-              <p className="text-gray-600 mt-1 text-sm truncate">Welcome back, {session?.user?.name || "User"} 👋</p>
-              {cacheStatus && (
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  {cacheStatus}
+          <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-3 sm:gap-4">
+            {/* Left side: Social Icons & Welcome */}
+            <div className="flex-1 min-w-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="hidden sm:block h-8 w-px bg-gray-200"></div>
+              <div className="mb-2 sm:mb-0">
+                <p className="text-gray-600 text-xs sm:text-sm truncate font-medium">
+                  Welcome, <span className="text-gray-900 font-bold">{session?.user?.name || "User"}</span> 👋
                 </p>
-              )}
+                {cacheStatus && (
+                  <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    {cacheStatus}
+                  </p>
+                )}
+                
+              </div>
+              {/* <div className="w-full sm:w-auto">
+                {renderCompactSocials()}
+              </div> */}
+
             </div>
 
             {/* Right side: Action Buttons */}
@@ -1701,7 +1747,7 @@ const NavLinks = ({ isAuthenticated }) => {
                 <button
                   onClick={handleManualRefresh}
                   disabled={loading}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl shadow-md hover:from-green-700 hover:to-emerald-700 transition-all duration-300 text-sm sm:text-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="bg-gradient-to-r from-white-100 to-white-600 text-black font-semibold px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl shadow-md hover:from-white-700 hover:to-white-700 transition-all duration-300 text-sm sm:text-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   title="Refresh data from Google"
                 >
                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -1712,7 +1758,7 @@ const NavLinks = ({ isAuthenticated }) => {
               {session && (
                 <button
                   onClick={() => signOut({ callbackUrl: "/dashboard" })}
-                  className="bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold px-3 sm:px-5 py-2 rounded-lg sm:rounded-xl shadow-md hover:from-red-700 hover:to-pink-700 transition-all duration-300 text-sm sm:text-base whitespace-nowrap"
+                  className="bg-gradient-to-r from-white-600 to-white-600 text-black font-semibold px-3 sm:px-5 py-2 rounded-lg sm:rounded-xl shadow-md hover:from-white-700 hover:to-white-700 transition-all duration-300 text-sm sm:text-base whitespace-nowrap"
                 >
                   Logout
                 </button>
@@ -1744,9 +1790,9 @@ const NavLinks = ({ isAuthenticated }) => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-6">
+      <main className="flex-1 flex flex-col min-h-0 md:overflow-hidden">
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+      <div className="flex-1 md:overflow-y-auto max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4">
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
@@ -1758,63 +1804,139 @@ const NavLinks = ({ isAuthenticated }) => {
           </div>
         )}
 
-        {/* Summary Cards */}
-        {accounts.length > 0 && !loading && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
-            <div 
-              onClick={() => setFilterStatus("all")}
-              className={`bg-white rounded-lg sm:rounded-xl shadow-md p-3 sm:p-6 border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-lg ${
-                filterStatus === "all" ? "ring-2 ring-blue-500" : ""
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-gray-600 text-xs sm:text-sm font-medium truncate">Total Listings</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">{summary.total}</p>
-                </div>
-                <Building2 className="w-6 h-6 sm:w-10 sm:h-10 text-blue-500 opacity-80 hidden sm:block" />
+        {/* Platform Overview Section */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            
+            {/* GMB Block */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex flex-col h-full">
+              <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h3 className="font-bold text-gray-800 text-sm">Google Business</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-center h-full items-center">
+                  <div 
+                    onClick={() => setFilterStatus("all")} 
+                    className={`cursor-pointer rounded p-1.5 transition-colors ${filterStatus === 'all' ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'}`}
+                  >
+                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Total</p>
+                    <p className="text-lg font-black text-gray-900 leading-tight">{summary.total}</p>
+                  </div>
+                  <div 
+                    onClick={() => setFilterStatus("verified")} 
+                    className={`cursor-pointer rounded p-1.5 transition-colors ${filterStatus === 'verified' ? 'bg-green-50 ring-1 ring-green-200' : 'hover:bg-gray-50'}`}
+                  >
+                    <p className="text-[10px] text-green-600 font-semibold uppercase tracking-wide">Verified</p>
+                    <p className="text-lg font-black text-green-700 leading-tight">{summary.verified}</p>
+                  </div>
+                  <div 
+                    onClick={() => setFilterStatus("unverified")} 
+                    className={`cursor-pointer rounded p-1.5 transition-colors ${filterStatus === 'unverified' ? 'bg-red-50 ring-1 ring-red-200' : 'hover:bg-gray-50'}`}
+                  >
+                    <p className="text-[10px] text-red-600 font-semibold uppercase tracking-wide">Unverified</p>
+                    <p className="text-lg font-black text-red-700 leading-tight">{summary.unverified}</p>
+                  </div>
               </div>
             </div>
 
-            <div 
-              onClick={() => setFilterStatus("verified")}
-              className={`bg-white rounded-lg sm:rounded-xl shadow-md p-3 sm:p-6 border-l-4 border-green-500 cursor-pointer transition-all hover:shadow-lg ${
-                filterStatus === "verified" ? "ring-2 ring-green-500" : ""
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-gray-600 text-xs sm:text-sm font-medium truncate">Verified</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">{summary.verified}</p>
+            {/* Facebook Block */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-2 border-b border-gray-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <Facebook className="w-4 h-4 text-[#1877F2]" />
+                  <h3 className="font-bold text-gray-800 text-sm">Facebook</h3>
                 </div>
-                <CheckCircle className="w-6 h-6 sm:w-10 sm:h-10 text-green-500 opacity-80 hidden sm:block" />
+                {facebookPages.length > 0 && (
+                  <button onClick={() => { setFacebookPages([]); toast.success("Disconnected Facebook"); }} className="text-gray-400 hover:text-red-500" title="Disconnect">
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+              {facebookPages.length > 0 ? (
+                  <div className="flex flex-col gap-2 flex-1 min-h-0">
+                    <div className="flex-1 overflow-y-auto max-h-[80px] space-y-1.5 pr-1">
+                        {facebookPages.map((p, i) => (
+                            <div key={i} className="bg-gray-50 p-1.5 rounded border border-gray-100 flex justify-between items-center group">
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-xs font-bold text-gray-800 truncate" title={p.pageName}>{p.pageName}</span>
+                                  <span className="text-[9px] text-gray-500 truncate">ID: {p.pageId}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => router.push(`/post-management?pageId=${facebookPages[0]?.pageId}`)}
+                        className="w-full mt-auto bg-blue-50 text-blue-600 text-xs font-semibold py-1.5 rounded hover:bg-blue-100 transition flex items-center justify-center gap-1"
+                    >
+                        Manage Pages
+                    </button>
+                  </div>
+              ) : (
+                  <div className="flex flex-col items-center justify-center flex-1 py-1 gap-2">
+                    <p className="text-[10px] text-gray-400">Not connected</p>
+                    <button 
+                      onClick={() => {
+                          const userId = localStorage.getItem("userId");
+                          if (!userId) return toast.error("Login first");
+                          window.location.href = `/api/facebook/login?userId=${userId}`;
+                      }}
+                      className="text-xs bg-[#1877F2] text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition font-medium w-full flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Connect
+                    </button>
+                  </div>
+              )}
             </div>
 
-            <div 
-              onClick={() => setFilterStatus("unverified")}
-              className={`bg-white rounded-lg sm:rounded-xl shadow-md p-3 sm:p-6 border-l-4 border-red-500 cursor-pointer transition-all hover:shadow-lg ${
-                filterStatus === "unverified" ? "ring-2 ring-red-500" : ""
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-gray-600 text-xs sm:text-sm font-medium truncate">Unverified</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">{summary.unverified}</p>
+            {/* Instagram Block */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-2 border-b border-gray-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <Instagram className="w-4 h-4 text-[#E1306C]" />
+                  <h3 className="font-bold text-gray-800 text-sm">Instagram</h3>
                 </div>
-                <XCircle className="w-6 h-6 sm:w-10 sm:h-10 text-red-500 opacity-80 hidden sm:block" />
+                {instagramPages.length > 0 && (
+                  <button onClick={() => { setInstagramPages([]); toast.success("Disconnected Instagram"); }} className="text-gray-400 hover:text-red-500" title="Disconnect">
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+              {instagramPages.length > 0 ? (
+                  <div className="flex flex-col gap-2 flex-1 min-h-0">
+                    <div className="flex-1 overflow-y-auto max-h-[80px] space-y-1.5 pr-1">
+                        {instagramPages.map((p, i) => (
+                            <div key={i} className="bg-gray-50 p-1.5 rounded border border-gray-100 flex justify-between items-center group">
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-xs font-bold text-gray-800 truncate">@{p.igUsername}</span>
+                                  <span className="text-[9px] text-gray-500 truncate">ID: {p.igId}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => router.push(`/post-management?pageId=${instagramPages[0]?.igId}`)}
+                        className="w-full mt-auto bg-pink-50 text-pink-600 text-xs font-semibold py-1.5 rounded hover:bg-pink-100 transition flex items-center justify-center gap-1"
+                    >
+                        Manage Accounts
+                    </button>
+                  </div>
+              ) : (
+                  <div className="flex flex-col items-center justify-center flex-1 py-1 gap-2">
+                    <p className="text-[10px] text-gray-400">Not connected</p>
+                    <button 
+                      onClick={() => {
+                          const userId = localStorage.getItem("userId");
+                          if (!userId) return toast.error("Login first");
+                          window.location.href = `/api/instagram/login?userId=${userId}`;
+                      }}
+                      className="text-xs bg-[#E1306C] text-white px-3 py-1.5 rounded-lg hover:bg-pink-700 transition font-medium w-full flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Connect
+                    </button>
+                  </div>
+              )}
             </div>
 
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-md p-3 sm:p-6 border-l-4 border-yellow-500">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-gray-600 text-xs sm:text-sm font-medium truncate">Pending</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">{summary.pending}</p>
-                </div>
-                <AlertCircle className="w-6 h-6 sm:w-10 sm:h-10 text-yellow-500 opacity-80 hidden sm:block" />
-              </div>
-            </div>
           </div>
         )}
 
@@ -1869,10 +1991,7 @@ const NavLinks = ({ isAuthenticated }) => {
         )}
 
         {/* Connected Platforms Section */}
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"> */}
-          {/* <MetaConnectCard /> */}
-          {/* Add more integration cards here in future */}
-        {/* </div> */}
+        {/* {renderSocialGrid()} */}
 
         {/* Listings or Empty State */}
         {accounts.length === 0 && !loading && !noAccountsFound && initialFetchDone && (
@@ -1900,13 +2019,13 @@ const NavLinks = ({ isAuthenticated }) => {
             
             return (
               <div key={idx} className="mb-6 sm:mb-8">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl sm:rounded-t-2xl px-4 sm:px-6 py-3 sm:py-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 shadow-lg">
+                {/* <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl sm:rounded-t-2xl px-4 sm:px-6 py-3 sm:py-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 shadow-lg">
                   <h2 className="text-base sm:text-xl font-bold truncate">{acc.email}</h2>
                   <span className="text-xs sm:text-sm bg-white/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold backdrop-blur-sm whitespace-nowrap self-start sm:self-auto">
                     {filteredListings.length} {filteredListings.length === 1 ? "listing" : "listings"}
                     {filterStatus !== "all" && ` (${filterStatus})`}
                   </span>
-                </div>
+                </div> */}
 
                 {filteredListings.length === 0 ? (
                   <div className="bg-white rounded-b-xl sm:rounded-b-2xl shadow-lg p-8 sm:p-12 text-center">
@@ -1915,42 +2034,43 @@ const NavLinks = ({ isAuthenticated }) => {
                     <p className="text-gray-600 text-sm sm:text-base">Try selecting a different filter above.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 mt-3 sm:mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4">
                     {filteredListings.map((listing, i) => (
-                      <div key={i} className="bg-white rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-200">
-                        <div className="p-4 sm:p-6">
-                          <div className="flex justify-between items-start mb-3 sm:mb-4 gap-2">
+                      <div key={i} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-200 flex flex-col">
+                        <div className="p-3 sm:p-4 flex flex-col h-full">
+                          <div className="flex justify-between items-start mb-2 gap-2">
+                            {listing.logoUrl ? (
+                                <img src={listing.logoUrl} alt="Logo" className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0">
+                                    <Building2 className="w-5 h-5 text-blue-500" />
+                                </div>
+                            )}
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2 truncate">
+                              <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-0.5 truncate" title={listing.title || listing.name}>
                                 {listing.title || listing.name || "Unnamed Listing"}
                               </h3>
-                              <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-1.5 sm:gap-2 truncate">
-                                <Building2 className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                              <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1 truncate">
+                                <Building2 className="w-3 h-3 flex-shrink-0" />
                                 <span className="truncate">{listing.categories?.primaryCategory?.displayName || "Uncategorized"}</span>
                               </p>
                             </div>
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 scale-90 origin-top-right">
                               {getVerificationBadge(listing)}
                             </div>
                           </div>
 
-                          <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
-                            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-2.5 sm:p-3 rounded-lg border border-blue-200">
-                              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                                <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0" />
-                                <span className="text-xs font-semibold text-gray-700">Phone</span>
-                              </div>
-                              <p className="text-xs sm:text-sm text-gray-900 font-medium truncate">{listing.phoneNumbers?.primaryPhone || "N/A"}</p>
+                          <div className="space-y-1.5 mb-3 flex-1">
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <Phone className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                              <span className="truncate">{listing.phoneNumbers?.primaryPhone || "N/A"}</span>
                             </div>
 
-                            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-2.5 sm:p-3 rounded-lg border border-purple-200">
-                              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                                <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 flex-shrink-0" />
-                                <span className="text-xs font-semibold text-gray-700">Website</span>
-                              </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <Globe className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
                               <Link
                                 href={listing.websiteUri || "#"}
-                                className="text-xs sm:text-sm text-gray-900 font-medium truncate block hover:underline"
+                                className="truncate hover:text-blue-600 hover:underline"
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
@@ -1958,33 +2078,30 @@ const NavLinks = ({ isAuthenticated }) => {
                               </Link>
                             </div>
 
-                            <div className="bg-gradient-to-br from-green-50 to-green-100/50 p-2.5 sm:p-3 rounded-lg border border-green-200">
-                              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                                <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
-                                <span className="text-xs font-semibold text-gray-700">Address</span>
-                              </div>
-                              <p className="text-xs sm:text-sm text-gray-900 font-medium line-clamp-2">
+                            <div className="flex items-start gap-2 text-xs text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 text-green-500 flex-shrink-0 mt-0.5" />
+                              <span className="line-clamp-2">
                                 {listing.storefrontAddress?.addressLines?.join(", ") || "N/A"}
                                 {listing.storefrontAddress?.locality && `, ${listing.storefrontAddress.locality}`}
-                              </p>
+                              </span>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          <div className="grid grid-cols-2 gap-2 mt-auto pt-3 border-t border-gray-50">
                             <button
                               onClick={() => handleListingData(listing)}
-                              className="flex-1 min-w-[140px] px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg sm:rounded-xl hover:opacity-90 transition text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl flex items-center justify-center gap-1.5 sm:gap-2"
+                              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition text-xs font-semibold"
                             >
-                              <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              Manage Listing
+                              <Star className="w-3.5 h-3.5" />
+                              Manage
                             </button>
 
                             <button
                               onClick={() => handleViewInsights(listing)}
-                              className="flex-1 min-w-[140px] px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg sm:rounded-xl hover:opacity-90 transition text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl flex items-center justify-center gap-1.5 sm:gap-2"
+                              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition text-xs font-semibold"
                             >
-                              <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              View Insights
+                              <BarChart3 className="w-3.5 h-3.5" />
+                              Insights
                             </button>
                           </div>
                         </div>

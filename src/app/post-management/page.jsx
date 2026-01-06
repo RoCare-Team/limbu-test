@@ -37,6 +37,8 @@ import {
   Pencil,
   Facebook,
   Instagram,
+  ThumbsUp,
+  MessageCircle,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -682,6 +684,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
   const [isEditing, setIsEditing] = useState(false);
   const [showFull, setShowFull] = useState(false);
   const [editedDescription, setEditedDescription] = useState(post?.description || "");
+  const [fbStats, setFbStats] = useState(null);
 
   const handleSave = () => {
     onEditDescription(post._id, editedDescription);
@@ -692,6 +695,30 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
     setEditedDescription(post?.description || "");
     setIsEditing(false);
   };
+
+  useEffect(() => {
+    const fetchFbStats = async () => {
+      if (post.status === 'posted' && post.facebookPostId && post.facebookPageAccessToken) {
+        try {
+          // Fetch Likes
+          const likesRes = await fetch(`https://graph.facebook.com/v19.0/${post.facebookPostId}/likes?summary=true&limit=0&access_token=${post.facebookPageAccessToken}`);
+          const likesData = await likesRes.json();
+
+          // Fetch Comments
+          const commentsRes = await fetch(`https://graph.facebook.com/v19.0/${post.facebookPostId}/comments?summary=true&limit=0&access_token=${post.facebookPageAccessToken}`);
+          const commentsData = await commentsRes.json();
+
+          setFbStats({
+            likes: likesData.summary?.total_count || 0,
+            comments: commentsData.summary?.total_count || 0
+          });
+        } catch (error) {
+          console.error("Failed to fetch FB stats", error);
+        }
+      }
+    };
+    fetchFbStats();
+  }, [post]);
 
   return (
     <div className="group bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full">
@@ -815,6 +842,20 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
             : "Date unknown"}
         </div>
 
+        {/* Facebook Stats */}
+        {fbStats && (
+          <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-1.5 text-gray-600 text-xs font-medium">
+              <ThumbsUp className="w-3.5 h-3.5 text-blue-600" />
+              <span>{fbStats.likes} Likes</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-600 text-xs font-medium">
+              <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+              <span>{fbStats.comments} Comments</span>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons Area */}
         <div className="pt-1">
           {post.status === "pending" && (
@@ -859,7 +900,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                   </label> */}
               </div>
 
-              <button
+              {/* <button
   onClick={() => handlePost(post)}
   className="
     w-full flex items-center justify-center gap-2
@@ -874,7 +915,7 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
 >
   <Send className="w-4 h-4" />
   Post Now
-</button>
+</button> */}
 
               <button
                 onClick={() => handleInstagramPost(post)}
@@ -892,14 +933,17 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
                 Post to Facebook
               </button>
 
-              
-              <button
+<span className="text-xs text-gray-500">
+  Post will be published only after you click Publish
+</span>
+
+              {/* <button
                 onClick={() => onUpdateStatus(post)}
                 className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               >
                 <Calendar className="w-4 h-4" />
                 Schedule
-              </button>
+              </button> */}
             </div>
           )}
 
@@ -1862,10 +1906,19 @@ export default function PostManagementPage() {
       const data = await res.json();
 
       if (data.id || data.post_id) {
-         showToast("Post published on Facebook 🎉", "success");
+        showToast("Post published on Facebook 🎉", "success");
+        const facebookPostId = data.post_id || data.id;
+        await updatePostStatusAction({
+          id: post._id,
+          userId: localStorage.getItem("userId"),
+          facebookPostId: facebookPostId,
+          facebookPageAccessToken: accessToken,
+          status: "posted",
+        });
+        await fetchPosts(); // Refresh posts to get the updated data
       } else {
-         console.error("Facebook API Error:", data);
-         showToast(data.error?.message || "Failed to post to Facebook", "error");
+        console.error("Facebook API Error:", data);
+        showToast(data.error?.message || "Failed to post to Facebook", "error");
       }
 
     } catch (err) {
