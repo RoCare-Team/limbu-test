@@ -937,6 +937,8 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
   Post will be published only after you click Publish
 </span>
 
+<p>like: 0, comment: 0</p>
+
               {/* <button
                 onClick={() => onUpdateStatus(post)}
                 className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
@@ -1110,6 +1112,8 @@ const PostCard = ({ post, scheduleDates, onDateChange, onUpdateStatus, onReject,
       <Calendar className="w-4 h-4" />
       Schedule
     </button>
+    <p>like: 0, comment: 0</p>
+
   </div>
 )}
 
